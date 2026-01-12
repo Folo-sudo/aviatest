@@ -413,8 +413,8 @@ export function ClockAngleTest() {
     ctx.textBaseline = 'middle';
 
     const labelOffset = 12;
-    ctx.fillText('O', ox + labelOffset * Math.cos(oAngleRad), oy - labelOffset * Math.sin(oAngleRad));
-    ctx.fillText('A', ax + labelOffset * Math.cos(aAngleRad), ay - labelOffset * Math.sin(aAngleRad));
+    ctx.fillText('A', ox + labelOffset * Math.cos(oAngleRad), oy - labelOffset * Math.sin(oAngleRad));
+    ctx.fillText('O', ax + labelOffset * Math.cos(aAngleRad), ay - labelOffset * Math.sin(aAngleRad));
 
     // Button below
     const btnY = prop.y + prop.size + 8;

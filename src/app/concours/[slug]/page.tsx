@@ -15,7 +15,7 @@ import {
 import StructuredData from '@/components/seo/StructuredData';
 import { ArrowLeft, Clock } from 'lucide-react';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: competition.seoDescription,
       type: 'website',
       url: `${BASE_URL}/concours/${competition.slug}`,
-      siteName: 'PsychoTech Training',
+      siteName: 'AviaTest',
       locale: 'fr_FR',
     },
     twitter: {

@@ -104,7 +104,7 @@ export const COMPETITIONS: Record<CompetitionId, Competition> = {
     description:
       'Premiere phase de selection psychotechnique du programme Cadets Air France. Tests d\'attention, de memoire et d\'orientation spatiale.',
     organization: 'Air France',
-    seoTitle: 'Tests PSY0 Cadets Air France - Entrainement Gratuit | PsychoTech',
+    seoTitle: 'Tests PSY0 Cadets Air France - Entrainement Gratuit | AviaTest',
     seoDescription:
       'Preparez le PSY0 Cadets Air France avec nos exercices d\'entrainement gratuits. Tests psychotechniques realistes : attention, orientation spatiale, memoire de travail.',
     seoKeywords: [
@@ -123,7 +123,7 @@ export const COMPETITIONS: Record<CompetitionId, Competition> = {
     description:
       'Seconde phase de selection psychotechnique du programme Cadets Air France. Tests avances incluant psychomotricite et raisonnement logique.',
     organization: 'Air France',
-    seoTitle: 'Tests PSY1 Cadets Air France - Entrainement Gratuit | PsychoTech',
+    seoTitle: 'Tests PSY1 Cadets Air France - Entrainement Gratuit | AviaTest',
     seoDescription:
       'Preparez le PSY1 Cadets Air France avec nos exercices avances. Tests psychomoteurs, rotation mentale 3D et raisonnement logique pour la selection pilote.',
     seoKeywords: [
@@ -142,7 +142,7 @@ export const COMPETITIONS: Record<CompetitionId, Competition> = {
     description:
       'Tests psychotechniques du concours ENAC Eleve Pilote de Ligne. Batterie complete incluant orientation spatiale, memoire et raisonnement.',
     organization: 'ENAC',
-    seoTitle: 'Tests Psychotechniques ENAC EPL - Preparation Gratuite | PsychoTech',
+    seoTitle: 'Tests Psychotechniques ENAC EPL - Preparation Gratuite | AviaTest',
     seoDescription:
       'Entrainement aux tests psychotechniques du concours ENAC EPL. Exercices realistes pour la selection pilote de ligne : spatial, memoire, logique.',
     seoKeywords: [
@@ -190,7 +190,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'spatiale',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'moyen',
-    seoTitle: "Test Angles d'Horloge - Orientation Spatiale Pilote | PsychoTech",
+    seoTitle: "Test Angles d'Horloge - Orientation Spatiale Pilote | AviaTest",
     seoDescription:
       "Entrainement au test d'angles d'horloge pour les selections pilote. Exercice d'orientation spatiale utilise dans les PSY0, PSY1 et ENAC EPL.",
     seoKeywords: [
@@ -214,7 +214,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'attention',
     competitions: ['psy0', 'psy1'],
     difficulty: 'moyen',
-    seoTitle: 'Test Pair Impair - Attention Divisee Pilote | PsychoTech',
+    seoTitle: 'Test Pair Impair - Attention Divisee Pilote | AviaTest',
     seoDescription:
       "Test d'attention divisee pair/impair pour selection pilote. Exercice d'entrainement PSY0 et PSY1 Cadets Air France.",
     seoKeywords: [
@@ -238,7 +238,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'attention',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'difficile',
-    seoTitle: 'Test Un Mot Sur Deux - Attention Verbale Pilote | PsychoTech',
+    seoTitle: 'Test Un Mot Sur Deux - Attention Verbale Pilote | AviaTest',
     seoDescription:
       "Test d'attention verbale un mot sur deux pour selections pilote. Entrainement PSY0, PSY1 et ENAC EPL.",
     seoKeywords: [
@@ -262,7 +262,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'psychomoteur',
     competitions: ['psy0', 'psy1'],
     difficulty: 'moyen',
-    seoTitle: 'Test Formes et Couleurs - Rapidite Cognitive Pilote | PsychoTech',
+    seoTitle: 'Test Formes et Couleurs - Rapidite Cognitive Pilote | AviaTest',
     seoDescription:
       'Test de rapidite cognitive formes et couleurs pour selections pilote. Entrainement PSY0 et PSY1.',
     seoKeywords: [
@@ -286,7 +286,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'intellectuel',
     competitions: ['psy1', 'enac-epl'],
     difficulty: 'difficile',
-    seoTitle: 'Test Jeu des Billes - Logique Pilote | PsychoTech',
+    seoTitle: 'Test Jeu des Billes - Logique Pilote | AviaTest',
     seoDescription:
       'Test de logique jeu des billes pour selections pilote. Entrainement PSY1 et ENAC EPL.',
     seoKeywords: [
@@ -310,7 +310,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'memorisation',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'moyen',
-    seoTitle: 'Test M2 Back - Memoire de Travail Pilote | PsychoTech',
+    seoTitle: 'Test M2 Back - Memoire de Travail Pilote | AviaTest',
     seoDescription:
       'Test de memoire de travail M2-Back pour selections pilote. Entrainement PSY0, PSY1 et ENAC EPL.',
     seoKeywords: [
@@ -334,7 +334,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'memorisation',
     competitions: ['psy1', 'enac-epl'],
     difficulty: 'difficile',
-    seoTitle: 'Test M3 Back - Memoire de Travail Avancee Pilote | PsychoTech',
+    seoTitle: 'Test M3 Back - Memoire de Travail Avancee Pilote | AviaTest',
     seoDescription:
       'Test de memoire de travail avance M3-Back pour selections pilote. Entrainement PSY1 et ENAC EPL.',
     seoKeywords: [
@@ -358,7 +358,7 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'spatiale',
     competitions: ['psy1', 'enac-epl'],
     difficulty: 'difficile',
-    seoTitle: 'Test Rotation Mentale 3D - Visualisation Spatiale Pilote | PsychoTech',
+    seoTitle: 'Test Rotation Mentale 3D - Visualisation Spatiale Pilote | AviaTest',
     seoDescription:
       'Test de rotation mentale 3D pour selections pilote. Entrainement avance PSY1 et ENAC EPL.',
     seoKeywords: [

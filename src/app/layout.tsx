@@ -23,13 +23,13 @@ const playfairDisplay = Playfair_Display({
   weight: ["400", "500", "600", "700"],
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://psychotech-training.fr";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://aviatest.fr";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "PsychoTech Training - Tests Psychotechniques Pilote Gratuits",
-    template: "%s | PsychoTech Training",
+    default: "AviaTest - Tests Psychotechniques Pilote Gratuits",
+    template: "%s | AviaTest",
   },
   description:
     "Entrainement gratuit aux tests psychotechniques pour les selections pilote ENAC EPL, Cadets Air France. Exercices realistes: orientation spatiale, attention, memoire, logique.",
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     "test psychotechnique gratuit",
     "selection pilote de ligne",
   ],
-  authors: [{ name: "PsychoTech Training" }],
-  creator: "PsychoTech Training",
-  publisher: "PsychoTech Training",
+  authors: [{ name: "AviaTest" }],
+  creator: "AviaTest",
+  publisher: "AviaTest",
   robots: {
     index: true,
     follow: true,
@@ -62,8 +62,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_FR",
     url: BASE_URL,
-    siteName: "PsychoTech Training",
-    title: "PsychoTech Training - Tests Psychotechniques Pilote Gratuits",
+    siteName: "AviaTest",
+    title: "AviaTest - Tests Psychotechniques Pilote Gratuits",
     description:
       "Preparation gratuite aux selections pilote de ligne. Tests PSY0, PSY1 Cadets Air France et ENAC EPL.",
     images: [
@@ -71,13 +71,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "PsychoTech Training - Tests Psychotechniques Pilote",
+        alt: "AviaTest - Tests Psychotechniques Pilote",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PsychoTech Training - Tests Psychotechniques Pilote",
+    title: "AviaTest - Tests Psychotechniques Pilote",
     description: "Preparation gratuite aux selections pilote de ligne",
     images: ["/og-image.png"],
   },

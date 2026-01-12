@@ -5,7 +5,7 @@ import { generateExerciseStructuredData, generateBreadcrumbStructuredData } from
 import StructuredData from '@/components/seo/StructuredData';
 import ExerciseClient from './ExerciseClient';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: exercise.seoDescription,
       type: 'website',
       url: `${BASE_URL}/exercices/${exercise.slug}`,
-      siteName: 'PsychoTech Training',
+      siteName: 'AviaTest',
       locale: 'fr_FR',
     },
     twitter: {

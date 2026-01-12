@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { EXERCISES, getAllCompetitions } from '@/lib/data/exercises';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [

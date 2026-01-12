@@ -4,7 +4,7 @@ import {
   EXERCISE_TYPES,
 } from '@/lib/data/exercises';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
 // ============================================================================
 // Exercice → LearningResource
@@ -35,7 +35,7 @@ export function generateExerciseStructuredData(exercise: ExerciseConfig) {
     },
     provider: {
       '@type': 'Organization',
-      name: 'PsychoTech Training',
+      name: 'AviaTest',
       url: BASE_URL,
     },
   };
@@ -56,7 +56,7 @@ export function generateCompetitionStructuredData(
     description: competition.description,
     provider: {
       '@type': 'Organization',
-      name: 'PsychoTech Training',
+      name: 'AviaTest',
       url: BASE_URL,
     },
     isAccessibleForFree: true,
@@ -80,7 +80,7 @@ export function generateWebsiteStructuredData() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'PsychoTech Training',
+    name: 'AviaTest',
     url: BASE_URL,
     description:
       'Entrainement gratuit aux tests psychotechniques pour les selections pilote de ligne',
@@ -100,7 +100,7 @@ export function generateOrganizationStructuredData() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'PsychoTech Training',
+    name: 'AviaTest',
     url: BASE_URL,
     logo: `${BASE_URL}/logo.png`,
     description:

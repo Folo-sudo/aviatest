@@ -9,7 +9,7 @@ import StructuredData from '@/components/seo/StructuredData';
 import { generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
 import { ChevronRight, Plane } from 'lucide-react';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
 export const metadata: Metadata = {
   title: 'Concours Pilote - PSY0, PSY1, ENAC EPL',

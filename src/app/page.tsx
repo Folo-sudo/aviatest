@@ -247,7 +247,7 @@ export default function Home() {
                 className="text-xl font-semibold"
                 style={{ color: homeStyles.colors.text }}
               >
-                PsychoTech
+                AviaTest
               </span>
             </div>
             <nav className="flex items-center gap-4">
@@ -382,7 +382,7 @@ export default function Home() {
                   className="font-semibold"
                   style={{ color: homeStyles.colors.text }}
                 >
-                  PsychoTech Training
+                  AviaTest
                 </span>
               </div>
               <p
