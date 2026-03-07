@@ -191,7 +191,7 @@ export default async function CompetitionPage({ params }: Props) {
                     }
 
                     return (
-                      <Link key={exercise.id} href={exerciseUrl}>
+                      <Link key={exercise.id} href={exerciseUrl} target="_blank">
                         <article
                           className="h-full bg-white rounded-xl border border-[#e0dedb] hover:shadow-lg transition-all hover:scale-[1.02] p-6"
                           style={{ borderLeft: `4px solid ${typeConfig.color}` }}

@@ -75,7 +75,7 @@ export default function ExercicesPage() {
               }
 
               return (
-                <Link key={exercise.id} href={exerciseUrl}>
+                <Link key={exercise.id} href={exerciseUrl} target="_blank">
                   <article
                     className="h-full p-6 bg-white rounded-xl border border-[#e0dedb] hover:shadow-lg transition-shadow"
                     style={{ borderLeft: `4px solid ${primaryType.color}` }}

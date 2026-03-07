@@ -76,7 +76,7 @@ function ExerciseCard({ exercise }: { exercise: ExerciseConfig }) {
   }
 
   return (
-    <Link href={exerciseUrl}>
+    <Link href={exerciseUrl} target="_blank">
       <div
         className="h-full cursor-pointer transition-transform hover:scale-[1.02]"
         style={{
