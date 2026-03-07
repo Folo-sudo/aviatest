@@ -49,10 +49,25 @@ function randInt(min: number, max: number): number {
 }
 
 function generateCalc(): { expr: string; answer: number } {
-  const a = randInt(1, 10);
-  const b = randInt(1, 10);
-  const c = randInt(1, 10);
-  const d = randInt(1, 10);
+  // Range 2-10 (no 1), with reduced probability of duplicate digits
+  const pickDigit = () => randInt(2, 10);
+
+  let a: number, b: number, c: number, d: number;
+  const MAX_RETRIES = 20;
+  let retries = 0;
+
+  do {
+    a = pickDigit();
+    b = pickDigit();
+    c = pickDigit();
+    d = pickDigit();
+    retries++;
+    // Check for duplicates — allow ~20% of the time, reject otherwise
+    const digits = [a, b, c, d];
+    const hasDup = new Set(digits).size < digits.length;
+    if (!hasDup || Math.random() < 0.2 || retries >= MAX_RETRIES) break;
+  } while (true);
+
   const op = Math.random() < 0.5 ? '+' : '-';
   const answer = op === '+' ? a * b + c * d : a * b - c * d;
   const expr = `${a} x ${b} ${op} ${c} x ${d}`;
