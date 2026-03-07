@@ -371,6 +371,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 12,
     ready: true,
   },
+  {
+    id: 'calcul-memo',
+    slug: 'calcul-memorisation',
+    title: 'Calcul & Memorisation',
+    description: 'Double tache : calcul mental et memorisation de lettres en salves successives',
+    longDescription:
+      'Ce test evalue votre capacite de double tache. Chaque salve alterne calculs mentaux (a*b+c*d ou a*b-c*d) et lettres a memoriser. A la fin de chaque salve, vous devez restituer les lettres dans le bon ordre. 10 salves, 4 a 9 lettres par salve, 10 secondes par element.',
+    types: ['memorisation', 'numerique', 'attention'],
+    primaryType: 'memorisation',
+    competitions: ['psy1', 'enac-epl'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Calcul & Memorisation - Double Tache Pilote | AviaTest',
+    seoDescription:
+      'Test de double tache calcul mental et memorisation pour selections pilote. Entrainement PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test double tache pilote',
+      'calcul mental memorisation',
+      'test psychotechnique double tache',
+      'multitache psy1',
+      'dual task pilote',
+    ],
+    iconName: 'BrainCircuit',
+    estimatedDuration: 15,
+    ready: true,
+  },
 ];
 
 // ============================================================================

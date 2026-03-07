@@ -31,6 +31,10 @@ const MentalRotationTest = dynamic(
   () => import('@/components/exercises/MentalRotationTest'),
   { ssr: false }
 );
+const CalculMemoTest = dynamic(
+  () => import('@/components/exercises/CalculMemoTest'),
+  { ssr: false }
+);
 
 // Map slug to component
 const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = {
@@ -41,6 +45,7 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'jeu-des-billes': BillesTest,
   'm-back': MBackTest,
   'rotation-mentale-3d': MentalRotationTest,
+  'calcul-memorisation': CalculMemoTest,
 };
 
 function ExerciseLoader({ slug }: { slug: string }) {
