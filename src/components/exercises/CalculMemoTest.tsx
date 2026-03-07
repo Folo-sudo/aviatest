@@ -5,7 +5,7 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, RotateCcw, Home } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Home, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -21,12 +21,20 @@ type SalvePhase =
   | { kind: 'letter'; letter: string }
   | { kind: 'recall' };
 
+interface CalcRecord {
+  expr: string;
+  correctAnswer: number;
+  userAnswer: number | null;
+  isCorrect: boolean;
+}
+
 interface SalveResult {
   letters: string[];
   userAnswers: (string | null)[];
   correctCount: number;
   calcCorrect: number;
   calcTotal: number;
+  calcs: CalcRecord[];
 }
 
 // ============================================================================
@@ -95,8 +103,9 @@ export default function CalculMemoTest() {
 
   // Calc answer input
   const [calcInput, setCalcInput] = useState('');
-  const [calcFeedback, setCalcFeedback] = useState<'correct' | 'wrong' | null>(null);
   const currentCalcAnswerRef = useRef(0);
+  const currentCalcExprRef = useRef('');
+  const salveCalcRecordsRef = useRef<CalcRecord[]>([]);
 
   // Timer
   const [timeLeft, setTimeLeft] = useState(DISPLAY_TIME_MS);
@@ -158,8 +167,8 @@ export default function CalculMemoTest() {
       // Calc
       const calc = generateCalc();
       currentCalcAnswerRef.current = calc.answer;
+      currentCalcExprRef.current = calc.expr;
       setCalcInput('');
-      setCalcFeedback(null);
       setPhase({ kind: 'calc', expr: calc.expr, answer: calc.answer });
       startTimer();
     } else {
@@ -176,7 +185,12 @@ export default function CalculMemoTest() {
     if (timeLeft <= 0 && (phase.kind === 'calc' || phase.kind === 'letter')) {
       if (phase.kind === 'calc') {
         salveCalcTotalRef.current += 1;
-        // No answer given = wrong
+        salveCalcRecordsRef.current = [...salveCalcRecordsRef.current, {
+          expr: currentCalcExprRef.current,
+          correctAnswer: currentCalcAnswerRef.current,
+          userAnswer: null,
+          isCorrect: false,
+        }];
       }
       advanceInSalve();
     }
@@ -186,6 +200,7 @@ export default function CalculMemoTest() {
     salveLettersRef.current = [];
     salveCalcCorrectRef.current = 0;
     salveCalcTotalRef.current = 0;
+    salveCalcRecordsRef.current = [];
     salveItemIndexRef.current = 0;
     salveTotalLettersRef.current = randInt(4, 9);
     setSalveIndex(index);
@@ -215,16 +230,19 @@ export default function CalculMemoTest() {
   const submitCalc = useCallback(() => {
     if (phase.kind !== 'calc') return;
     const userVal = parseInt(calcInput, 10);
+    const isCorrect = userVal === currentCalcAnswerRef.current;
     salveCalcTotalRef.current += 1;
-    if (userVal === currentCalcAnswerRef.current) {
+    if (isCorrect) {
       salveCalcCorrectRef.current += 1;
-      setCalcFeedback('correct');
-    } else {
-      setCalcFeedback('wrong');
     }
+    salveCalcRecordsRef.current = [...salveCalcRecordsRef.current, {
+      expr: currentCalcExprRef.current,
+      correctAnswer: currentCalcAnswerRef.current,
+      userAnswer: userVal,
+      isCorrect,
+    }];
     clearTimer();
-    // Brief pause then advance
-    setTimeout(() => advanceInSalve(), 800);
+    advanceInSalve();
   }, [phase.kind, calcInput, clearTimer, advanceInSalve]);
 
   // ---- Recall submission ----
@@ -245,6 +263,7 @@ export default function CalculMemoTest() {
       correctCount,
       calcCorrect: salveCalcCorrectRef.current,
       calcTotal: salveCalcTotalRef.current,
+      calcs: salveCalcRecordsRef.current,
     };
 
     setSalveResults((prev) => [...prev, result]);
@@ -458,23 +477,17 @@ export default function CalculMemoTest() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && calcInput !== '') submitCalc();
                   }}
-                  disabled={calcFeedback !== null}
                   placeholder="?"
-                  className="w-32 text-center text-2xl font-bold border-2 border-slate-300 rounded-lg py-2 focus:border-amber-500 focus:outline-none disabled:opacity-50"
+                  className="w-32 text-center text-2xl font-bold border-2 border-slate-300 rounded-lg py-2 focus:border-amber-500 focus:outline-none"
                 />
                 <Button
                   onClick={submitCalc}
-                  disabled={calcInput === '' || calcFeedback !== null}
+                  disabled={calcInput === ''}
                   size="lg"
                 >
                   OK
                 </Button>
               </div>
-              {calcFeedback && (
-                <p className={`text-lg font-semibold ${calcFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
-                  {calcFeedback === 'correct' ? 'Correct !' : `Faux ! Reponse : ${currentCalcAnswerRef.current}`}
-                </p>
-              )}
             </CardContent>
           </Card>
         )}
@@ -490,6 +503,14 @@ export default function CalculMemoTest() {
               <p className="text-slate-500">
                 Lettre {salveLettersRef.current.length} / {salveTotalLettersRef.current}
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => advanceInSalve()}
+                className="mt-2"
+              >
+                Suivant <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -557,15 +578,39 @@ export default function CalculMemoTest() {
                   Valider
                 </Button>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="text-center">
                     <p className="text-lg font-semibold">
                       {recallResults.filter(Boolean).length} / {recallResults.length} lettres correctes
                     </p>
-                    <p className="text-sm text-slate-500">
-                      Calculs : {salveCalcCorrectRef.current} / {salveCalcTotalRef.current}
-                    </p>
                   </div>
+
+                  {/* Calc results - shown after letter validation */}
+                  <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
+                    <p className="text-sm font-semibold text-slate-600 mb-2">
+                      Resultats calculs : {salveCalcCorrectRef.current}/{salveCalcTotalRef.current}
+                    </p>
+                    {salveCalcRecordsRef.current.map((calc, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="font-mono text-slate-700">{calc.expr}</span>
+                        <span className="flex items-center gap-2">
+                          {calc.userAnswer !== null ? (
+                            <>
+                              <span className={calc.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 line-through'}>
+                                {calc.userAnswer}
+                              </span>
+                              {!calc.isCorrect && (
+                                <span className="text-green-600 font-semibold">{calc.correctAnswer}</span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-orange-500 italic">temps ecoule ({calc.correctAnswer})</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
                   <Button className="w-full" size="lg" onClick={nextSalveOrEnd}>
                     {salveIndex + 1 >= 10 ? 'Voir les resultats' : `Salve ${salveIndex + 2} →`}
                   </Button>
