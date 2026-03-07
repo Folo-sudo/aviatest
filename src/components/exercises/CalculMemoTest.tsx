@@ -124,6 +124,8 @@ export default function CalculMemoTest() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const [scorer] = useState(() => new Scorer());
 
   // Salve tracking
@@ -208,13 +210,13 @@ export default function CalculMemoTest() {
       currentCalcExprRef.current = calc.expr;
       setCalcInput('');
       setPhase({ kind: 'calc', expr: calc.expr, answer: calc.answer });
-      startTimer(settings.calcTimeMs);
+      startTimer(settingsRef.current.calcTimeMs);
     } else {
       // Letter
       const letter = generateLetter(salveLettersRef.current);
       salveLettersRef.current = [...salveLettersRef.current, letter];
       setPhase({ kind: 'letter', letter });
-      startTimer(settings.letterTimeMs);
+      startTimer(settingsRef.current.letterTimeMs);
     }
   }, [clearTimer, startTimer]);
 
@@ -240,7 +242,7 @@ export default function CalculMemoTest() {
     salveCalcTotalRef.current = 0;
     salveCalcRecordsRef.current = [];
     salveItemIndexRef.current = 0;
-    salveTotalLettersRef.current = randInt(settings.minLetters, settings.maxLetters);
+    salveTotalLettersRef.current = randInt(settingsRef.current.minLetters, settingsRef.current.maxLetters);
     setSalveIndex(index);
 
     // 3-2-1 countdown
@@ -307,24 +309,24 @@ export default function CalculMemoTest() {
     setSalveResults((prev) => [...prev, result]);
 
     // In exam mode, skip feedback and go straight to next salve
-    if (settings.examMode) {
+    if (settingsRef.current.examMode) {
       const nextIdx = salveIndex + 1;
-      if (nextIdx >= settings.totalSalves) {
+      if (nextIdx >= settingsRef.current.totalSalves) {
         setGameState('results');
       } else {
         startSalve(nextIdx);
       }
     }
-  }, [recallSelections, scorer, settings.examMode, settings.totalSalves, salveIndex, startSalve]);
+  }, [recallSelections, scorer, salveIndex, startSalve]);
 
   const nextSalveOrEnd = useCallback(() => {
     const nextIdx = salveIndex + 1;
-    if (nextIdx >= settings.totalSalves) {
+    if (nextIdx >= settingsRef.current.totalSalves) {
       setGameState('results');
     } else {
       startSalve(nextIdx);
     }
-  }, [salveIndex, settings.totalSalves, startSalve]);
+  }, [salveIndex, startSalve]);
 
   // ---- Keyboard handling for calc input ----
   const calcInputRef = useRef<HTMLInputElement>(null);
