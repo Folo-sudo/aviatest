@@ -5,14 +5,26 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, RotateCcw, Home, ChevronRight } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type GameState = 'menu' | 'playing' | 'results';
+type GameState = 'menu' | 'settings' | 'playing' | 'results';
+
+interface GameSettings {
+  totalSalves: number;
+  minLetters: number;
+  maxLetters: number;
+  calcTimeMs: number;
+  letterTimeMs: number;
+  examMode: boolean; // no feedback between salves
+}
 
 /** What is currently shown during a salve */
 type SalvePhase =
@@ -42,7 +54,15 @@ interface SalveResult {
 // ============================================================================
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const DISPLAY_TIME_MS = 10_000; // 10 seconds per item
+
+const DEFAULT_SETTINGS: GameSettings = {
+  totalSalves: 10,
+  minLetters: 4,
+  maxLetters: 9,
+  calcTimeMs: 10_000,
+  letterTimeMs: 10_000,
+  examMode: false,
+};
 
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -103,6 +123,7 @@ function buildChoices(correct: string): string[] {
 export default function CalculMemoTest() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState>('menu');
+  const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
   const [scorer] = useState(() => new Scorer());
 
   // Salve tracking
@@ -123,7 +144,8 @@ export default function CalculMemoTest() {
   const salveCalcRecordsRef = useRef<CalcRecord[]>([]);
 
   // Timer
-  const [timeLeft, setTimeLeft] = useState(DISPLAY_TIME_MS);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [currentPhaseDuration, setCurrentPhaseDuration] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseStartRef = useRef(0);
 
@@ -144,13 +166,14 @@ export default function CalculMemoTest() {
     }
   }, []);
 
-  const startTimer = useCallback(() => {
+  const startTimer = useCallback((durationMs: number) => {
     clearTimer();
     phaseStartRef.current = Date.now();
-    setTimeLeft(DISPLAY_TIME_MS);
+    setCurrentPhaseDuration(durationMs);
+    setTimeLeft(durationMs);
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - phaseStartRef.current;
-      const left = Math.max(0, DISPLAY_TIME_MS - elapsed);
+      const left = Math.max(0, durationMs - elapsed);
       setTimeLeft(left);
     }, 50);
   }, [clearTimer]);
@@ -185,13 +208,13 @@ export default function CalculMemoTest() {
       currentCalcExprRef.current = calc.expr;
       setCalcInput('');
       setPhase({ kind: 'calc', expr: calc.expr, answer: calc.answer });
-      startTimer();
+      startTimer(settings.calcTimeMs);
     } else {
       // Letter
       const letter = generateLetter(salveLettersRef.current);
       salveLettersRef.current = [...salveLettersRef.current, letter];
       setPhase({ kind: 'letter', letter });
-      startTimer();
+      startTimer(settings.letterTimeMs);
     }
   }, [clearTimer, startTimer]);
 
@@ -217,7 +240,7 @@ export default function CalculMemoTest() {
     salveCalcTotalRef.current = 0;
     salveCalcRecordsRef.current = [];
     salveItemIndexRef.current = 0;
-    salveTotalLettersRef.current = randInt(4, 9);
+    salveTotalLettersRef.current = randInt(settings.minLetters, settings.maxLetters);
     setSalveIndex(index);
 
     // 3-2-1 countdown
@@ -282,16 +305,26 @@ export default function CalculMemoTest() {
     };
 
     setSalveResults((prev) => [...prev, result]);
-  }, [recallSelections, scorer]);
+
+    // In exam mode, skip feedback and go straight to next salve
+    if (settings.examMode) {
+      const nextIdx = salveIndex + 1;
+      if (nextIdx >= settings.totalSalves) {
+        setGameState('results');
+      } else {
+        startSalve(nextIdx);
+      }
+    }
+  }, [recallSelections, scorer, settings.examMode, settings.totalSalves, salveIndex, startSalve]);
 
   const nextSalveOrEnd = useCallback(() => {
     const nextIdx = salveIndex + 1;
-    if (nextIdx >= 10) {
+    if (nextIdx >= settings.totalSalves) {
       setGameState('results');
     } else {
       startSalve(nextIdx);
     }
-  }, [salveIndex, startSalve]);
+  }, [salveIndex, settings.totalSalves, startSalve]);
 
   // ---- Keyboard handling for calc input ----
   const calcInputRef = useRef<HTMLInputElement>(null);
@@ -336,25 +369,152 @@ export default function CalculMemoTest() {
 
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">10</p>
+                <p className="text-xl font-bold text-slate-700">{settings.totalSalves}</p>
                 <p className="text-xs text-slate-500">Salves</p>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">4-9</p>
+                <p className="text-xl font-bold text-slate-700">
+                  {settings.minLetters === settings.maxLetters
+                    ? settings.minLetters
+                    : `${settings.minLetters}-${settings.maxLetters}`}
+                </p>
                 <p className="text-xs text-slate-500">Lettres/salve</p>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">10s</p>
-                <p className="text-xs text-slate-500">Par element</p>
+                <p className="text-xl font-bold text-slate-700">
+                  {settings.calcTimeMs / 1000}s / {settings.letterTimeMs / 1000}s
+                </p>
+                <p className="text-xs text-slate-500">Calcul / Lettre</p>
               </div>
             </div>
+
+            {settings.examMode && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-700 text-center">
+                ⚡ Mode examen — resultats uniquement a la fin
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>
                 <Play className="mr-2 h-5 w-5" /> Commencer
               </Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
+                <Settings className="mr-2 h-5 w-5" /> Parametres
+              </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <ArrowLeft className="mr-2 h-5 w-5" /> Retour
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ---- SETTINGS ----
+  if (gameState === 'settings') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle>Parametres</CardTitle>
+            <CardDescription>Ajustez le test a votre niveau</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-5">
+              {/* Total salves */}
+              <div>
+                <Label>Nombre de salves : {settings.totalSalves}</Label>
+                <Slider
+                  value={[settings.totalSalves]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, totalSalves: v }))}
+                  min={1}
+                  max={20}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Min letters */}
+              <div>
+                <Label>Lettres minimum par salve : {settings.minLetters}</Label>
+                <Slider
+                  value={[settings.minLetters]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({
+                      ...s,
+                      minLetters: v,
+                      maxLetters: Math.max(v, s.maxLetters),
+                    }))
+                  }
+                  min={2}
+                  max={12}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Max letters */}
+              <div>
+                <Label>Lettres maximum par salve : {settings.maxLetters}</Label>
+                <Slider
+                  value={[settings.maxLetters]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({
+                      ...s,
+                      maxLetters: v,
+                      minLetters: Math.min(v, s.minLetters),
+                    }))
+                  }
+                  min={2}
+                  max={12}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Calc time */}
+              <div>
+                <Label>Temps par calcul : {settings.calcTimeMs / 1000}s</Label>
+                <Slider
+                  value={[settings.calcTimeMs / 1000]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, calcTimeMs: v * 1000 }))}
+                  min={3}
+                  max={30}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Letter time */}
+              <div>
+                <Label>Temps par lettre : {settings.letterTimeMs / 1000}s</Label>
+                <Slider
+                  value={[settings.letterTimeMs / 1000]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, letterTimeMs: v * 1000 }))}
+                  min={1}
+                  max={20}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Exam mode */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Mode examen</Label>
+                  <p className="text-xs text-slate-500 mt-0.5">Pas de score entre les salves</p>
+                </div>
+                <Switch
+                  checked={settings.examMode}
+                  onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="w-full" onClick={() => setGameState('menu')}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Retour
               </Button>
             </div>
           </CardContent>
@@ -436,7 +596,7 @@ export default function CalculMemoTest() {
   }
 
   // ---- PLAYING ----
-  const timerPercent = (timeLeft / DISPLAY_TIME_MS) * 100;
+  const timerPercent = currentPhaseDuration > 0 ? (timeLeft / currentPhaseDuration) * 100 : 0;
   const timerColor = timerPercent > 50 ? 'bg-amber-500' : timerPercent > 20 ? 'bg-orange-500' : 'bg-red-500';
 
   return (
@@ -445,7 +605,7 @@ export default function CalculMemoTest() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <Badge variant="outline" className="text-base px-3 py-1">
-            Salve {salveIndex + 1} / 10
+            Salve {salveIndex + 1} / {settings.totalSalves}
           </Badge>
           {phase.kind !== 'countdown' && phase.kind !== 'recall' && (
             <div className="text-sm text-slate-500">
@@ -546,11 +706,12 @@ export default function CalculMemoTest() {
                       <span className="text-xs text-slate-400 font-semibold mb-1">#{colIdx + 1}</span>
                       {choices.map((letter) => {
                         const isSelected = recallSelections[colIdx] === letter;
-                        const isCorrect = recallSubmitted && letter === salveLettersRef.current[colIdx];
-                        const isWrong = recallSubmitted && isSelected && !isCorrect;
+                        const showFeedback = recallSubmitted && !settings.examMode;
+                        const isCorrect = showFeedback && letter === salveLettersRef.current[colIdx];
+                        const isWrong = showFeedback && isSelected && letter !== salveLettersRef.current[colIdx];
 
                         let btnClass = 'w-11 h-11 text-lg font-bold rounded-lg border-2 transition-all ';
-                        if (recallSubmitted) {
+                        if (showFeedback) {
                           if (isCorrect) btnClass += 'bg-green-100 border-green-500 text-green-700';
                           else if (isWrong) btnClass += 'bg-red-100 border-red-500 text-red-700';
                           else btnClass += 'bg-slate-50 border-slate-200 text-slate-400';
@@ -592,7 +753,7 @@ export default function CalculMemoTest() {
                 >
                   Valider
                 </Button>
-              ) : (
+              ) : !settings.examMode ? (
                 <div className="space-y-4">
                   <div className="text-center">
                     <p className="text-lg font-semibold">
@@ -627,10 +788,10 @@ export default function CalculMemoTest() {
                   </div>
 
                   <Button className="w-full" size="lg" onClick={nextSalveOrEnd}>
-                    {salveIndex + 1 >= 10 ? 'Voir les resultats' : `Salve ${salveIndex + 2} →`}
+                    {salveIndex + 1 >= settings.totalSalves ? 'Voir les resultats' : `Salve ${salveIndex + 2} →`}
                   </Button>
                 </div>
-              )}
+              ) : null /* exam mode: submitRecall already advances */}
             </CardContent>
           </Card>
         )}
