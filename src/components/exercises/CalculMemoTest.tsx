@@ -141,6 +141,7 @@ export default function CalculMemoTest() {
 
   // Calc answer input
   const [calcInput, setCalcInput] = useState('');
+  const calcInputValueRef = useRef(''); // mirror of calcInput for timer expiry
   const currentCalcAnswerRef = useRef(0);
   const currentCalcExprRef = useRef('');
   const salveCalcRecordsRef = useRef<CalcRecord[]>([]);
@@ -209,6 +210,7 @@ export default function CalculMemoTest() {
       currentCalcAnswerRef.current = calc.answer;
       currentCalcExprRef.current = calc.expr;
       setCalcInput('');
+      calcInputValueRef.current = '';
       setPhase({ kind: 'calc', expr: calc.expr, answer: calc.answer });
       startTimer(settingsRef.current.calcTimeMs);
     } else {
@@ -224,12 +226,19 @@ export default function CalculMemoTest() {
   useEffect(() => {
     if (timeLeft <= 0 && (phase.kind === 'calc' || phase.kind === 'letter')) {
       if (phase.kind === 'calc') {
+        // If the user typed an answer but didn't press OK, auto-validate it
+        const typed = calcInputValueRef.current.trim();
+        const userVal = typed !== '' ? parseInt(typed, 10) : null;
+        const isCorrect = userVal !== null && !isNaN(userVal) && userVal === currentCalcAnswerRef.current;
         salveCalcTotalRef.current += 1;
+        if (isCorrect) {
+          salveCalcCorrectRef.current += 1;
+        }
         salveCalcRecordsRef.current = [...salveCalcRecordsRef.current, {
           expr: currentCalcExprRef.current,
           correctAnswer: currentCalcAnswerRef.current,
-          userAnswer: null,
-          isCorrect: false,
+          userAnswer: userVal !== null && !isNaN(userVal) ? userVal : null,
+          isCorrect,
         }];
       }
       advanceInSalve();
@@ -650,7 +659,7 @@ export default function CalculMemoTest() {
                   ref={calcInputRef}
                   type="number"
                   value={calcInput}
-                  onChange={(e) => setCalcInput(e.target.value)}
+                  onChange={(e) => { calcInputValueRef.current = e.target.value; setCalcInput(e.target.value); }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && calcInput !== '') submitCalc();
                   }}
