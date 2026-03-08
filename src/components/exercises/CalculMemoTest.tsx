@@ -64,6 +64,26 @@ const DEFAULT_SETTINGS: GameSettings = {
   examMode: false,
 };
 
+const SETTINGS_KEY = 'aviatest-calcul-memo-settings';
+
+function loadSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s: GameSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch { /* quota exceeded — ignore */ }
+}
+
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -123,9 +143,14 @@ function buildChoices(correct: string): string[] {
 export default function CalculMemoTest() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
+  const [settings, setSettings] = useState<GameSettings>(loadSettings);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+
+  // Persist settings to localStorage on change
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
   const [scorer] = useState(() => new Scorer());
 
   // Salve tracking
