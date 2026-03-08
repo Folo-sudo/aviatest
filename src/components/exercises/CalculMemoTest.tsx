@@ -143,14 +143,24 @@ function buildChoices(correct: string): string[] {
 export default function CalculMemoTest() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<GameSettings>(loadSettings);
+  const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  // Persist settings to localStorage on change
+  // Load settings from localStorage after mount (avoid SSR hydration mismatch)
   useEffect(() => {
-    saveSettings(settings);
-  }, [settings]);
+    const saved = loadSettings();
+    setSettings(saved);
+    setSettingsLoaded(true);
+  }, []);
+
+  // Persist settings to localStorage on change (skip initial load)
+  useEffect(() => {
+    if (settingsLoaded) {
+      saveSettings(settings);
+    }
+  }, [settings, settingsLoaded]);
   const [scorer] = useState(() => new Scorer());
 
   // Salve tracking
