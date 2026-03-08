@@ -75,7 +75,10 @@ function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function generateChainQuestion(chainLength: number, maxNum: number): QuestionData {
+function generateQuestion(settings: GameSettings): QuestionData {
+  const chainLength = settings.chainLength;
+  const maxNum = settings.maxNumber;
+
   const terms: { sign: '+' | '-'; value: number }[] = [];
   // First term: random sign
   const firstSign = Math.random() < 0.5 ? '+' : '-';
@@ -100,20 +103,22 @@ function generateChainQuestion(chainLength: number, maxNum: number): QuestionDat
     }
   }
 
-  return { expression: parts.join(' '), answer };
-}
-
-function generateMultiplyQuestion(): QuestionData {
-  const a = randInt(11, 99);
-  const b = randInt(11, 99);
-  return { expression: `${a} x ${b}`, answer: a * b };
-}
-
-function generateQuestion(settings: GameSettings): QuestionData {
-  if (settings.includeMultiply && Math.random() < 0.3) {
-    return generateMultiplyQuestion();
+  // Append multiplication ab x cd at the end
+  if (settings.includeMultiply) {
+    const a = randInt(11, 99);
+    const b = randInt(11, 99);
+    const mulSign = Math.random() < 0.5 ? '+' : '-';
+    const mulResult = a * b;
+    if (mulSign === '+') {
+      answer += mulResult;
+      parts.push(`+ ${a} x ${b}`);
+    } else {
+      answer -= mulResult;
+      parts.push(`- ${a} x ${b}`);
+    }
   }
-  return generateChainQuestion(settings.chainLength, settings.maxNumber);
+
+  return { expression: parts.join(' '), answer };
 }
 
 // ============================================================================
