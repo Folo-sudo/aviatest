@@ -396,6 +396,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 15,
     ready: true,
   },
+  {
+    id: 'calcul-mental',
+    slug: 'calcul-mental',
+    title: 'Calcul Mental',
+    description: 'Resolvez des chaines d\'operations et des multiplications a 2 chiffres',
+    longDescription:
+      'Ce test evalue votre rapidite et precision en calcul mental. Chaque question presente une chaine d\'additions et soustractions de nombres a 2 chiffres (ex: -79 + 76 - 38 - 60 + 97 + 90 - 12 - 37), avec en bonus des multiplications ab x cd. 10 questions, temps limite par question.',
+    types: ['numerique', 'attention'],
+    primaryType: 'numerique',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'moyen',
+    seoTitle: 'Test Calcul Mental - Aptitude Numerique Pilote | AviaTest',
+    seoDescription:
+      'Entrainement au calcul mental pour selections pilote. Chaines d\'operations et multiplications pour PSY0, PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test calcul mental',
+      'calcul mental pilote',
+      'test numerique psy0',
+      'aptitude numerique pilote',
+      'calcul mental psy1',
+    ],
+    iconName: 'Calculator',
+    estimatedDuration: 10,
+    ready: true,
+  },
 ];
 
 // ============================================================================
