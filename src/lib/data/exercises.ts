@@ -399,7 +399,7 @@ export const EXERCISES: ExerciseConfig[] = [
   {
     id: 'calcul-mental',
     slug: 'calcul-mental',
-    title: 'Calcul Mental',
+    title: 'Calcul Mental 1',
     description: 'Resolvez des chaines d\'operations et des multiplications a 2 chiffres',
     longDescription:
       'Ce test evalue votre rapidite et precision en calcul mental. Chaque question presente une chaine d\'additions et soustractions de nombres a 2 chiffres (ex: -79 + 76 - 38 - 60 + 97 + 90 - 12 - 37), avec en bonus des multiplications ab x cd. 10 questions, temps limite par question.',
