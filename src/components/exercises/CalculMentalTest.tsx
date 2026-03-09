@@ -493,7 +493,7 @@ export default function CalculMentalTest() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <div className="w-full max-w-2xl relative">
+      <div className="w-full max-w-4xl relative">
         {/* Vertical timer bar (like pilotest) */}
         {settings.timeLimitSec > 0 && (
           <div className="absolute right-0 top-0 bottom-0 w-3 flex flex-col rounded-full overflow-hidden bg-slate-200">
@@ -539,7 +539,7 @@ export default function CalculMentalTest() {
           /* Question view */
           <Card className="text-center py-10 mr-6">
             <CardContent className="space-y-6">
-              <p className="text-3xl md:text-4xl font-bold text-slate-800 font-mono tracking-wide leading-relaxed">
+              <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-800 font-mono tracking-wide whitespace-nowrap overflow-x-auto">
                 {currentQ?.expression}
               </p>
               <p className="text-sm text-slate-400">Resoudre l&apos;operation ci-dessus</p>
