@@ -421,6 +421,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 10,
     ready: true,
   },
+  {
+    id: 'calcul-mental-3',
+    slug: 'calcul-mental-3',
+    title: 'Calcul Mental 3',
+    description: 'Resolvez des systemes d\'equations lineaires a 3 inconnues par substitution',
+    longDescription:
+      'Ce test evalue votre rapidite en calcul mental et raisonnement algebrique. Chaque question presente un systeme de 3 equations a 3 inconnues (A, B, C). Resolvez les deux premieres equations pour trouver A et C, puis substituez dans la troisieme pour trouver B. 12 systemes, temps limite par systeme.',
+    types: ['numerique', 'intellectuel'],
+    primaryType: 'numerique',
+    competitions: ['psy1', 'enac-epl'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Calcul Mental 3 - Systemes d\'Equations Pilote | AviaTest',
+    seoDescription:
+      'Entrainement au calcul mental avance pour selections pilote. Systemes d\'equations lineaires par substitution pour PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test calcul mental',
+      'systeme equations pilote',
+      'calcul mental avance',
+      'substitution equations psy1',
+      'test numerique enac',
+    ],
+    iconName: 'Variable',
+    estimatedDuration: 15,
+    ready: true,
+  },
 ];
 
 // ============================================================================
