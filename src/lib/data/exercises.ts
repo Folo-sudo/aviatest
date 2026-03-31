@@ -496,6 +496,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 15,
     ready: true,
   },
+  {
+    id: 'fiche-angles',
+    slug: 'fiche-angles',
+    title: 'Fiche Angles',
+    description: 'Estimez 30 angles sur le cercle trigonometrique avec correction interactive',
+    longDescription:
+      'Fiche d\'entrainement aux angles. 30 directions sont presentees de A vers O. Estimez l\'angle en convention trigonometrique (0 degres = droite, sens anti-horaire) a l\'aide d\'un cercle interactif. Chaque reponse est suivie d\'une correction visuelle sur le cercle trigo avec votre reponse et la bonne reponse.',
+    types: ['spatiale', 'numerique'],
+    primaryType: 'spatiale',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'facile',
+    seoTitle: 'Fiche Angles - Cercle Trigonometrique Pilote | AviaTest',
+    seoDescription:
+      'Entrainement interactif aux angles sur le cercle trigonometrique pour selections pilote. 30 angles avec correction visuelle.',
+    seoKeywords: [
+      'fiche angles pilote',
+      'cercle trigonometrique',
+      'estimation angles',
+      'angles psy0 psy1',
+      'orientation spatiale pilote',
+    ],
+    iconName: 'Compass',
+    estimatedDuration: 15,
+    ready: true,
+  },
 ];
 
 // ============================================================================
