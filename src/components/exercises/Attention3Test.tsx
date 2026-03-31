@@ -44,7 +44,7 @@ interface QuestionResult {
 
 const DEFAULT_SETTINGS: GameSettings = {
   totalQuestions: 12,
-  totalSymbols: 50,
+  totalSymbols: 80,
   timeLimitSec: 60,
   examMode: false,
 };
