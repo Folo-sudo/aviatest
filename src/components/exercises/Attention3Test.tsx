@@ -45,7 +45,7 @@ interface QuestionResult {
 const DEFAULT_SETTINGS: GameSettings = {
   totalQuestions: 12,
   totalSymbols: 80,
-  timeLimitSec: 60,
+  timeLimitSec: 600,
   examMode: false,
 };
 
@@ -221,10 +221,9 @@ export default function Attention3Test() {
     }
   }, [scorer, startTimer]);
 
-  const submitAnswer = useCallback((timedOut = false) => {
-    clearTimer();
+  const submitAnswer = useCallback(() => {
     const timeUsed = Date.now() - questionStartRef.current;
-    const typed = timedOut ? userInputRef.current.trim() : userInput.trim();
+    const typed = userInput.trim();
     const userVal = typed !== '' ? parseInt(typed, 10) : null;
     const currentQ = questions[currentIdx];
     const isCorrect = userVal !== null && !isNaN(userVal) && userVal === currentQ.answer;
@@ -239,9 +238,11 @@ export default function Attention3Test() {
     };
 
     setResults(prev => [...prev, result]);
+    questionStartRef.current = Date.now();
 
     if (settingsRef.current.examMode || currentIdx + 1 >= questions.length) {
       if (currentIdx + 1 >= questions.length) {
+        clearTimer();
         setGameState('results');
       } else {
         const nextIdx = currentIdx + 1;
@@ -249,18 +250,15 @@ export default function Attention3Test() {
         setUserInput('');
         userInputRef.current = '';
         setShowCorrection(false);
-        questionStartRef.current = Date.now();
-        if (settingsRef.current.timeLimitSec > 0) {
-          startTimer(settingsRef.current.timeLimitSec * 1000);
-        }
       }
     } else {
       setShowCorrection(true);
     }
-  }, [clearTimer, userInput, questions, currentIdx, scorer, startTimer]);
+  }, [clearTimer, userInput, questions, currentIdx, scorer]);
 
   const nextQuestion = useCallback(() => {
     if (currentIdx + 1 >= questions.length) {
+      clearTimer();
       setGameState('results');
       return;
     }
@@ -270,16 +268,14 @@ export default function Attention3Test() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-    if (settingsRef.current.timeLimitSec > 0) {
-      startTimer(settingsRef.current.timeLimitSec * 1000);
-    }
-  }, [currentIdx, questions.length, startTimer]);
+  }, [currentIdx, questions.length, clearTimer]);
 
   useEffect(() => {
-    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing' && !showCorrection) {
-      submitAnswer(true);
+    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {
+      clearTimer();
+      setGameState('results');
     }
-  }, [timeLeft, totalTime, gameState, showCorrection, submitAnswer]);
+  }, [timeLeft, totalTime, gameState, clearTimer]);
 
   useEffect(() => {
     if (gameState === 'playing' && !showCorrection && inputRef.current) {
@@ -352,7 +348,7 @@ export default function Attention3Test() {
               <p>Apres un <strong>+</strong>, les X comptent de nouveau <strong>+1</strong>.</p>
               <p>Entrez le total (peut etre negatif).</p>
               {settings.timeLimitSec > 0 && (
-                <p><strong>{settings.timeLimitSec}s</strong> par sequence.</p>
+                <p>Temps total : <strong>{Math.floor(settings.timeLimitSec / 60)}min{settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}</strong>.</p>
               )}
             </div>
 
@@ -372,9 +368,9 @@ export default function Attention3Test() {
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <p className="text-xl font-bold text-slate-700">
-                  {settings.timeLimitSec > 0 ? `${settings.timeLimitSec}s` : '\u221E'}
+                  {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Par sequence</p>
+                <p className="text-xs text-slate-500">Temps total</p>
               </div>
             </div>
 
@@ -429,11 +425,11 @@ export default function Attention3Test() {
                 />
               </div>
               <div>
-                <Label>Temps par sequence : {settings.timeLimitSec > 0 ? `${settings.timeLimitSec}s` : 'Illimite'}</Label>
+                <Label>Temps total : {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}min${settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}` : 'Illimite'}</Label>
                 <Slider
                   value={[settings.timeLimitSec]}
                   onValueChange={([v]) => setSettings(s => ({ ...s, timeLimitSec: v }))}
-                  min={0} max={120} step={5} className="mt-2"
+                  min={0} max={1800} step={30} className="mt-2"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -599,13 +595,13 @@ export default function Attention3Test() {
                       setUserInput(e.target.value);
                     }}
                     onKeyDown={e => {
-                      if (e.key === 'Enter' && userInput.trim() !== '') submitAnswer(false);
+                      if (e.key === 'Enter' && userInput.trim() !== '') submitAnswer();
                     }}
                     placeholder="?"
                     className="flex-1 text-center text-2xl font-bold border-2 border-slate-300 rounded-lg py-3 focus:border-amber-500 focus:outline-none"
                   />
                   <Button
-                    onClick={() => submitAnswer(false)}
+                    onClick={() => submitAnswer()}
                     disabled={userInput.trim() === ''}
                     size="lg"
                   >

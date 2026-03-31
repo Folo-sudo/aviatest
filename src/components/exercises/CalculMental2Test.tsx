@@ -56,7 +56,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   chainLength: 8,
   maxNumber: 99,
   numChoices: 8,
-  timeLimitSec: 60,
+  timeLimitSec: 600,
   examMode: false,
 };
 
@@ -271,44 +271,41 @@ export default function CalculMental2Test() {
     }
   }, [scorer, startTimer]);
 
-  const submitAnswer = useCallback((timedOut = false) => {
-    clearTimer();
+  const submitAnswer = useCallback(() => {
     const timeUsed = Date.now() - questionStartRef.current;
     const currentQ = questions[currentIdx];
-    const sel = timedOut ? null : selectedIdx;
-    const isCorrect = sel !== null && sel === currentQ.correctIndex;
+    const isCorrect = selectedIdx !== null && selectedIdx === currentQ.correctIndex;
 
     scorer.recordAnswer(isCorrect);
 
     const result: QuestionResult = {
       question: currentQ,
-      selectedIndex: sel,
+      selectedIndex: selectedIdx,
       isCorrect,
       timeUsedMs: timeUsed,
     };
 
     setResults(prev => [...prev, result]);
+    questionStartRef.current = Date.now();
 
     if (settingsRef.current.examMode || currentIdx + 1 >= questions.length) {
       if (currentIdx + 1 >= questions.length) {
+        clearTimer();
         setGameState('results');
       } else {
         const nextIdx = currentIdx + 1;
         setCurrentIdx(nextIdx);
         setSelectedIdx(null);
         setShowCorrection(false);
-        questionStartRef.current = Date.now();
-        if (settingsRef.current.timeLimitSec > 0) {
-          startTimer(settingsRef.current.timeLimitSec * 1000);
-        }
       }
     } else {
       setShowCorrection(true);
     }
-  }, [clearTimer, selectedIdx, questions, currentIdx, scorer, startTimer]);
+  }, [clearTimer, selectedIdx, questions, currentIdx, scorer]);
 
   const nextQuestion = useCallback(() => {
     if (currentIdx + 1 >= questions.length) {
+      clearTimer();
       setGameState('results');
       return;
     }
@@ -317,17 +314,15 @@ export default function CalculMental2Test() {
     setSelectedIdx(null);
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-    if (settingsRef.current.timeLimitSec > 0) {
-      startTimer(settingsRef.current.timeLimitSec * 1000);
-    }
-  }, [currentIdx, questions.length, startTimer]);
+  }, [currentIdx, questions.length, clearTimer]);
 
-  // Auto-submit on timer expiry
+  // Global timer expiry → go to results
   useEffect(() => {
-    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing' && !showCorrection) {
-      submitAnswer(true);
+    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {
+      clearTimer();
+      setGameState('results');
     }
-  }, [timeLeft, totalTime, gameState, showCorrection, submitAnswer]);
+  }, [timeLeft, totalTime, gameState, clearTimer]);
 
   // =========================================================================
   // RENDER
@@ -350,7 +345,7 @@ export default function CalculMental2Test() {
               <p>Chaque operation est une chaine de <strong>{settings.chainLength} termes</strong> (additions/soustractions).</p>
               <p>Selectionnez le <strong>plus petit intervalle</strong> contenant le resultat parmi {settings.numChoices} propositions.</p>
               {settings.timeLimitSec > 0 && (
-                <p><strong>{settings.timeLimitSec}s</strong> par question.</p>
+                <p>Temps total : <strong>{Math.floor(settings.timeLimitSec / 60)}min{settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}</strong>.</p>
               )}
             </div>
 
@@ -365,9 +360,9 @@ export default function CalculMental2Test() {
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <p className="text-xl font-bold text-slate-700">
-                  {settings.timeLimitSec > 0 ? `${settings.timeLimitSec}s` : '\u221E'}
+                  {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Par question</p>
+                <p className="text-xs text-slate-500">Temps total</p>
               </div>
             </div>
 
@@ -438,11 +433,11 @@ export default function CalculMental2Test() {
                 />
               </div>
               <div>
-                <Label>Temps par question : {settings.timeLimitSec > 0 ? `${settings.timeLimitSec}s` : 'Illimite'}</Label>
+                <Label>Temps total : {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}min${settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}` : 'Illimite'}</Label>
                 <Slider
                   value={[settings.timeLimitSec]}
                   onValueChange={([v]) => setSettings(s => ({ ...s, timeLimitSec: v }))}
-                  min={0} max={120} step={5} className="mt-2"
+                  min={0} max={1800} step={30} className="mt-2"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -644,7 +639,7 @@ export default function CalculMental2Test() {
             {/* Submit button */}
             <div className="flex justify-end">
               <Button
-                onClick={() => submitAnswer(false)}
+                onClick={() => submitAnswer()}
                 disabled={selectedIdx === null}
                 size="lg"
               >

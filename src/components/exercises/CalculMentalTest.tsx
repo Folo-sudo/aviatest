@@ -22,7 +22,7 @@ interface GameSettings {
   chainLength: number;       // number of terms in the +/- chain (e.g. 8)
   maxNumber: number;         // max value for chain terms (e.g. 99)
   includeMultiply: boolean;  // include ab*cd multiplications
-  timeLimitSec: number;      // seconds per question (0 = no limit)
+  timeLimitSec: number;      // seconds for the whole exercise (0 = no limit)
   examMode: boolean;         // no corrections between questions
 }
 
@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   chainLength: 8,
   maxNumber: 99,
   includeMultiply: true,
-  timeLimitSec: 60,
+  timeLimitSec: 600,
   examMode: false,
 };
 
@@ -203,10 +203,9 @@ export default function CalculMentalTest() {
   }, [scorer, startTimer]);
 
   // Submit answer
-  const submitAnswer = useCallback((timedOut = false) => {
-    clearTimer();
+  const submitAnswer = useCallback(() => {
     const timeUsed = Date.now() - questionStartRef.current;
-    const typed = timedOut ? userInputRef.current.trim() : userInput.trim();
+    const typed = userInput.trim();
     const userVal = typed !== '' ? parseInt(typed, 10) : null;
     const currentQ = questions[currentIdx];
     const isCorrect = userVal !== null && !isNaN(userVal) && userVal === currentQ.answer;
@@ -221,10 +220,11 @@ export default function CalculMentalTest() {
     };
 
     setResults(prev => [...prev, result]);
+    questionStartRef.current = Date.now();
 
     if (settingsRef.current.examMode || currentIdx + 1 >= questions.length) {
-      // Move to next or results
       if (currentIdx + 1 >= questions.length) {
+        clearTimer();
         setGameState('results');
       } else {
         const nextIdx = currentIdx + 1;
@@ -232,20 +232,16 @@ export default function CalculMentalTest() {
         setUserInput('');
         userInputRef.current = '';
         setShowCorrection(false);
-        questionStartRef.current = Date.now();
-        if (settingsRef.current.timeLimitSec > 0) {
-          startTimer(settingsRef.current.timeLimitSec * 1000);
-        }
       }
     } else {
-      // Show correction
       setShowCorrection(true);
     }
-  }, [clearTimer, userInput, questions, currentIdx, scorer, startTimer]);
+  }, [clearTimer, userInput, questions, currentIdx, scorer]);
 
   // Next question after correction
   const nextQuestion = useCallback(() => {
     if (currentIdx + 1 >= questions.length) {
+      clearTimer();
       setGameState('results');
       return;
     }
@@ -255,17 +251,15 @@ export default function CalculMentalTest() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-    if (settingsRef.current.timeLimitSec > 0) {
-      startTimer(settingsRef.current.timeLimitSec * 1000);
-    }
-  }, [currentIdx, questions.length, startTimer]);
+  }, [currentIdx, questions.length, clearTimer]);
 
-  // Auto-submit on timer expiry
+  // Global timer expiry → go to results
   useEffect(() => {
-    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing' && !showCorrection) {
-      submitAnswer(true);
+    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {
+      clearTimer();
+      setGameState('results');
     }
-  }, [timeLeft, totalTime, gameState, showCorrection, submitAnswer]);
+  }, [timeLeft, totalTime, gameState, clearTimer]);
 
   // Focus input
   useEffect(() => {
@@ -297,7 +291,7 @@ export default function CalculMentalTest() {
                 <p>Certaines operations incluent des <strong>multiplications ab &times; cd</strong>.</p>
               )}
               {settings.timeLimitSec > 0 && (
-                <p><strong>{settings.timeLimitSec}s</strong> par question.</p>
+                <p>Temps total : <strong>{Math.floor(settings.timeLimitSec / 60)}min{settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}</strong>.</p>
               )}
             </div>
 
@@ -312,9 +306,9 @@ export default function CalculMentalTest() {
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <p className="text-xl font-bold text-slate-700">
-                  {settings.timeLimitSec > 0 ? `${settings.timeLimitSec}s` : '∞'}
+                  {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Par question</p>
+                <p className="text-xs text-slate-500">Temps total</p>
               </div>
             </div>
 
@@ -377,11 +371,11 @@ export default function CalculMentalTest() {
                 />
               </div>
               <div>
-                <Label>Temps par question : {settings.timeLimitSec > 0 ? `${settings.timeLimitSec}s` : 'Illimite'}</Label>
+                <Label>Temps total : {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}min${settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}` : 'Illimite'}</Label>
                 <Slider
                   value={[settings.timeLimitSec]}
                   onValueChange={([v]) => setSettings(s => ({ ...s, timeLimitSec: v }))}
-                  min={0} max={120} step={5} className="mt-2"
+                  min={0} max={1800} step={30} className="mt-2"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -553,13 +547,13 @@ export default function CalculMentalTest() {
                     setUserInput(e.target.value);
                   }}
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && userInput.trim() !== '') submitAnswer(false);
+                    if (e.key === 'Enter' && userInput.trim() !== '') submitAnswer();
                   }}
                   placeholder="?"
                   className="flex-1 text-center text-2xl font-bold border-2 border-slate-300 rounded-lg py-3 focus:border-amber-500 focus:outline-none"
                 />
                 <Button
-                  onClick={() => submitAnswer(false)}
+                  onClick={() => submitAnswer()}
                   disabled={userInput.trim() === ''}
                   size="lg"
                 >
