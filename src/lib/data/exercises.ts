@@ -422,6 +422,31 @@ export const EXERCISES: ExerciseConfig[] = [
     ready: true,
   },
   {
+    id: 'calcul-mental-2',
+    slug: 'calcul-mental-2',
+    title: 'Calcul Mental 2',
+    description: 'Estimez le resultat d\'une chaine d\'operations et trouvez le bon intervalle',
+    longDescription:
+      'Ce test evalue votre capacite d\'estimation et de calcul mental rapide. Chaque question presente une chaine d\'additions et soustractions de nombres a 2 chiffres. Vous devez selectionner le plus petit intervalle contenant le resultat parmi 8 propositions. 10 questions, temps limite par question.',
+    types: ['numerique', 'attention'],
+    primaryType: 'numerique',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'moyen',
+    seoTitle: 'Test Calcul Mental 2 - Estimation Numerique Pilote | AviaTest',
+    seoDescription:
+      'Entrainement a l\'estimation en calcul mental pour selections pilote. Trouvez le plus petit intervalle contenant le resultat. PSY0, PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test calcul mental estimation',
+      'intervalle calcul mental',
+      'estimation numerique pilote',
+      'calcul mental psy0',
+      'test numerique enac',
+    ],
+    iconName: 'Brackets',
+    estimatedDuration: 10,
+    ready: true,
+  },
+  {
     id: 'calcul-mental-3',
     slug: 'calcul-mental-3',
     title: 'Calcul Mental 3',

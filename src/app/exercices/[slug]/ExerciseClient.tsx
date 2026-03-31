@@ -39,6 +39,10 @@ const CalculMentalTest = dynamic(
   () => import('@/components/exercises/CalculMentalTest'),
   { ssr: false }
 );
+const CalculMental2Test = dynamic(
+  () => import('@/components/exercises/CalculMental2Test'),
+  { ssr: false }
+);
 const CalculMental3Test = dynamic(
   () => import('@/components/exercises/CalculMental3Test'),
   { ssr: false }
@@ -55,6 +59,7 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'rotation-mentale-3d': MentalRotationTest,
   'calcul-memorisation': CalculMemoTest,
   'calcul-mental': CalculMentalTest,
+  'calcul-mental-2': CalculMental2Test,
   'calcul-mental-3': CalculMental3Test,
 };
 
