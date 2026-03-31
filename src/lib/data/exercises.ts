@@ -422,6 +422,31 @@ export const EXERCISES: ExerciseConfig[] = [
     ready: true,
   },
   {
+    id: 'attention-3',
+    slug: 'attention-3',
+    title: 'Attention 3',
+    description: 'Comptez les croix en tenant compte des changements de signe (/ et +)',
+    longDescription:
+      'Ce test evalue votre attention soutenue et votre capacite de suivi. Une sequence de X, / et + est affichee. Les X comptent +1 par defaut. Apres un /, les X comptent -1. Apres un +, les X comptent de nouveau +1. Vous devez calculer le total. 12 sequences, temps limite par sequence.',
+    types: ['attention', 'numerique'],
+    primaryType: 'attention',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'moyen',
+    seoTitle: 'Test Attention 3 - Comptage de Croix Pilote | AviaTest',
+    seoDescription:
+      'Entrainement au test de comptage de croix avec changements de signe pour selections pilote. Attention soutenue PSY0, PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test attention croix',
+      'comptage croix pilote',
+      'test attention soutenue',
+      'croix signe psy0',
+      'attention pilote enac',
+    ],
+    iconName: 'X',
+    estimatedDuration: 12,
+    ready: true,
+  },
+  {
     id: 'calcul-mental-2',
     slug: 'calcul-mental-2',
     title: 'Calcul Mental 2',
