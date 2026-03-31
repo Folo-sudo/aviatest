@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -19,16 +19,49 @@ type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
 interface GameSettings {
   totalQuestions: number;
-  totalSymbols: number;    // total number of symbols per line (X, /, +)
+  totalSymbols: number;
   timeLimitSec: number;
   examMode: boolean;
+  stroopEnabled: boolean;
 }
 
-type Symbol = 'X' | '/' | '+';
+type SymbolType = 'X' | '/' | '+';
+
+// Stroop color definitions
+const COLOR_NAMES = ['ROUGE', 'BLEU', 'VERT', 'ORANGE', 'JAUNE', 'VIOLET', 'NOIR'] as const;
+type ColorName = typeof COLOR_NAMES[number];
+
+const COLOR_CSS: Record<ColorName, string> = {
+  ROUGE: '#DC2626',
+  BLEU: '#2563EB',
+  VERT: '#16A34A',
+  ORANGE: '#EA580C',
+  JAUNE: '#CA8A04',
+  VIOLET: '#7C3AED',
+  NOIR: '#18181B',
+};
+
+interface StroopWord {
+  text: ColorName;        // the word written
+  displayColor: ColorName; // the color it's displayed in
+  isMatch: boolean;        // does text === displayColor?
+}
+
+interface StroopGrid {
+  words: StroopWord[];
+  cols: number;
+  rows: number;
+}
 
 interface QuestionData {
-  symbols: Symbol[];
+  symbols: SymbolType[];
   answer: number;
+}
+
+interface StroopResult {
+  correctSelections: number;
+  totalTargets: number;
+  wrongSelections: number;
 }
 
 interface QuestionResult {
@@ -36,6 +69,7 @@ interface QuestionResult {
   userAnswer: number | null;
   isCorrect: boolean;
   timeUsedMs: number;
+  stroopResults: StroopResult[];
 }
 
 // ============================================================================
@@ -47,6 +81,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   totalSymbols: 80,
   timeLimitSec: 600,
   examMode: false,
+  stroopEnabled: true,
 };
 
 const SETTINGS_KEY = 'aviatest-attention-3-settings';
@@ -73,15 +108,16 @@ function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function pickRandom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 function generateQuestion(settings: GameSettings): QuestionData {
   const total = settings.totalSymbols;
-  const symbols: Symbol[] = [];
-
-  // Start with some X's in positive mode
+  const symbols: SymbolType[] = [];
   let pos = 0;
 
   while (pos < total) {
-    // Decide: add a run of X's, then maybe a / or +
     const runLen = randInt(2, 8);
     const actualRun = Math.min(runLen, total - pos);
     for (let i = 0; i < actualRun; i++) {
@@ -90,59 +126,65 @@ function generateQuestion(settings: GameSettings): QuestionData {
     }
     if (pos >= total) break;
 
-    // Insert a / or + (weighted: / more frequent than +)
     const r = Math.random();
     if (r < 0.55) {
       symbols.push('/');
     } else if (r < 0.75) {
       symbols.push('+');
     } else {
-      // Sometimes double slash //
       symbols.push('/');
       pos++;
-      if (pos < total) {
-        // Small chance of another slash right after
-        if (Math.random() < 0.3) {
-          symbols.push('/');
-          pos++;
-        }
+      if (pos < total && Math.random() < 0.3) {
+        symbols.push('/');
+        pos++;
       }
     }
     pos++;
   }
 
-  // Trim to exact length
   while (symbols.length > total) symbols.pop();
 
-  // Ensure we have at least one / and one + for variety
-  let hasSlash = symbols.includes('/');
-  let hasPlus = symbols.includes('+');
-  if (!hasSlash && symbols.length > 5) {
+  if (!symbols.includes('/') && symbols.length > 5) {
     symbols[randInt(3, Math.min(10, symbols.length - 2))] = '/';
   }
-  if (!hasPlus && symbols.length > 10) {
-    // Place a + after the first /
+  if (!symbols.includes('+') && symbols.length > 10) {
     const slashIdx = symbols.indexOf('/');
     if (slashIdx >= 0 && slashIdx + 4 < symbols.length) {
       symbols[slashIdx + randInt(2, 4)] = '+';
     }
   }
 
-  // Calculate answer
-  let mode = 1; // +1 = positive, -1 = negative
+  let mode = 1;
   let count = 0;
   for (const sym of symbols) {
-    if (sym === '/') {
-      mode = -1;
-    } else if (sym === '+') {
-      mode = 1;
-    } else {
-      // X
-      count += mode;
-    }
+    if (sym === '/') mode = -1;
+    else if (sym === '+') mode = 1;
+    else count += mode;
   }
 
   return { symbols, answer: count };
+}
+
+function generateStroopGrid(): StroopGrid {
+  const rows = 5;
+  const cols = 5;
+  const words: StroopWord[] = [];
+
+  for (let i = 0; i < rows * cols; i++) {
+    const text = pickRandom(COLOR_NAMES);
+    // ~40% match, ~60% mismatch
+    let displayColor: ColorName;
+    if (Math.random() < 0.4) {
+      displayColor = text;
+    } else {
+      do {
+        displayColor = pickRandom(COLOR_NAMES);
+      } while (displayColor === text);
+    }
+    words.push({ text, displayColor, isMatch: text === displayColor });
+  }
+
+  return { words, cols, rows };
 }
 
 // ============================================================================
@@ -168,6 +210,7 @@ export default function Attention3Test() {
     if (settingsLoaded) saveSettings(settings);
   }, [settings, settingsLoaded]);
 
+  // Core game state
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -175,17 +218,31 @@ export default function Attention3Test() {
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [showCorrection, setShowCorrection] = useState(false);
 
+  // Global timer
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionStartRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Stroop state
+  const [stroopMode, setStroopMode] = useState<'bonne' | 'mauvaise'>('mauvaise');
+  const [stroopGrid, setStroopGrid] = useState<StroopGrid | null>(null);
+  const [stroopSelected, setStroopSelected] = useState<Set<number>>(new Set());
+  const [currentStroopResults, setCurrentStroopResults] = useState<StroopResult[]>([]);
+  const stroopTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const questionStartMsRef = useRef(0); // per-question start (not global timer)
+
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+  }, []);
+
+  const clearStroopTimeouts = useCallback(() => {
+    stroopTimeoutsRef.current.forEach(t => clearTimeout(t));
+    stroopTimeoutsRef.current = [];
   }, []);
 
   const startTimer = useCallback((durationMs: number) => {
@@ -200,8 +257,64 @@ export default function Attention3Test() {
     }, 50);
   }, [clearTimer]);
 
-  useEffect(() => () => clearTimer(), [clearTimer]);
+  useEffect(() => () => { clearTimer(); clearStroopTimeouts(); }, [clearTimer, clearStroopTimeouts]);
 
+  // Schedule stroop grids for current question
+  const scheduleStroop = useCallback(() => {
+    clearStroopTimeouts();
+    setStroopGrid(null);
+    setStroopSelected(new Set());
+
+    if (!settingsRef.current.stroopEnabled) return;
+
+    questionStartMsRef.current = Date.now();
+
+    const t1 = setTimeout(() => {
+      setStroopGrid(generateStroopGrid());
+      setStroopSelected(new Set());
+    }, 10000); // 10s
+
+    const t2 = setTimeout(() => {
+      setStroopGrid(generateStroopGrid());
+      setStroopSelected(new Set());
+    }, 40000); // 40s
+
+    stroopTimeoutsRef.current = [t1, t2];
+  }, [clearStroopTimeouts]);
+
+  // Validate stroop selection
+  const validateStroop = useCallback(() => {
+    if (!stroopGrid) return;
+
+    const targetMatch = stroopMode === 'bonne';
+    const targets = stroopGrid.words
+      .map((w, i) => ({ ...w, idx: i }))
+      .filter(w => w.isMatch === targetMatch);
+
+    const totalTargets = targets.length;
+    const targetIndices = new Set(targets.map(t => t.idx));
+
+    let correctSelections = 0;
+    let wrongSelections = 0;
+    stroopSelected.forEach(idx => {
+      if (targetIndices.has(idx)) correctSelections++;
+      else wrongSelections++;
+    });
+
+    setCurrentStroopResults(prev => [...prev, {
+      correctSelections,
+      totalTargets,
+      wrongSelections,
+    }]);
+
+    setStroopGrid(null);
+    setStroopSelected(new Set());
+
+    // Refocus input
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [stroopGrid, stroopMode, stroopSelected]);
+
+  // Start game
   const startGame = useCallback(() => {
     scorer.reset();
     const qs: QuestionData[] = [];
@@ -214,15 +327,33 @@ export default function Attention3Test() {
     setUserInput('');
     userInputRef.current = '';
     setShowCorrection(false);
+    setCurrentStroopResults([]);
+    setStroopGrid(null);
+    setStroopSelected(new Set());
+
+    // Random stroop mode
+    setStroopMode(Math.random() < 0.5 ? 'bonne' : 'mauvaise');
+
     setGameState('playing');
     questionStartRef.current = Date.now();
+    questionStartMsRef.current = Date.now();
+
     if (settingsRef.current.timeLimitSec > 0) {
       startTimer(settingsRef.current.timeLimitSec * 1000);
     }
   }, [scorer, startTimer]);
 
+  // Schedule stroop when question changes
+  useEffect(() => {
+    if (gameState === 'playing' && !showCorrection) {
+      scheduleStroop();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, currentIdx, showCorrection]);
+
+  // Submit cross-count answer
   const submitAnswer = useCallback(() => {
-    const timeUsed = Date.now() - questionStartRef.current;
+    const timeUsed = Date.now() - questionStartMsRef.current;
     const typed = userInput.trim();
     const userVal = typed !== '' ? parseInt(typed, 10) : null;
     const currentQ = questions[currentIdx];
@@ -235,59 +366,66 @@ export default function Attention3Test() {
       userAnswer: userVal !== null && !isNaN(userVal) ? userVal : null,
       isCorrect,
       timeUsedMs: timeUsed,
+      stroopResults: [...currentStroopResults],
     };
 
     setResults(prev => [...prev, result]);
-    questionStartRef.current = Date.now();
+    setCurrentStroopResults([]);
+    clearStroopTimeouts();
+    setStroopGrid(null);
+    setStroopSelected(new Set());
 
     if (settingsRef.current.examMode || currentIdx + 1 >= questions.length) {
       if (currentIdx + 1 >= questions.length) {
         clearTimer();
         setGameState('results');
       } else {
-        const nextIdx = currentIdx + 1;
-        setCurrentIdx(nextIdx);
+        setCurrentIdx(currentIdx + 1);
         setUserInput('');
         userInputRef.current = '';
         setShowCorrection(false);
+        questionStartMsRef.current = Date.now();
       }
     } else {
       setShowCorrection(true);
     }
-  }, [clearTimer, userInput, questions, currentIdx, scorer]);
+  }, [clearTimer, clearStroopTimeouts, userInput, questions, currentIdx, scorer, currentStroopResults]);
 
+  // Next question after correction
   const nextQuestion = useCallback(() => {
     if (currentIdx + 1 >= questions.length) {
       clearTimer();
       setGameState('results');
       return;
     }
-    const nextIdx = currentIdx + 1;
-    setCurrentIdx(nextIdx);
+    setCurrentIdx(currentIdx + 1);
     setUserInput('');
     userInputRef.current = '';
     setShowCorrection(false);
-    questionStartRef.current = Date.now();
+    questionStartMsRef.current = Date.now();
   }, [currentIdx, questions.length, clearTimer]);
 
+  // Global timer expiry
   useEffect(() => {
     if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {
       clearTimer();
+      clearStroopTimeouts();
       setGameState('results');
     }
-  }, [timeLeft, totalTime, gameState, clearTimer]);
+  }, [timeLeft, totalTime, gameState, clearTimer, clearStroopTimeouts]);
 
+  // Focus input
   useEffect(() => {
-    if (gameState === 'playing' && !showCorrection && inputRef.current) {
+    if (gameState === 'playing' && !showCorrection && !stroopGrid && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [gameState, currentIdx, showCorrection]);
+  }, [gameState, currentIdx, showCorrection, stroopGrid]);
 
   // =========================================================================
-  // Render symbol sequence with colors
+  // Render helpers
   // =========================================================================
 
-  function renderSymbols(symbols: Symbol[], showColors = false) {
+  function renderSymbols(symbols: SymbolType[], showColors = false) {
     if (!showColors) {
       return (
         <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 font-mono tracking-widest leading-relaxed break-all select-none">
@@ -295,33 +433,72 @@ export default function Attention3Test() {
         </p>
       );
     }
-
-    // With colors for correction view
     let mode = 1;
     const spans: React.ReactNode[] = [];
     symbols.forEach((sym, i) => {
       if (sym === '/') {
         mode = -1;
-        spans.push(
-          <span key={i} className="text-red-500 font-black">{sym}</span>
-        );
+        spans.push(<span key={i} className="text-red-500 font-black">{sym}</span>);
       } else if (sym === '+') {
         mode = 1;
-        spans.push(
-          <span key={i} className="text-green-500 font-black">{sym}</span>
-        );
+        spans.push(<span key={i} className="text-green-500 font-black">{sym}</span>);
       } else {
-        spans.push(
-          <span key={i} className={mode === 1 ? 'text-green-700' : 'text-red-600'}>{sym}</span>
-        );
+        spans.push(<span key={i} className={mode === 1 ? 'text-green-700' : 'text-red-600'}>{sym}</span>);
       }
       if (i < symbols.length - 1) spans.push(<span key={`sp-${i}`}> </span>);
     });
-
     return (
       <p className="text-lg sm:text-xl md:text-2xl font-bold font-mono tracking-widest leading-relaxed break-all select-none">
         {spans}
       </p>
+    );
+  }
+
+  function renderStroopGrid() {
+    if (!stroopGrid) return null;
+
+    const targetLabel = stroopMode === 'bonne' ? 'la bonne couleur' : 'la mauvaise couleur';
+
+    return (
+      <div className="mt-4 p-4 bg-slate-200 rounded-lg">
+        <p className="text-center text-sm text-slate-600 mb-3">
+          Selectionnez les mots ecrits de <strong>{targetLabel}</strong>
+        </p>
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${stroopGrid.cols}, 1fr)` }}
+        >
+          {stroopGrid.words.map((w, i) => {
+            const isSelected = stroopSelected.has(i);
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  setStroopSelected(prev => {
+                    const next = new Set(prev);
+                    if (next.has(i)) next.delete(i);
+                    else next.add(i);
+                    return next;
+                  });
+                }}
+                className={`py-2 px-1 rounded text-sm sm:text-base font-bold transition-all select-none
+                  ${isSelected
+                    ? 'bg-white ring-2 ring-blue-500 shadow-md scale-105'
+                    : 'bg-transparent hover:bg-slate-300'
+                  }`}
+                style={{ color: COLOR_CSS[w.displayColor] }}
+              >
+                {w.text}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex justify-center mt-3">
+          <Button size="sm" onClick={validateStroop}>
+            <Check className="mr-1 h-4 w-4" /> Valider
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -347,6 +524,11 @@ export default function Attention3Test() {
               <p>Apres un <strong>/</strong>, les X comptent <strong>-1</strong>.</p>
               <p>Apres un <strong>+</strong>, les X comptent de nouveau <strong>+1</strong>.</p>
               <p>Entrez le total (peut etre negatif).</p>
+              {settings.stroopEnabled && (
+                <p className="text-amber-700 font-medium mt-1">
+                  &#x26A0; Double tache : un tableau de couleurs (Stroop) apparaitra a 10s et 40s pendant chaque sequence.
+                </p>
+              )}
               {settings.timeLimitSec > 0 && (
                 <p>Temps total : <strong>{Math.floor(settings.timeLimitSec / 60)}min{settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}</strong>.</p>
               )}
@@ -434,6 +616,16 @@ export default function Attention3Test() {
               </div>
               <div className="flex items-center justify-between">
                 <div>
+                  <Label>Double tache Stroop</Label>
+                  <p className="text-xs text-slate-500 mt-0.5">Tableau de couleurs a 10s et 40s de chaque sequence</p>
+                </div>
+                <Switch
+                  checked={settings.stroopEnabled}
+                  onCheckedChange={v => setSettings(s => ({ ...s, stroopEnabled: v }))}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
                   <Label>Mode examen</Label>
                   <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les sequences</p>
                 </div>
@@ -460,6 +652,12 @@ export default function Attention3Test() {
       ? Math.round(results.reduce((s, r) => s + r.timeUsedMs, 0) / results.length / 1000 * 10) / 10
       : 0;
 
+    // Stroop aggregate
+    const allStroop = results.flatMap(r => r.stroopResults);
+    const stroopTotal = allStroop.reduce((s, r) => s + r.totalTargets, 0);
+    const stroopCorrect = allStroop.reduce((s, r) => s + r.correctSelections, 0);
+    const stroopWrong = allStroop.reduce((s, r) => s + r.wrongSelections, 0);
+
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
@@ -475,19 +673,34 @@ export default function Attention3Test() {
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500 mt-1">Bonnes reponses</p>
+              <p className="text-slate-500 mt-1">Croix — bonnes reponses</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
                 <p className="text-2xl font-bold text-blue-600">{totalCorrect}/{results.length}</p>
-                <p className="text-sm text-blue-700">Correct</p>
+                <p className="text-sm text-blue-700">Croix correct</p>
               </div>
               <div className="p-4 bg-amber-50 rounded-lg text-center">
                 <p className="text-2xl font-bold text-amber-600">{avgTime}s</p>
                 <p className="text-sm text-amber-700">Temps moyen</p>
               </div>
             </div>
+
+            {allStroop.length > 0 && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-purple-50 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {stroopCorrect}/{stroopTotal}
+                  </p>
+                  <p className="text-sm text-purple-700">Stroop correct</p>
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-red-600">{stroopWrong}</p>
+                  <p className="text-sm text-red-700">Stroop erreurs</p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <p className="font-semibold text-slate-700 text-sm">Detail par sequence :</p>
@@ -503,6 +716,13 @@ export default function Attention3Test() {
                         {!r.isCorrect && <span className="text-green-600 ml-2">({r.question.answer})</span>}
                       </span>
                     </div>
+                    {r.stroopResults.length > 0 && (
+                      <p className="text-xs text-purple-500">
+                        Stroop : {r.stroopResults.map((sr, j) =>
+                          `${sr.correctSelections}/${sr.totalTargets}`
+                        ).join(', ')}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -546,6 +766,11 @@ export default function Attention3Test() {
           <Badge variant="outline" className="text-base px-3 py-1">
             {currentIdx} &rarr; {settings.totalQuestions}
           </Badge>
+          {settings.stroopEnabled && (
+            <Badge variant="secondary" className="text-xs">
+              Stroop : {stroopMode === 'bonne' ? 'bonne couleur' : 'mauvaise couleur'}
+            </Badge>
+          )}
         </div>
 
         {showCorrection ? (
@@ -581,6 +806,9 @@ export default function Attention3Test() {
               <div className="px-2">
                 {currentQ && renderSymbols(currentQ.symbols)}
               </div>
+
+              {/* Stroop grid overlay */}
+              {stroopGrid && renderStroopGrid()}
 
               {/* Input */}
               <div className="text-center">
