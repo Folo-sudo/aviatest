@@ -87,7 +87,7 @@ export default function TelephonePage() {
             {mobileExercises.map((exercise) => {
               const Icon = exercise.icon;
               return (
-                <Link key={exercise.slug} href={`/telephone/${exercise.slug}`}>
+                <Link key={exercise.slug} href={`/telephone/${exercise.slug}`} target="_blank">
                   <Card className="mb-3 hover:scale-[1.01] transition-transform cursor-pointer" style={{ borderLeft: `4px solid ${exercise.color}` }}>
                     <CardContent className="py-4 px-4">
                       <div className="flex items-start gap-3">
