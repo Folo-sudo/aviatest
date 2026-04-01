@@ -15,9 +15,11 @@ import { useRouter } from 'next/navigation';
 type Phase = 'menu' | 'playing' | 'results';
 
 interface AngleQuestion {
-  handA: number;   // angle of hand A in degrees (trig: 0=right, CCW)
-  handO: number;   // angle of hand O
-  answer: number;  // angle from A to O, measured CCW (always > 0)
+  handA: number;        // angle of hand A in degrees (trig: 0=right, CCW)
+  handO: number;        // angle of hand O
+  answer: number;       // signed angle from A to O in the clock's positive direction
+  clockRotation: number; // rotation offset of the clock dial
+  clockReversed: boolean; // whether the clock is reversed (positive = CCW instead of CW)
 }
 
 interface AngleResult {
@@ -51,12 +53,96 @@ function generateAngles(): AngleQuestion[] {
   const questions: AngleQuestion[] = [];
   for (let i = 0; i < TOTAL_ANGLES; i++) {
     const handA = randInt(0, 71) * 5; // 0-355 step 5
-    // Ensure answer is between 15 and 345 (not too small or too close to 360)
-    const answer = randInt(3, 69) * 5; // 15-345 step 5
-    const handO = (handA + answer) % 360;
-    questions.push({ handA, handO, answer });
+    const clockRotation = randInt(0, 71) * 5;
+    const clockReversed = Math.random() < 0.5;
+
+    // Generate a signed angle (-280 to +280, step 5, excluding -10..10)
+    let answer = 0;
+    while (Math.abs(answer) < 15) {
+      answer = randInt(-56, 56) * 5; // -280 to +280
+    }
+
+    // Calculate handO from handA and answer using the clock's positive direction
+    // Normal clock (not reversed): positive = CW = decreasing trig angle
+    // Reversed clock: positive = CCW = increasing trig angle
+    let handO: number;
+    if (clockReversed) {
+      // Positive = CCW (increasing trig angle)
+      handO = ((handA + answer) % 360 + 360) % 360;
+    } else {
+      // Positive = CW (decreasing trig angle)
+      handO = ((handA - answer) % 360 + 360) % 360;
+    }
+
+    questions.push({ handA, handO, answer, clockRotation, clockReversed });
   }
   return questions;
+}
+
+// ============================================================================
+// SVG: Clock dial reference (shows positive direction)
+// ============================================================================
+
+function ClockDial({
+  rotation,
+  reversed,
+  size = 160,
+}: {
+  rotation: number;
+  reversed: boolean;
+  size?: number;
+}) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.4;
+  const tickLen = size * 0.06;
+  const labelR = r + size * 0.12;
+
+  // Clock positions: 12, 3, 6, 9 in trig degrees
+  // On a normal clock: 12=top(90), 3=right(0), 6=bottom(270), 9=left(180)
+  // If reversed: 3 and 9 swap → 3=left(180), 9=right(0)
+  const positions = [
+    { num: 12, baseDeg: 90 },
+    { num: 3, baseDeg: reversed ? 180 : 0 },
+    { num: 6, baseDeg: 270 },
+    { num: 9, baseDeg: reversed ? 0 : 180 },
+  ];
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[160px] mx-auto">
+      {/* Circle */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1E293B" strokeWidth="2.5" />
+
+      {/* Tick marks and numbers */}
+      {positions.map(({ num, baseDeg }) => {
+        const deg = baseDeg + rotation;
+        const inner = degToPoint(deg, cx, cy, r - 2);
+        const outer = degToPoint(deg, cx, cy, r + tickLen);
+        const label = degToPoint(deg, cx, cy, labelR);
+
+        // Rotate the number text to be tangent to the circle
+        const textRotation = -deg + 90; // so numbers read outward
+
+        return (
+          <g key={num}>
+            <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y}
+              stroke="#1E293B" strokeWidth="2.5" />
+            <text
+              x={label.x} y={label.y}
+              fontSize={num === 12 ? '16' : '18'}
+              fontWeight="bold"
+              fill="#1E293B"
+              textAnchor="middle"
+              dominantBaseline="central"
+              transform={`rotate(${textRotation}, ${label.x}, ${label.y})`}
+            >
+              {num}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
 // ============================================================================
@@ -137,21 +223,16 @@ function TrigCircle({
   const ptA = degToPoint(handA, cx, cy, handLen);
   const ptO = degToPoint(handO, cx, cy, handLen);
 
-  // Arc from A to O (CCW) to show the correct angle
+  // Arc from A to O — correct answer
   const arcA = degToPoint(handA, cx, cy, r * 0.6);
   const arcO = degToPoint(handO, cx, cy, r * 0.6);
-  const largeArc = answer > 180 ? 1 : 0;
+  // For the arc direction: we draw from A to O. SVG arc sweep-flag 0 = CCW in SVG coords (= CW in trig)
+  const absAnswer = Math.abs(answer);
+  const largeArc = absAnswer > 180 ? 1 : 0;
   const arcPath = `M ${arcA.x} ${arcA.y} A ${r * 0.6} ${r * 0.6} 0 ${largeArc} 0 ${arcO.x} ${arcO.y}`;
 
-  // User answer arc
-  const userEndAngle = (handA + userAngle) % 360;
-  const arcUserEnd = degToPoint(userEndAngle, cx, cy, r * 0.48);
-  const arcUserStart = degToPoint(handA, cx, cy, r * 0.48);
-  const userLargeArc = userAngle > 180 ? 1 : 0;
-  const userArcPath = `M ${arcUserStart.x} ${arcUserStart.y} A ${r * 0.48} ${r * 0.48} 0 ${userLargeArc} 0 ${arcUserEnd.x} ${arcUserEnd.y}`;
-
-  // Angle label position
-  const midAngle = (handA + answer / 2) % 360;
+  // Angle label position (midpoint of the arc)
+  const midAngle = handA + (handO - handA) / 2;
   const labelPt = degToPoint(midAngle, cx, cy, r * 0.35);
 
   return (
@@ -197,11 +278,6 @@ function TrigCircle({
       {/* Arc showing correct angle (blue dashed) */}
       <path d={arcPath} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeDasharray="6 3" />
 
-      {/* User answer arc (amber) */}
-      {userAngle > 0 && userAngle !== answer && (
-        <path d={userArcPath} fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4 4" />
-      )}
-
       {/* Hand A (blue) */}
       <line x1={cx} y1={cy} x2={ptA.x} y2={ptA.y} stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" />
       <circle cx={ptA.x} cy={ptA.y} r="4" fill="#2563EB" />
@@ -219,7 +295,7 @@ function TrigCircle({
 
       {/* Angle label */}
       <text x={labelPt.x} y={labelPt.y + 5} fontSize="16" fontWeight="bold" fill="#2563EB" textAnchor="middle">
-        {answer}{'\u00B0'}
+        {answer >= 0 ? '+' : ''}{answer}{'\u00B0'}
       </text>
     </svg>
   );
@@ -265,10 +341,9 @@ export default function FicheAngleTest() {
   const submitAngle = useCallback(() => {
     const parsed = parseInt(userInput, 10);
     if (isNaN(parsed)) return;
-    const userAngle = ((parsed % 360) + 360) % 360;
     const q = angles[currentIdx];
-    const error = angleDiff(userAngle, q.answer);
-    setResults(prev => [...prev, { question: q, userAngle, error }]);
+    const error = Math.abs(parsed - q.answer);
+    setResults(prev => [...prev, { question: q, userAngle: parsed, error }]);
     setShowCorrection(true);
   }, [angles, currentIdx, userInput]);
 
@@ -299,9 +374,9 @@ export default function FicheAngleTest() {
           <CardContent className="space-y-5">
             <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
               <p><strong>30 angles</strong> a estimer.</p>
-              <p>Deux aiguilles partent du meme centre (comme une montre).</p>
-              <p>Trouvez l&apos;angle de <strong>A vers O</strong> dans le sens anti-horaire (convention trigo).</p>
-              <p>Apres chaque reponse, la correction s&apos;affiche sur le <strong>cercle trigonometrique</strong>.</p>
+              <p>Deux aiguilles partent du meme centre.</p>
+              <p>Un <strong>cadran horloge</strong> indique le sens positif (lire les chiffres 3{'\u2192'}6{'\u2192'}9{'\u2192'}12 dans l&apos;ordre croissant).</p>
+              <p>Trouvez l&apos;angle de <strong>A vers O</strong> dans le sens positif du cadran.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-center">
@@ -371,10 +446,10 @@ export default function FicheAngleTest() {
                   <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm flex justify-between items-center">
                     <span className="text-slate-500">#{i + 1}</span>
                     <span className="font-mono text-slate-600">
-                      {r.question.answer}{'\u00B0'} {'\u2192'} {r.userAngle}{'\u00B0'}
+                      {r.question.answer >= 0 ? '+' : ''}{r.question.answer}{'\u00B0'} {'\u2192'} {r.userAngle >= 0 ? '+' : ''}{r.userAngle}{'\u00B0'}
                     </span>
                     <span className={`font-semibold ${r.error === 0 ? 'text-green-600' : r.error <= 10 ? 'text-blue-600' : r.error <= 30 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {r.error === 0 ? '\u2713' : `\u00B1${r.error}\u00B0`}
+                      {r.error === 0 ? '\u2713' : `\u0394${r.error}\u00B0`}
                     </span>
                   </div>
                 ))}
@@ -432,9 +507,9 @@ export default function FicheAngleTest() {
                   </div>
                 </div>
                 <p className="text-slate-700 font-semibold">
-                  Angle A{'\u2192'}O = {currentQ.answer}{'\u00B0'}
+                  Angle A{'\u2192'}O = {currentQ.answer >= 0 ? '+' : ''}{currentQ.answer}{'\u00B0'}
                   {lastResult.error > 0 && (
-                    <span className="text-slate-400 font-normal ml-2">(vous : {lastResult.userAngle}{'\u00B0'})</span>
+                    <span className="text-slate-400 font-normal ml-2">(vous : {lastResult.userAngle >= 0 ? '+' : ''}{lastResult.userAngle}{'\u00B0'})</span>
                   )}
                 </p>
               </div>
@@ -459,13 +534,16 @@ export default function FicheAngleTest() {
           </Badge>
         </div>
 
-        {/* Two-hand angle display */}
+        {/* Angle display + clock dial */}
         <Card className="mb-4">
           <CardContent className="pt-4 pb-3">
-            <p className="text-center text-sm text-slate-500 mb-2">
-              Quel est l&apos;angle de <span className="text-blue-600 font-bold">A</span> vers <span className="text-red-600 font-bold">O</span> (sens anti-horaire) ?
+            <p className="text-center text-sm text-slate-500 mb-3">
+              Angle de <span className="text-blue-600 font-bold">A</span> vers <span className="text-red-600 font-bold">O</span> dans le sens positif du cadran
             </p>
-            <AngleDisplay handA={currentQ.handA} handO={currentQ.handO} />
+            <div className="flex items-center justify-center gap-4">
+              <AngleDisplay handA={currentQ.handA} handO={currentQ.handO} />
+              <ClockDial rotation={currentQ.clockRotation} reversed={currentQ.clockReversed} />
+            </div>
           </CardContent>
         </Card>
 
@@ -474,7 +552,7 @@ export default function FicheAngleTest() {
           <Input
             ref={inputRef}
             type="number"
-            placeholder="Angle en degres (ex: 135)"
+            placeholder="Angle (ex: 135 ou -45)"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submitAngle()}
