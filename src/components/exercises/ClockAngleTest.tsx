@@ -65,6 +65,24 @@ export function ClockAngleTest() {
   const lastTimeRef = useRef<number>(0);
   const feedbackTimerRef = useRef<number>(0);
 
+  // Refs to avoid stale closures in the game loop
+  const answeredRef = useRef(false);
+  const showingFeedbackRef = useRef(false);
+  const isCorrectRef = useRef(false);
+  const targetAngleRef = useRef(0);
+  const displayAngleRef = useRef<DisplayAngle | null>(null);
+  const clockRefRef = useRef<ClockReference | null>(null);
+  const timerProgressRef = useRef(1);
+
+  // Keep refs in sync with state
+  answeredRef.current = answered;
+  showingFeedbackRef.current = showingFeedback;
+  isCorrectRef.current = isCorrect;
+  targetAngleRef.current = targetAngle;
+  displayAngleRef.current = displayAngle;
+  clockRefRef.current = clockRef;
+  timerProgressRef.current = timerProgress;
+
   const width = 900;
   const height = 550;
 
@@ -162,7 +180,13 @@ export function ClockAngleTest() {
     }
   }, [userInput, answered, showingFeedback, targetAngle, scorer, settings, nextQuestion]);
 
-  // Game loop
+  // Stable refs for game loop callbacks (avoid stale closures)
+  const timerRef = useRef<Timer | null>(null);
+  timerRef.current = timer;
+  const nextQuestionRef = useRef(nextQuestion);
+  nextQuestionRef.current = nextQuestion;
+
+  // Game loop — runs continuously while playing, reads all state from refs
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -171,22 +195,27 @@ export function ClockAngleTest() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    lastTimeRef.current = 0;
+
     const gameLoop = (timestamp: number) => {
       const deltaTime = lastTimeRef.current ? (timestamp - lastTimeRef.current) / 1000 : 0;
       lastTimeRef.current = timestamp;
 
       // Update timer
-      if (timer && !showingFeedback && !answered) {
-        timer.update(deltaTime);
-        setTimerProgress(timer.getProgress());
+      if (timerRef.current && !showingFeedbackRef.current && !answeredRef.current) {
+        timerRef.current.update(deltaTime);
+        const p = timerRef.current.getProgress();
+        timerProgressRef.current = p;
+        setTimerProgress(p);
       }
 
       // Update feedback timer
-      if (showingFeedback) {
+      if (showingFeedbackRef.current) {
         feedbackTimerRef.current -= deltaTime;
         if (feedbackTimerRef.current <= 0) {
           setShowingFeedback(false);
-          nextQuestion();
+          showingFeedbackRef.current = false;
+          nextQuestionRef.current();
         }
       }
 
@@ -203,11 +232,16 @@ export function ClockAngleTest() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [gameState, timer, showingFeedback, answered, nextQuestion]);
+  }, [gameState]); // Only restart loop when entering/leaving playing state
 
-  // Render game
+  // Render game — reads from refs to avoid stale closures in rAF
   const renderGame = (ctx: CanvasRenderingContext2D) => {
-    if (!clockRef || !displayAngle) return;
+    const clock = clockRefRef.current;
+    const angle = displayAngleRef.current;
+    const isAnswered = answeredRef.current;
+    const progress = timerProgressRef.current;
+
+    if (!clock || !angle) return;
 
     // Background
     ctx.fillStyle = '#f3f4f6';
@@ -233,17 +267,18 @@ export function ClockAngleTest() {
     ctx.roundRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight, 10);
     ctx.fill();
 
-    const fillHeight = timerBarHeight * timerProgress;
-    const fillColor = timerProgress > 0.5 ? '#22c55e' : timerProgress > 0.2 ? '#f59e0b' : '#ef4444';
+    const fillHeight = timerBarHeight * progress;
+    const fillColor = progress > 0.5 ? '#22c55e' : progress > 0.2 ? '#f59e0b' : '#ef4444';
     ctx.fillStyle = fillColor;
     ctx.beginPath();
     ctx.roundRect(timerBarX + 3, timerBarY + timerBarHeight - fillHeight + 3, timerBarWidth - 6, fillHeight - 6, 7);
     ctx.fill();
 
-    // Draw the angle to identify (large, centered left)
-    const angleBoxX = 100;
-    const angleBoxY = 80;
+    // Draw the angle to identify (large, centered)
     const angleBoxSize = 280;
+    // Center the box when clock is hidden, shift left when clock appears
+    const angleBoxX = isAnswered ? 100 : (width - angleBoxSize) / 2;
+    const angleBoxY = 80;
 
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#374151';
@@ -256,11 +291,11 @@ export function ClockAngleTest() {
     const cy = angleBoxY + angleBoxSize / 2;
     const segLength = angleBoxSize * 0.35;
 
-    const oAngleRad = (displayAngle.originAngle * Math.PI) / 180;
+    const oAngleRad = (angle.originAngle * Math.PI) / 180;
     const ox = cx + segLength * Math.cos(oAngleRad);
     const oy = cy - segLength * Math.sin(oAngleRad);
 
-    const aAngleRad = ((displayAngle.originAngle + displayAngle.angleValue) * Math.PI) / 180;
+    const aAngleRad = ((angle.originAngle + angle.angleValue) * Math.PI) / 180;
     const ax = cx + segLength * Math.cos(aAngleRad);
     const ay = cy - segLength * Math.sin(aAngleRad);
 
@@ -292,9 +327,9 @@ export function ClockAngleTest() {
     ctx.textAlign = 'center';
     ctx.fillText('Quel est cet angle ?', angleBoxX + angleBoxSize / 2, angleBoxY + angleBoxSize + 25);
 
-    // Draw clock reference only after answering (correction phase)
-    if (answered) {
-      drawClockReference(ctx, clockRef);
+    // Draw clock reference ONLY after answering (correction phase)
+    if (isAnswered) {
+      drawClockReference(ctx, clock);
     }
 
     // Score and progress
