@@ -10,18 +10,15 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
-interface AngleProposition {
-  x: number;
-  y: number;
-  size: number;
-  angleValue: number;
+interface DisplayAngle {
   originAngle: number;
-  highlight: 'green' | 'red' | null;
+  angleValue: number;
 }
 
 interface ClockReference {
@@ -42,6 +39,7 @@ interface GameSettings {
 export function ClockAngleTest() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>({
     numQuestions: 20,
@@ -55,10 +53,10 @@ export function ClockAngleTest() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [targetAngle, setTargetAngle] = useState(0);
   const [clockRef, setClockRef] = useState<ClockReference | null>(null);
-  const [propositions, setPropositions] = useState<AngleProposition[]>([]);
-  const [correctIndex, setCorrectIndex] = useState(0);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [displayAngle, setDisplayAngle] = useState<DisplayAngle | null>(null);
+  const [userInput, setUserInput] = useState('');
   const [answered, setAnswered] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
   const [showingFeedback, setShowingFeedback] = useState(false);
   const [timer, setTimer] = useState<Timer | null>(null);
   const [timerProgress, setTimerProgress] = useState(1);
@@ -68,12 +66,13 @@ export function ClockAngleTest() {
   const feedbackTimerRef = useRef<number>(0);
 
   const width = 900;
-  const height = 650;
+  const height = 550;
 
   // Generate a new question
   const generateQuestion = useCallback(() => {
-    setSelectedIndex(-1);
+    setUserInput('');
     setAnswered(false);
+    setIsCorrect(false);
     setShowingFeedback(false);
     feedbackTimerRef.current = 0;
 
@@ -84,59 +83,24 @@ export function ClockAngleTest() {
     // New clock configuration
     const newClockRef: ClockReference = {
       x: 700,
-      y: 180,
+      y: 220,
       radius: 120,
       rotation: Math.random() * 360,
       isReversed: Math.random() < 0.5
     };
     setClockRef(newClockRef);
 
-    // Calculate effective angle
+    // Calculate effective angle for display
     const effectiveAngle = newClockRef.isReversed ? -newTargetAngle : newTargetAngle;
 
-    // Generate propositions
-    const squareSize = 100;
-    const startX = 60;
-    const yPos = 350;
-    const spacing = 140;
-    const newCorrectIndex = Math.floor(Math.random() * 5);
-    setCorrectIndex(newCorrectIndex);
+    // Single angle to display
+    setDisplayAngle({
+      originAngle: Math.random() * 360,
+      angleValue: effectiveAngle
+    });
 
-    // Generate wrong angles
-    const wrongAngles: number[] = [];
-    while (wrongAngles.length < 4) {
-      const wrong = Math.floor(Math.random() * 561) - 280;
-      if (Math.abs(wrong - newTargetAngle) > 15 && !wrongAngles.includes(wrong)) {
-        wrongAngles.push(wrong);
-      }
-    }
-
-    const newPropositions: AngleProposition[] = [];
-    let wrongIdx = 0;
-
-    for (let i = 0; i < 5; i++) {
-      const originAngle = Math.random() * 360;
-      let angleValue: number;
-
-      if (i === newCorrectIndex) {
-        angleValue = effectiveAngle;
-      } else {
-        const wrongDisplay = newClockRef.isReversed ? -wrongAngles[wrongIdx] : wrongAngles[wrongIdx];
-        angleValue = wrongDisplay;
-        wrongIdx++;
-      }
-
-      newPropositions.push({
-        x: startX + i * spacing,
-        y: yPos,
-        size: squareSize,
-        angleValue,
-        originAngle,
-        highlight: null
-      });
-    }
-
-    setPropositions(newPropositions);
+    // Focus input after render
+    setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
   // Start playing
@@ -149,6 +113,8 @@ export function ClockAngleTest() {
         scorer.recordAnswer(false);
         if (settings.showFeedback) {
           setShowingFeedback(true);
+          setAnswered(true);
+          setIsCorrect(false);
           feedbackTimerRef.current = settings.feedbackDuration;
         } else {
           nextQuestion();
@@ -177,35 +143,24 @@ export function ClockAngleTest() {
     timer?.start();
   }, [currentQuestion, settings.numQuestions, generateQuestion, timer]);
 
-  // Handle answer selection
-  const handleSelection = useCallback((index: number) => {
-    if (showingFeedback || answered) return;
-    setSelectedIndex(index);
-  }, [showingFeedback, answered]);
+  // Handle submit answer
+  const handleSubmit = useCallback(() => {
+    if (answered || showingFeedback) return;
+    const parsed = parseInt(userInput, 10);
+    if (isNaN(parsed)) return;
 
-  // Handle next button click
-  const handleNext = useCallback(() => {
-    if (selectedIndex === -1) return;
+    setAnswered(true);
+    const correct = parsed === targetAngle;
+    setIsCorrect(correct);
+    scorer.recordAnswer(correct);
 
-    if (!answered) {
-      setAnswered(true);
-      const isCorrect = selectedIndex === correctIndex;
-      scorer.recordAnswer(isCorrect);
-
-      if (settings.showFeedback) {
-        setShowingFeedback(true);
-        feedbackTimerRef.current = settings.feedbackDuration;
-
-        // Update proposition highlights
-        setPropositions(prev => prev.map((prop, i) => ({
-          ...prop,
-          highlight: i === correctIndex ? 'green' : (i === selectedIndex && i !== correctIndex ? 'red' : null)
-        })));
-      } else {
-        nextQuestion();
-      }
+    if (settings.showFeedback) {
+      setShowingFeedback(true);
+      feedbackTimerRef.current = settings.feedbackDuration;
+    } else {
+      nextQuestion();
     }
-  }, [selectedIndex, answered, correctIndex, scorer, settings, nextQuestion]);
+  }, [userInput, answered, showingFeedback, targetAngle, scorer, settings, nextQuestion]);
 
   // Game loop
   useEffect(() => {
@@ -252,7 +207,7 @@ export function ClockAngleTest() {
 
   // Render game
   const renderGame = (ctx: CanvasRenderingContext2D) => {
-    if (!clockRef) return;
+    if (!clockRef || !displayAngle) return;
 
     // Background
     ctx.fillStyle = '#f3f4f6';
@@ -285,29 +240,69 @@ export function ClockAngleTest() {
     ctx.roundRect(timerBarX + 3, timerBarY + timerBarHeight - fillHeight + 3, timerBarWidth - 6, fillHeight - 6, 7);
     ctx.fill();
 
-    // Target angle display
-    const angleText = `Angle = ${targetAngle >= 0 ? '+' : ''}${targetAngle}deg`;
-    ctx.font = 'bold 28px Inter, Arial';
+    // Draw the angle to identify (large, centered left)
+    const angleBoxX = 100;
+    const angleBoxY = 80;
+    const angleBoxSize = 280;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#374151';
+    ctx.lineWidth = 2;
+    ctx.fillRect(angleBoxX, angleBoxY, angleBoxSize, angleBoxSize);
+    ctx.strokeRect(angleBoxX, angleBoxY, angleBoxSize, angleBoxSize);
+
+    // Draw angle segments inside the box
+    const cx = angleBoxX + angleBoxSize / 2;
+    const cy = angleBoxY + angleBoxSize / 2;
+    const segLength = angleBoxSize * 0.35;
+
+    const oAngleRad = (displayAngle.originAngle * Math.PI) / 180;
+    const ox = cx + segLength * Math.cos(oAngleRad);
+    const oy = cy - segLength * Math.sin(oAngleRad);
+
+    const aAngleRad = ((displayAngle.originAngle + displayAngle.angleValue) * Math.PI) / 180;
+    const ax = cx + segLength * Math.cos(aAngleRad);
+    const ay = cy - segLength * Math.sin(aAngleRad);
+
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ox, oy);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+
+    // Labels A and O
+    ctx.font = 'bold 18px Inter, Arial';
     ctx.fillStyle = '#1f2937';
-    ctx.textAlign = 'left';
-    ctx.fillText(angleText, 80, 200);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const labelOffset = 16;
+    ctx.fillText('A', ox + labelOffset * Math.cos(oAngleRad), oy - labelOffset * Math.sin(oAngleRad));
+    ctx.fillText('O', ax + labelOffset * Math.cos(aAngleRad), ay - labelOffset * Math.sin(aAngleRad));
+
+    // Label under box
+    ctx.font = '16px Inter, Arial';
+    ctx.fillStyle = '#6b7280';
+    ctx.textAlign = 'center';
+    ctx.fillText('Quel est cet angle ?', angleBoxX + angleBoxSize / 2, angleBoxY + angleBoxSize + 25);
 
     // Draw clock reference
     drawClockReference(ctx, clockRef);
-
-    // Draw propositions
-    propositions.forEach((prop, i) => {
-      drawProposition(ctx, prop, i, selectedIndex === i);
-    });
 
     // Score and progress
     ctx.font = '20px Inter, Arial';
     ctx.fillStyle = '#1f2937';
     ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${scorer.getCorrect()} / ${scorer.getTotal()}`, 80, height - 50);
+    ctx.fillText(`Score: ${scorer.getCorrect()} / ${scorer.getTotal()}`, 80, height - 40);
 
     ctx.textAlign = 'right';
-    ctx.fillText(`Question ${currentQuestion + 1} / ${settings.numQuestions}`, width - 80, height - 50);
+    ctx.fillText(`Question ${currentQuestion + 1} / ${settings.numQuestions}`, width - 80, height - 40);
   };
 
   // Draw clock reference
@@ -356,105 +351,6 @@ export function ClockAngleTest() {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-  };
-
-  // Draw proposition
-  const drawProposition = (ctx: CanvasRenderingContext2D, prop: AngleProposition, index: number, isSelected: boolean) => {
-    // Background
-    let bgColor = '#ffffff';
-    if (prop.highlight === 'green') bgColor = '#dcfce7';
-    else if (prop.highlight === 'red') bgColor = '#fee2e2';
-    else if (isSelected) bgColor = '#dbeafe';
-
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(prop.x, prop.y, prop.size, prop.size);
-
-    // Border
-    let borderColor = '#374151';
-    if (prop.highlight === 'green') borderColor = '#22c55e';
-    else if (prop.highlight === 'red') borderColor = '#ef4444';
-    else if (isSelected) borderColor = '#3b82f6';
-
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(prop.x, prop.y, prop.size, prop.size);
-
-    // Draw angle segments
-    const cx = prop.x + prop.size / 2;
-    const cy = prop.y + prop.size / 2;
-    const segLength = prop.size * 0.35;
-
-    // O segment
-    const oAngleRad = (prop.originAngle * Math.PI) / 180;
-    const ox = cx + segLength * Math.cos(oAngleRad);
-    const oy = cy - segLength * Math.sin(oAngleRad);
-
-    // A segment
-    const aAngleRad = ((prop.originAngle + prop.angleValue) * Math.PI) / 180;
-    const ax = cx + segLength * Math.cos(aAngleRad);
-    const ay = cy - segLength * Math.sin(aAngleRad);
-
-    ctx.strokeStyle = '#1f2937';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(ox, oy);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(ax, ay);
-    ctx.stroke();
-
-    // Labels
-    ctx.font = '14px Inter, Arial';
-    ctx.fillStyle = '#1f2937';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    const labelOffset = 12;
-    ctx.fillText('A', ox + labelOffset * Math.cos(oAngleRad), oy - labelOffset * Math.sin(oAngleRad));
-    ctx.fillText('O', ax + labelOffset * Math.cos(aAngleRad), ay - labelOffset * Math.sin(aAngleRad));
-
-    // Button below
-    const btnY = prop.y + prop.size + 8;
-    const btnHeight = 32;
-
-    let btnColor = '#f3f4f6';
-    if (prop.highlight === 'green') btnColor = '#86efac';
-    else if (prop.highlight === 'red') btnColor = '#fca5a5';
-    else if (isSelected) btnColor = '#93c5fd';
-
-    ctx.fillStyle = btnColor;
-    ctx.beginPath();
-    ctx.roundRect(prop.x, btnY, prop.size, btnHeight, 6);
-    ctx.fill();
-    ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.font = '14px Inter, Arial';
-    ctx.fillStyle = '#1f2937';
-    ctx.fillText(`${index + 1}${isSelected ? ' ✓' : ''}`, prop.x + prop.size / 2, btnY + btnHeight / 2);
-  };
-
-  // Handle canvas click
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas || showingFeedback) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Check proposition clicks
-    propositions.forEach((prop, i) => {
-      const btnY = prop.y + prop.size + 8;
-      const btnHeight = 32;
-      if (x >= prop.x && x <= prop.x + prop.size && y >= prop.y && y <= btnY + btnHeight) {
-        handleSelection(i);
-      }
-    });
   };
 
   // Render based on game state
@@ -615,21 +511,49 @@ export function ClockAngleTest() {
   // Playing state
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <div className="relative">
+      <div className="flex flex-col items-center gap-4">
         <canvas
           ref={canvasRef}
           width={width}
           height={height}
-          onClick={handleCanvasClick}
-          className="rounded-xl shadow-xl cursor-pointer"
+          className="rounded-xl shadow-xl"
         />
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+        <div className="flex items-center gap-3 w-full max-w-md">
+          <div className="flex-1 relative">
+            <Input
+              ref={inputRef}
+              type="number"
+              placeholder="Entrez l'angle (ex: -45)"
+              value={userInput}
+              onChange={(e) => !answered && setUserInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              disabled={answered || showingFeedback}
+              className={`text-center text-lg font-mono h-12 ${
+                showingFeedback
+                  ? isCorrect
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-red-500 bg-red-50 text-red-700'
+                  : ''
+              }`}
+            />
+            {showingFeedback && !isCorrect && (
+              <p className="text-sm text-center mt-1 text-slate-500">
+                Reponse correcte : <span className="font-bold text-green-600">{targetAngle >= 0 ? '+' : ''}{targetAngle}</span>
+              </p>
+            )}
+            {showingFeedback && isCorrect && (
+              <p className="text-sm text-center mt-1 text-green-600 font-bold">
+                Correct !
+              </p>
+            )}
+          </div>
           <Button
             size="lg"
-            onClick={handleNext}
-            disabled={selectedIndex === -1 || showingFeedback}
+            onClick={handleSubmit}
+            disabled={userInput === '' || answered || showingFeedback}
+            className="h-12"
           >
-            Suivant
+            Valider
           </Button>
         </div>
       </div>
