@@ -292,8 +292,10 @@ export function ClockAngleTest() {
     ctx.textAlign = 'center';
     ctx.fillText('Quel est cet angle ?', angleBoxX + angleBoxSize / 2, angleBoxY + angleBoxSize + 25);
 
-    // Draw clock reference
-    drawClockReference(ctx, clockRef);
+    // Draw clock reference only after answering (correction phase)
+    if (answered) {
+      drawClockReference(ctx, clockRef);
+    }
 
     // Score and progress
     ctx.font = '20px Inter, Arial';
