@@ -15,6 +15,7 @@ import {
   Plane,
   ChevronDown,
   ChevronRight,
+  Smartphone,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -261,6 +262,20 @@ export default function Home() {
                   {competition.name}
                 </Link>
               ))}
+              <Link href="/telephone">
+                <Badge
+                  variant="secondary"
+                  className="flex gap-1 cursor-pointer hover:opacity-80"
+                  style={{
+                    backgroundColor: homeStyles.colors.border,
+                    color: homeStyles.colors.text,
+                    border: 'none',
+                  }}
+                >
+                  <Smartphone className="h-3 w-3" />
+                  Telephone
+                </Badge>
+              </Link>
               <Link href="/concours">
                 <Badge
                   variant="secondary"
