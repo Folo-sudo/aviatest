@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Home, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -128,6 +129,9 @@ function TrigCircle({
   const labelR = size * 0.44;
   const handLen = r * 0.92;
 
+  // Rotation offset: 0 degrees on the trig circle = direction of hand O
+  const offset = handO;
+
   const majorAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
 
   const ptA = degToPoint(handA, cx, cy, handLen);
@@ -139,9 +143,16 @@ function TrigCircle({
   const largeArc = answer > 180 ? 1 : 0;
   const arcPath = `M ${arcA.x} ${arcA.y} A ${r * 0.6} ${r * 0.6} 0 ${largeArc} 0 ${arcO.x} ${arcO.y}`;
 
+  // User answer arc
+  const userEndAngle = (handA + userAngle) % 360;
+  const arcUserEnd = degToPoint(userEndAngle, cx, cy, r * 0.48);
+  const arcUserStart = degToPoint(handA, cx, cy, r * 0.48);
+  const userLargeArc = userAngle > 180 ? 1 : 0;
+  const userArcPath = `M ${arcUserStart.x} ${arcUserStart.y} A ${r * 0.48} ${r * 0.48} 0 ${userLargeArc} 0 ${arcUserEnd.x} ${arcUserEnd.y}`;
+
   // Angle label position
   const midAngle = (handA + answer / 2) % 360;
-  const labelPt = degToPoint(midAngle, cx, cy, r * 0.4);
+  const labelPt = degToPoint(midAngle, cx, cy, r * 0.35);
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto">
@@ -150,15 +161,26 @@ function TrigCircle({
       {/* Grid circle */}
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#CBD5E1" strokeWidth="1.5" />
 
-      {/* Axes */}
-      <line x1={cx - r - 10} y1={cy} x2={cx + r + 10} y2={cy} stroke="#94A3B8" strokeWidth="1" />
-      <line x1={cx} y1={cy - r - 10} x2={cx} y2={cy + r + 10} stroke="#94A3B8" strokeWidth="1" />
+      {/* Axes aligned with O direction */}
+      {(() => {
+        const ax1 = degToPoint(offset, cx, cy, r + 10);
+        const ax2 = degToPoint(offset + 180, cx, cy, r + 10);
+        const ay1 = degToPoint(offset + 90, cx, cy, r + 10);
+        const ay2 = degToPoint(offset + 270, cx, cy, r + 10);
+        return (
+          <>
+            <line x1={ax2.x} y1={ax2.y} x2={ax1.x} y2={ax1.y} stroke="#94A3B8" strokeWidth="1" />
+            <line x1={ay2.x} y1={ay2.y} x2={ay1.x} y2={ay1.y} stroke="#94A3B8" strokeWidth="1" />
+          </>
+        );
+      })()}
 
-      {/* Tick marks */}
+      {/* Tick marks and labels — rotated so 0 aligns with O */}
       {majorAngles.map(deg => {
-        const ti = degToPoint(deg, cx, cy, r - 4);
-        const to = degToPoint(deg, cx, cy, tickR);
-        const lp = degToPoint(deg, cx, cy, labelR);
+        const screenDeg = (deg + offset) % 360;
+        const ti = degToPoint(screenDeg, cx, cy, r - 4);
+        const to = degToPoint(screenDeg, cx, cy, tickR);
+        const lp = degToPoint(screenDeg, cx, cy, labelR);
         const major = deg % 90 === 0;
         return (
           <g key={deg}>
@@ -172,8 +194,13 @@ function TrigCircle({
         );
       })}
 
-      {/* Arc showing correct angle */}
+      {/* Arc showing correct angle (blue dashed) */}
       <path d={arcPath} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeDasharray="6 3" />
+
+      {/* User answer arc (amber) */}
+      {userAngle > 0 && userAngle !== answer && (
+        <path d={userArcPath} fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4 4" />
+      )}
 
       {/* Hand A (blue) */}
       <line x1={cx} y1={cy} x2={ptA.x} y2={ptA.y} stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" />
@@ -181,11 +208,11 @@ function TrigCircle({
       <text x={ptA.x + (ptA.x >= cx ? 12 : -12)} y={ptA.y + (ptA.y >= cy ? 14 : -6)}
         fontSize="14" fontWeight="bold" fill="#2563EB" textAnchor="middle">A</text>
 
-      {/* Hand O (red) */}
+      {/* Hand O (red) — aligned with 0 on the trig circle */}
       <line x1={cx} y1={cy} x2={ptO.x} y2={ptO.y} stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
       <circle cx={ptO.x} cy={ptO.y} r="4" fill="#DC2626" />
       <text x={ptO.x + (ptO.x >= cx ? 12 : -12)} y={ptO.y + (ptO.y >= cy ? 14 : -6)}
-        fontSize="14" fontWeight="bold" fill="#DC2626" textAnchor="middle">O</text>
+        fontSize="14" fontWeight="bold" fill="#DC2626" textAnchor="middle">O (0{'\u00B0'})</text>
 
       {/* Center */}
       <circle cx={cx} cy={cy} r="4" fill="#1E293B" />
@@ -202,89 +229,7 @@ function TrigCircle({
 // Circular slider (touch-friendly)
 // ============================================================================
 
-function AngleSlider({
-  value,
-  onChange,
-  size = 240,
-}: {
-  value: number;
-  onChange: (deg: number) => void;
-  size?: number;
-}) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size * 0.38;
-  const handlePt = degToPoint(value, cx, cy, r);
-
-  const handleInteraction = useCallback((clientX: number, clientY: number) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = clientX - rect.left - cx;
-    const y = -(clientY - rect.top - cy);
-    let deg = Math.round((Math.atan2(y, x) * 180) / Math.PI);
-    if (deg < 0) deg += 360;
-    deg = Math.round(deg / 5) * 5;
-    if (deg === 360) deg = 0;
-    onChange(deg);
-  }, [cx, cy, onChange]);
-
-  const dragging = useRef(false);
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    dragging.current = true;
-    (e.target as Element).setPointerCapture(e.pointerId);
-    handleInteraction(e.clientX, e.clientY);
-  }, [handleInteraction]);
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    handleInteraction(e.clientX, e.clientY);
-  }, [handleInteraction]);
-
-  const onPointerUp = useCallback(() => {
-    dragging.current = false;
-  }, []);
-
-  return (
-    <svg
-      ref={svgRef}
-      width={size} height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      className="mx-auto cursor-pointer touch-none"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-    >
-      <circle cx={cx} cy={cy} r={r} fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="2" />
-      <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke="#E2E8F0" strokeWidth="1" />
-      <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke="#E2E8F0" strokeWidth="1" />
-
-      {[0, 90, 180, 270].map(deg => {
-        const pt = degToPoint(deg, cx, cy, r + 16);
-        return (
-          <text key={deg} x={pt.x} y={pt.y + 4} fontSize="12" fontWeight="bold" fill="#64748B" textAnchor="middle">
-            {deg}{'\u00B0'}
-          </text>
-        );
-      })}
-
-      {/* Line to handle */}
-      <line x1={cx} y1={cy} x2={handlePt.x} y2={handlePt.y}
-        stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
-
-      {/* Handle */}
-      <circle cx={handlePt.x} cy={handlePt.y} r="14"
-        fill="#F59E0B" stroke="white" strokeWidth="3" className="drop-shadow-md" />
-
-      <circle cx={cx} cy={cy} r="4" fill="#475569" />
-
-      <text x={cx} y={cy + 5} fontSize="20" fontWeight="bold" fill="#1E293B" textAnchor="middle">
-        {value}{'\u00B0'}
-      </text>
-    </svg>
-  );
-}
+// (AngleSlider removed — replaced by text input)
 
 // ============================================================================
 // Main Component
@@ -296,25 +241,36 @@ export default function FicheAngleTest() {
 
   const [angles, setAngles] = useState<AngleQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [userAngle, setUserAngle] = useState(0);
+  const [userInput, setUserInput] = useState('');
   const [showCorrection, setShowCorrection] = useState(false);
   const [results, setResults] = useState<AngleResult[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when question changes
+  useEffect(() => {
+    if (phase === 'playing' && !showCorrection) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [phase, currentIdx, showCorrection]);
 
   const startFiche = useCallback(() => {
     setAngles(generateAngles());
     setCurrentIdx(0);
-    setUserAngle(0);
+    setUserInput('');
     setShowCorrection(false);
     setResults([]);
     setPhase('playing');
   }, []);
 
   const submitAngle = useCallback(() => {
+    const parsed = parseInt(userInput, 10);
+    if (isNaN(parsed)) return;
+    const userAngle = ((parsed % 360) + 360) % 360;
     const q = angles[currentIdx];
     const error = angleDiff(userAngle, q.answer);
     setResults(prev => [...prev, { question: q, userAngle, error }]);
     setShowCorrection(true);
-  }, [angles, currentIdx, userAngle]);
+  }, [angles, currentIdx, userInput]);
 
   const nextAngle = useCallback(() => {
     if (currentIdx + 1 >= angles.length) {
@@ -322,7 +278,7 @@ export default function FicheAngleTest() {
       return;
     }
     setCurrentIdx(currentIdx + 1);
-    setUserAngle(0);
+    setUserInput('');
     setShowCorrection(false);
   }, [currentIdx, angles.length]);
 
@@ -513,30 +469,21 @@ export default function FicheAngleTest() {
           </CardContent>
         </Card>
 
-        {/* Circular angle input */}
-        <Card className="mb-4">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-center text-sm text-slate-500 mb-2">Indiquez l&apos;angle</p>
-            <AngleSlider value={userAngle} onChange={setUserAngle} />
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <Button variant="outline" size="sm"
-                onClick={() => setUserAngle((userAngle - 5 + 360) % 360)}>
-                <ChevronLeft className="h-4 w-4" /> 5{'\u00B0'}
-              </Button>
-              <span className="text-lg font-bold text-slate-700 min-w-[60px] text-center">
-                {userAngle}{'\u00B0'}
-              </span>
-              <Button variant="outline" size="sm"
-                onClick={() => setUserAngle((userAngle + 5) % 360)}>
-                5{'\u00B0'} <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Button size="lg" className="w-full" onClick={submitAngle}>
-          Valider
-        </Button>
+        {/* Angle input bar */}
+        <div className="flex items-center gap-3 mb-4">
+          <Input
+            ref={inputRef}
+            type="number"
+            placeholder="Angle en degres (ex: 135)"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submitAngle()}
+            className="text-center text-lg font-mono h-12 flex-1"
+          />
+          <Button size="lg" className="h-12" onClick={submitAngle} disabled={userInput.trim() === ''}>
+            Valider
+          </Button>
+        </div>
       </div>
     </div>
   );
