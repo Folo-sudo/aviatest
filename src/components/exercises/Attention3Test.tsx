@@ -807,7 +807,7 @@ export default function Attention3Test() {
   const timerColor = timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 pt-6">
       <div className="w-full max-w-4xl relative">
         {/* Vertical timer bar */}
         {settings.timeLimitSec > 0 && (
@@ -821,7 +821,7 @@ export default function Attention3Test() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 pr-6">
+        <div className="flex items-center justify-between mb-4 pr-6">
           <Badge variant="outline" className="text-base px-3 py-1">
             {currentIdx} &rarr; {settings.totalQuestions}
           </Badge>
@@ -859,21 +859,30 @@ export default function Attention3Test() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="py-8 mr-6 relative">
-            <CardContent className="space-y-6">
-              {/* Symbol sequence */}
+          <>
+          {/* Crosses — always visible at the top */}
+          <Card className="py-6 mr-6">
+            <CardContent>
               <div className="px-2">
                 {currentQ && renderSymbols(currentQ.symbols)}
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Stroop grid overlay — positioned absolutely so crosses don't shift */}
-              {stroopGrid && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
+          {/* Stroop grid — appears below crosses, fixed min-height to avoid layout shifts */}
+          <div className={`mr-6 mt-3 transition-all duration-300 ${stroopGrid ? 'min-h-[320px]' : 'min-h-0'}`}>
+            {stroopGrid && (
+              <Card className="py-4">
+                <CardContent>
                   {renderStroopGrid()}
-                </div>
-              )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-              {/* Input */}
+          {/* Input — always at the bottom */}
+          <Card className="py-6 mr-6 mt-3">
+            <CardContent>
               <div className="text-center">
                 <p className="text-sm text-slate-500 mb-3">Entrez le resultat ci-dessous :</p>
                 <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
@@ -902,6 +911,7 @@ export default function Attention3Test() {
               </div>
             </CardContent>
           </Card>
+          </>
         )}
       </div>
     </div>
