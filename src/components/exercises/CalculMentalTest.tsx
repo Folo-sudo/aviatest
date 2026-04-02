@@ -533,7 +533,7 @@ export default function CalculMentalTest() {
           /* Question view */
           <Card className="text-center py-10 mr-6">
             <CardContent className="space-y-6">
-              <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-800 font-mono tracking-wide whitespace-nowrap overflow-x-auto">
+              <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-800 font-mono tracking-wide break-words text-center leading-relaxed">
                 {currentQ?.expression}
               </p>
               <p className="text-sm text-slate-400">Resoudre l&apos;operation ci-dessus</p>

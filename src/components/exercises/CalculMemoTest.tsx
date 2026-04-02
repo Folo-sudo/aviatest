@@ -686,7 +686,7 @@ export default function CalculMemoTest() {
           <Card className="text-center py-10">
             <CardContent className="space-y-6">
               <p className="text-sm text-slate-400 uppercase tracking-wider">Calcul mental</p>
-              <p className="text-4xl md:text-5xl font-bold text-slate-800 font-mono tracking-wide">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-800 font-mono tracking-wide break-words leading-relaxed">
                 {phase.expr}
               </p>
               <div className="flex items-center justify-center gap-3 max-w-xs mx-auto">

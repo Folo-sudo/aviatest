@@ -608,7 +608,7 @@ export default function CalculMental2Test() {
                 <p className="text-sm text-slate-500 mb-4">
                   Selectionnez le plus petit intervalle contenant le resultat de l&apos;operation ci-dessous :
                 </p>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-800 font-mono tracking-wide">
+                <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-800 font-mono tracking-wide break-words text-center leading-relaxed">
                   {currentQ?.expression}
                 </p>
               </CardContent>
