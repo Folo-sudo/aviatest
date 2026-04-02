@@ -311,21 +311,118 @@ export function ClockAngleTest() {
     ctx.lineTo(ax, ay);
     ctx.stroke();
 
-    // Labels A and O
+    // Correction arc (when answered, show measurement direction from O to A)
+    if (isAnswered && angle) {
+      const arcR = 45;
+      const startRad = angle.originAngle * Math.PI / 180;
+      const endRad = (angle.originAngle + angle.angleValue) * Math.PI / 180;
+
+      ctx.strokeStyle = isCorrectRef.current ? '#22c55e' : '#ef4444';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, arcR, -startRad, -endRad, angle.angleValue > 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Arrowhead at A end
+      const tipAngle = (angle.originAngle + angle.angleValue) * Math.PI / 180;
+      const tipX = cx + arcR * Math.cos(tipAngle);
+      const tipY = cy - arcR * Math.sin(tipAngle);
+      const backDir = angle.angleValue > 0 ? tipAngle - Math.PI / 2 : tipAngle + Math.PI / 2;
+      const aLen = 8;
+      const aSpread = 0.4;
+
+      ctx.fillStyle = isCorrectRef.current ? '#22c55e' : '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(
+        tipX + aLen * Math.cos(backDir - aSpread),
+        tipY - aLen * Math.sin(backDir - aSpread)
+      );
+      ctx.lineTo(
+        tipX + aLen * Math.cos(backDir + aSpread),
+        tipY - aLen * Math.sin(backDir + aSpread)
+      );
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Labels O and A (angle is measured from O to A)
     ctx.font = 'bold 18px Inter, Arial';
     ctx.fillStyle = '#1f2937';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     const labelOffset = 16;
-    ctx.fillText('A', ox + labelOffset * Math.cos(oAngleRad), oy - labelOffset * Math.sin(oAngleRad));
-    ctx.fillText('O', ax + labelOffset * Math.cos(aAngleRad), ay - labelOffset * Math.sin(aAngleRad));
+    ctx.fillText('O', ox + labelOffset * Math.cos(oAngleRad), oy - labelOffset * Math.sin(oAngleRad));
+    ctx.fillText('A', ax + labelOffset * Math.cos(aAngleRad), ay - labelOffset * Math.sin(aAngleRad));
+
+    // Cardan — positive direction indicator (always visible during question)
+    if (clock) {
+      const cardanX = angleBoxX + angleBoxSize - 38;
+      const cardanY = angleBoxY + 38;
+      const cardanR = 24;
+      const isCW = clock.isReversed;
+
+      // Background circle
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#374151';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cardanX, cardanY, cardanR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Curved arc arrow showing positive direction
+      const arrowR = cardanR * 0.65;
+      const arcStartDeg = 60;
+      const arcSweepDeg = 260;
+      const endDeg = isCW ? arcStartDeg - arcSweepDeg : arcStartDeg + arcSweepDeg;
+      const startRad2 = (arcStartDeg * Math.PI) / 180;
+      const endRad2 = (endDeg * Math.PI) / 180;
+
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cardanX, cardanY, arrowR, -startRad2, -endRad2, !isCW);
+      ctx.stroke();
+
+      // Arrowhead (filled triangle)
+      const tipAngle2 = endDeg * Math.PI / 180;
+      const tipX2 = cardanX + arrowR * Math.cos(tipAngle2);
+      const tipY2 = cardanY - arrowR * Math.sin(tipAngle2);
+      const backDir2 = isCW ? tipAngle2 + Math.PI / 2 : tipAngle2 - Math.PI / 2;
+      const aLen2 = 7;
+      const aSpread2 = 0.5;
+
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.moveTo(tipX2, tipY2);
+      ctx.lineTo(
+        tipX2 + aLen2 * Math.cos(backDir2 - aSpread2),
+        tipY2 - aLen2 * Math.sin(backDir2 - aSpread2)
+      );
+      ctx.lineTo(
+        tipX2 + aLen2 * Math.cos(backDir2 + aSpread2),
+        tipY2 - aLen2 * Math.sin(backDir2 + aSpread2)
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      // "+" label in center
+      ctx.font = 'bold 14px Inter, Arial';
+      ctx.fillStyle = '#2563eb';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+', cardanX, cardanY);
+    }
 
     // Label under box
     ctx.font = '16px Inter, Arial';
     ctx.fillStyle = '#6b7280';
     ctx.textAlign = 'center';
-    ctx.fillText('Quel est cet angle ?', angleBoxX + angleBoxSize / 2, angleBoxY + angleBoxSize + 25);
+    ctx.fillText('Angle de O vers A ?', angleBoxX + angleBoxSize / 2, angleBoxY + angleBoxSize + 25);
 
     // Draw clock reference ONLY after answering (correction phase)
     if (isAnswered) {
@@ -388,6 +485,55 @@ export function ClockAngleTest() {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+
+    // Positive direction arc arrow on clock
+    const isCW = clock.isReversed;
+    const posArcR = clock.radius + 14;
+    const posStartDeg = 90 + clock.rotation + 30;
+    const posSweepDeg = 120;
+    const posEndDeg = isCW ? posStartDeg - posSweepDeg : posStartDeg + posSweepDeg;
+    const posStartRad = (posStartDeg * Math.PI) / 180;
+    const posEndRad = (posEndDeg * Math.PI) / 180;
+
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(clock.x, clock.y, posArcR, -posStartRad, -posEndRad, !isCW);
+    ctx.stroke();
+
+    // Arrowhead
+    const posTipAngle = (posEndDeg * Math.PI) / 180;
+    const posTipX = clock.x + posArcR * Math.cos(posTipAngle);
+    const posTipY = clock.y - posArcR * Math.sin(posTipAngle);
+    const posBackDir = isCW ? posTipAngle + Math.PI / 2 : posTipAngle - Math.PI / 2;
+    const posALen = 8;
+    const posASpread = 0.4;
+
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.moveTo(posTipX, posTipY);
+    ctx.lineTo(
+      posTipX + posALen * Math.cos(posBackDir - posASpread),
+      posTipY - posALen * Math.sin(posBackDir - posASpread)
+    );
+    ctx.lineTo(
+      posTipX + posALen * Math.cos(posBackDir + posASpread),
+      posTipY - posALen * Math.sin(posBackDir + posASpread)
+    );
+    ctx.closePath();
+    ctx.fill();
+
+    // "+" label near the arc
+    ctx.font = 'bold 16px Inter, Arial';
+    ctx.fillStyle = '#2563eb';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const posLabelAngle = (((posStartDeg + posEndDeg) / 2) * Math.PI) / 180;
+    const posLabelR = posArcR + 14;
+    ctx.fillText('+',
+      clock.x + posLabelR * Math.cos(posLabelAngle),
+      clock.y - posLabelR * Math.sin(posLabelAngle)
+    );
   };
 
   // Render based on game state
