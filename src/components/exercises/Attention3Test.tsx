@@ -859,15 +859,19 @@ export default function Attention3Test() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="py-8 mr-6">
+          <Card className="py-8 mr-6 relative">
             <CardContent className="space-y-6">
               {/* Symbol sequence */}
               <div className="px-2">
                 {currentQ && renderSymbols(currentQ.symbols)}
               </div>
 
-              {/* Stroop grid overlay */}
-              {stroopGrid && renderStroopGrid()}
+              {/* Stroop grid overlay — positioned absolutely so crosses don't shift */}
+              {stroopGrid && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
+                  {renderStroopGrid()}
+                </div>
+              )}
 
               {/* Input */}
               <div className="text-center">
