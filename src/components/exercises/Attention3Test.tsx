@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings, Check } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -165,22 +165,40 @@ function generateQuestion(settings: GameSettings): QuestionData {
   return { symbols, answer: count };
 }
 
-function generateStroopGrid(): StroopGrid {
+function generateStroopGrid(targetMode: 'bonne' | 'mauvaise', maxTargets: number = 5): StroopGrid {
   const rows = 5;
   const cols = 5;
+  const total = rows * cols;
   const words: StroopWord[] = [];
 
-  for (let i = 0; i < rows * cols; i++) {
+  // Place 1–maxTargets correct answers at random positions
+  const numTargets = randInt(1, maxTargets);
+  const targetIndices = new Set<number>();
+  while (targetIndices.size < numTargets) {
+    targetIndices.add(Math.floor(Math.random() * total));
+  }
+
+  for (let i = 0; i < total; i++) {
+    const isTarget = targetIndices.has(i);
     const text = pickRandom(COLOR_NAMES);
-    // ~40% match, ~60% mismatch
     let displayColor: ColorName;
-    if (Math.random() < 0.4) {
-      displayColor = text;
+
+    if (targetMode === 'bonne') {
+      // Target = word matches its display color
+      if (isTarget) {
+        displayColor = text;
+      } else {
+        do { displayColor = pickRandom(COLOR_NAMES); } while (displayColor === text);
+      }
     } else {
-      do {
-        displayColor = pickRandom(COLOR_NAMES);
-      } while (displayColor === text);
+      // Target = word does NOT match its display color
+      if (isTarget) {
+        do { displayColor = pickRandom(COLOR_NAMES); } while (displayColor === text);
+      } else {
+        displayColor = text;
+      }
     }
+
     words.push({ text, displayColor, isMatch: text === displayColor });
   }
 
@@ -233,6 +251,16 @@ export default function Attention3Test() {
   const stroopTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const questionStartMsRef = useRef(0); // per-question start (not global timer)
 
+  // Refs for auto-validate (avoids stale closures in timeouts)
+  const stroopGridRef = useRef<StroopGrid | null>(null);
+  const stroopSelectedRef = useRef<Set<number>>(new Set());
+  const stroopModeRef = useRef(stroopMode);
+  stroopGridRef.current = stroopGrid;
+  stroopSelectedRef.current = stroopSelected;
+  stroopModeRef.current = stroopMode;
+  const [stroopTimeLeft, setStroopTimeLeft] = useState(0);
+  const stroopAppearRef = useRef(0);
+
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -243,6 +271,36 @@ export default function Attention3Test() {
   const clearStroopTimeouts = useCallback(() => {
     stroopTimeoutsRef.current.forEach(t => clearTimeout(t));
     stroopTimeoutsRef.current = [];
+  }, []);
+
+  // Auto-validate stroop (ref-based, stable for use in timeouts)
+  const autoValidateStroop = useCallback(() => {
+    const grid = stroopGridRef.current;
+    if (!grid) return;
+
+    const targetMatch = stroopModeRef.current === 'bonne';
+    const targetIdxSet = new Set<number>();
+    grid.words.forEach((w, i) => { if (w.isMatch === targetMatch) targetIdxSet.add(i); });
+
+    const selected = stroopSelectedRef.current;
+    let correctSelections = 0;
+    let wrongSelections = 0;
+    selected.forEach(idx => {
+      if (targetIdxSet.has(idx)) correctSelections++;
+      else wrongSelections++;
+    });
+
+    setCurrentStroopResults(prev => [...prev, {
+      correctSelections,
+      totalTargets: targetIdxSet.size,
+      wrongSelections,
+    }]);
+
+    setStroopGrid(null);
+    stroopGridRef.current = null;
+    setStroopSelected(new Set());
+    stroopSelectedRef.current = new Set();
+    setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
   const startTimer = useCallback((durationMs: number) => {
@@ -259,7 +317,7 @@ export default function Attention3Test() {
 
   useEffect(() => () => { clearTimer(); clearStroopTimeouts(); }, [clearTimer, clearStroopTimeouts]);
 
-  // Schedule stroop grids for current question
+  // Schedule stroop grids for current question (auto-dismiss after 15s)
   const scheduleStroop = useCallback(() => {
     clearStroopTimeouts();
     setStroopGrid(null);
@@ -270,49 +328,46 @@ export default function Attention3Test() {
     questionStartMsRef.current = Date.now();
 
     const t1 = setTimeout(() => {
-      setStroopGrid(generateStroopGrid());
+      const grid = generateStroopGrid(stroopModeRef.current, 5);
+      setStroopGrid(grid);
+      stroopGridRef.current = grid;
       setStroopSelected(new Set());
+      stroopSelectedRef.current = new Set();
     }, 10000); // 10s
 
+    const t1auto = setTimeout(() => {
+      autoValidateStroop();
+    }, 25000); // 10s + 15s auto-dismiss
+
     const t2 = setTimeout(() => {
-      setStroopGrid(generateStroopGrid());
+      const grid = generateStroopGrid(stroopModeRef.current, 5);
+      setStroopGrid(grid);
+      stroopGridRef.current = grid;
       setStroopSelected(new Set());
+      stroopSelectedRef.current = new Set();
     }, 40000); // 40s
 
-    stroopTimeoutsRef.current = [t1, t2];
-  }, [clearStroopTimeouts]);
+    const t2auto = setTimeout(() => {
+      autoValidateStroop();
+    }, 55000); // 40s + 15s auto-dismiss
 
-  // Validate stroop selection
-  const validateStroop = useCallback(() => {
-    if (!stroopGrid) return;
+    stroopTimeoutsRef.current = [t1, t1auto, t2, t2auto];
+  }, [clearStroopTimeouts, autoValidateStroop]);
 
-    const targetMatch = stroopMode === 'bonne';
-    const targets = stroopGrid.words
-      .map((w, i) => ({ ...w, idx: i }))
-      .filter(w => w.isMatch === targetMatch);
-
-    const totalTargets = targets.length;
-    const targetIndices = new Set(targets.map(t => t.idx));
-
-    let correctSelections = 0;
-    let wrongSelections = 0;
-    stroopSelected.forEach(idx => {
-      if (targetIndices.has(idx)) correctSelections++;
-      else wrongSelections++;
-    });
-
-    setCurrentStroopResults(prev => [...prev, {
-      correctSelections,
-      totalTargets,
-      wrongSelections,
-    }]);
-
-    setStroopGrid(null);
-    setStroopSelected(new Set());
-
-    // Refocus input
-    setTimeout(() => inputRef.current?.focus(), 50);
-  }, [stroopGrid, stroopMode, stroopSelected]);
+  // Stroop countdown timer
+  useEffect(() => {
+    if (!stroopGrid) {
+      setStroopTimeLeft(0);
+      return;
+    }
+    stroopAppearRef.current = Date.now();
+    setStroopTimeLeft(15);
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - stroopAppearRef.current) / 1000;
+      setStroopTimeLeft(Math.max(0, Math.ceil(15 - elapsed)));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [stroopGrid]);
 
   // Start game
   const startGame = useCallback(() => {
@@ -493,10 +548,14 @@ export default function Attention3Test() {
             );
           })}
         </div>
-        <div className="flex justify-center mt-3">
-          <Button size="sm" onClick={validateStroop}>
-            <Check className="mr-1 h-4 w-4" /> Valider
-          </Button>
+        <div className="mt-3 space-y-1">
+          <p className="text-center text-xs text-slate-400">{stroopTimeLeft}s</p>
+          <div className="w-full h-1.5 bg-slate-300 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all duration-500"
+              style={{ width: `${(stroopTimeLeft / 15) * 100}%` }}
+            />
+          </div>
         </div>
       </div>
     );
