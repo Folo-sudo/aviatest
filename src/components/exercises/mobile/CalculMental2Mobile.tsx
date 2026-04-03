@@ -225,6 +225,7 @@ export default function CalculMental2Mobile() {
       if (currentIdx + 1 >= questions.length) { clearTimer(); setGameState('results'); }
       else { setCurrentIdx(currentIdx + 1); setSelectedIdx(null); setShowCorrection(false); }
     } else {
+      clearTimer();
       setShowCorrection(true);
     }
   }, [clearTimer, selectedIdx, questions, currentIdx, scorer]);
@@ -235,7 +236,10 @@ export default function CalculMental2Mobile() {
     setSelectedIdx(null);
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-  }, [currentIdx, questions.length, clearTimer]);
+    if (settingsRef.current.timeLimitSec > 0) {
+      startTimer(settingsRef.current.timeLimitSec * 1000);
+    }
+  }, [currentIdx, questions.length, clearTimer, startTimer]);
 
   useEffect(() => {
     if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') { clearTimer(); setGameState('results'); }

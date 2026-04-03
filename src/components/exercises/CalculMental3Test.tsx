@@ -317,6 +317,7 @@ export default function CalculMental3Test() {
         setShowCorrection(false);
       }
     } else {
+      clearTimer();
       setShowCorrection(true);
     }
   }, [clearTimer, userInput, systems, currentIdx, scorer]);
@@ -333,7 +334,10 @@ export default function CalculMental3Test() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-  }, [currentIdx, systems.length, clearTimer]);
+    if (settingsRef.current.timeLimitSec > 0) {
+      startTimer(settingsRef.current.timeLimitSec * 1000);
+    }
+  }, [currentIdx, systems.length, clearTimer, startTimer]);
 
   useEffect(() => {
     if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {

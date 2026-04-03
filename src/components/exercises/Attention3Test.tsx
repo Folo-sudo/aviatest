@@ -442,6 +442,7 @@ export default function Attention3Test() {
         questionStartMsRef.current = Date.now();
       }
     } else {
+      clearTimer();
       setShowCorrection(true);
     }
   }, [clearTimer, clearStroopTimeouts, userInput, questions, currentIdx, scorer, currentStroopResults]);
@@ -458,7 +459,10 @@ export default function Attention3Test() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartMsRef.current = Date.now();
-  }, [currentIdx, questions.length, clearTimer]);
+    if (settingsRef.current.timeLimitSec > 0) {
+      startTimer(settingsRef.current.timeLimitSec * 1000);
+    }
+  }, [currentIdx, questions.length, clearTimer, startTimer]);
 
   // Global timer expiry
   useEffect(() => {

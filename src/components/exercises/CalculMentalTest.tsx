@@ -234,6 +234,7 @@ export default function CalculMentalTest() {
         setShowCorrection(false);
       }
     } else {
+      clearTimer();
       setShowCorrection(true);
     }
   }, [clearTimer, userInput, questions, currentIdx, scorer]);
@@ -251,7 +252,10 @@ export default function CalculMentalTest() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-  }, [currentIdx, questions.length, clearTimer]);
+    if (settingsRef.current.timeLimitSec > 0) {
+      startTimer(settingsRef.current.timeLimitSec * 1000);
+    }
+  }, [currentIdx, questions.length, clearTimer, startTimer]);
 
   // Global timer expiry → go to results
   useEffect(() => {
