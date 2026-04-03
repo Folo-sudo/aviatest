@@ -281,9 +281,10 @@ export default function FicheAngleMobile() {
   const submitAngle = useCallback(() => {
     const parsed = parseInt(userInput, 10);
     if (isNaN(parsed)) return;
+    const snapped = Math.round(parsed / 5) * 5;
     const q = angles[currentIdx];
-    const error = Math.abs(parsed - q.answer);
-    setResults(prev => [...prev, { question: q, userAngle: parsed, error }]);
+    const error = Math.abs(snapped - q.answer);
+    setResults(prev => [...prev, { question: q, userAngle: snapped, error }]);
     setShowCorrection(true);
   }, [angles, currentIdx, userInput]);
 
@@ -489,6 +490,7 @@ export default function FicheAngleMobile() {
             ref={inputRef}
             type="number"
             inputMode="numeric"
+            step={5}
             placeholder="Angle (ex: 135 ou -45)"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
