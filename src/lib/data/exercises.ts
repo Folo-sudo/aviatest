@@ -521,6 +521,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 15,
     ready: true,
   },
+  {
+    id: 'glossaire-angles',
+    slug: 'glossaire-angles',
+    title: 'Glossaire Angles',
+    description: 'Visualisez n\'importe quel angle sur le cercle trigonometrique',
+    longDescription:
+      'Outil de reference interactif. Entrez un angle entre 0 et 360 degres et visualisez-le instantanement sur le cercle trigonometrique avec les projections cos/sin. Boutons d\'acces rapide aux angles remarquables (30, 45, 60, 90...). Ideal pour memoriser la position des angles avant les epreuves.',
+    types: ['spatiale'],
+    primaryType: 'spatiale',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'facile',
+    seoTitle: 'Glossaire Angles - Cercle Trigonometrique Interactif | AviaTest',
+    seoDescription:
+      'Visualiseur d\'angles interactif sur le cercle trigonometrique. Entrez un angle et voyez sa position, cos et sin. Outil de revision pour selections pilote.',
+    seoKeywords: [
+      'glossaire angles',
+      'cercle trigonometrique interactif',
+      'visualiser angle',
+      'cos sin angle',
+      'revision angles pilote',
+    ],
+    iconName: 'Search',
+    estimatedDuration: 0,
+    ready: true,
+  },
 ];
 
 // ============================================================================

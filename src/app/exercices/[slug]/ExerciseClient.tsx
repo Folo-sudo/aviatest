@@ -55,6 +55,10 @@ const CalculMental3Test = dynamic(
   () => import('@/components/exercises/CalculMental3Test'),
   { ssr: false }
 );
+const GlossaireAngleTest = dynamic(
+  () => import('@/components/exercises/GlossaireAngleTest'),
+  { ssr: false }
+);
 
 // Map slug to component
 const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = {
@@ -71,6 +75,7 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'attention-3': Attention3Test,
   'fiche-angles': FicheAngleTest,
   'calcul-mental-3': CalculMental3Test,
+  'glossaire-angles': GlossaireAngleTest,
 };
 
 function ExerciseLoader({ slug }: { slug: string }) {
