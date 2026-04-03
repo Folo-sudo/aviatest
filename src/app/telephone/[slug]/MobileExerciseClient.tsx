@@ -19,12 +19,17 @@ const FicheAngleMobile = dynamic(
   () => import('@/components/exercises/mobile/FicheAngleMobile'),
   { ssr: false }
 );
+const GlossaireAngleMobile = dynamic(
+  () => import('@/components/exercises/mobile/GlossaireAngleMobile'),
+  { ssr: false }
+);
 
 const mobileComponents: Record<string, React.ComponentType> = {
   'calcul-mental': CalculMentalMobile,
   'calcul-mental-2': CalculMental2Mobile,
   'calcul-mental-3': CalculMental3Mobile,
   'fiche-angles': FicheAngleMobile,
+  'glossaire-angles': GlossaireAngleMobile,
 };
 
 function MobileExerciseLoader({ slug }: { slug: string }) {
