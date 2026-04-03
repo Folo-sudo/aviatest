@@ -85,10 +85,6 @@ function AngleVisualizer({
         </>
       )}
 
-      {normAngle > 0 && normAngle < 360 && (
-        <path d={arcPath} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeDasharray="5 3" />
-      )}
-
       {/* Hand A (blue) */}
       <line x1={cx} y1={cy} x2={ptA.x} y2={ptA.y} stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
       <circle cx={ptA.x} cy={ptA.y} r="4" fill="#2563EB" />
