@@ -867,7 +867,7 @@ export default function Attention3Test() {
                             ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-red-50 text-red-700 border border-red-200'
                         }`}>
-                          Tableau {i + 1} : {isCorrect ? '\u2713 Correct' : `\u2717 ${sr.correctSelections}/${sr.totalTargets}`}
+                          Tableau {i + 1} : {isCorrect ? '\u2713 Correct' : `\u2717 ${sr.correctSelections}/${sr.totalTargets}${sr.wrongSelections > 0 ? ` (+${sr.wrongSelections} erreur${sr.wrongSelections > 1 ? 's' : ''})` : ''}`}
                         </div>
                       );
                     })}
