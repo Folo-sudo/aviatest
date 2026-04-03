@@ -97,11 +97,6 @@ function AngleVisualizer({
         </>
       )}
 
-      {/* Filled arc sector */}
-      {normAngle > 0 && normAngle < 360 && (
-        <path d={sectorPath} fill="rgba(37, 99, 235, 0.08)" />
-      )}
-
       {/* Arc line */}
       {normAngle > 0 && normAngle < 360 && (
         <path d={arcPath} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeDasharray="6 3" />
@@ -128,12 +123,7 @@ function AngleVisualizer({
       {/* Center dot */}
       <circle cx={cx} cy={cy} r="5" fill="#1E293B" />
 
-      {/* Angle value label on arc */}
-      {normAngle > 0 && normAngle < 360 && (
-        <text x={labelPt.x} y={labelPt.y + 5} fontSize="16" fontWeight="bold" fill="#2563EB" textAnchor="middle">
-          {normAngle}{'\u00B0'}
-        </text>
-      )}
+
     </svg>
   );
 }
