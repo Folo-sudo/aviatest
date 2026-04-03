@@ -854,6 +854,26 @@ export default function Attention3Test() {
                   </>
                 )}
               </div>
+              {/* Stroop grids correction */}
+              {results[results.length - 1]?.stroopResults.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-slate-600 text-center">Tableaux de couleurs :</p>
+                  <div className="flex justify-center gap-3">
+                    {results[results.length - 1].stroopResults.map((sr, i) => {
+                      const isCorrect = sr.correctSelections === sr.totalTargets && sr.wrongSelections === 0;
+                      return (
+                        <div key={i} className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                          isCorrect
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          Tableau {i + 1} : {isCorrect ? '\u2713 Correct' : `\u2717 ${sr.correctSelections}/${sr.totalTargets}`}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="text-center">
                 <Button size="lg" onClick={nextQuestion}>
                   {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
