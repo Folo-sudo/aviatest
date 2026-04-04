@@ -94,8 +94,8 @@ export function ClockAngleTest() {
     setShowingFeedback(false);
     feedbackTimerRef.current = 0;
 
-    // New target angle (-280 to +280)
-    const newTargetAngle = Math.floor(Math.random() * 561) - 280;
+    // New target angle (-280 to +280, multiples of 5 only)
+    const newTargetAngle = (Math.floor(Math.random() * 113) - 56) * 5;
     setTargetAngle(newTargetAngle);
 
     // New clock configuration
