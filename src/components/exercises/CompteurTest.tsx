@@ -50,9 +50,10 @@ function arcPath(cx: number, cy: number, r: number, sa: number, ea: number) {
   const s = pt(cx, cy, r, sa), e = pt(cx, cy, r, ea);
   let sweep = sa - ea;
   if (sweep < 0) sweep += 360;
-  if (sweep > 359.9) sweep = 359.9; // Avoid degenerate full circle
+  if (sweep > 359.9) sweep = 359.9;
   const large = sweep > 180 ? 1 : 0;
-  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+  // sweep-flag=1 (CW in SVG screen coords) matches our gauge direction
+  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
 }
 
 /* ================================================================
