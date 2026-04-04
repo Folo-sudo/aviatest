@@ -546,6 +546,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 0,
     ready: true,
   },
+  {
+    id: 'compteurs',
+    slug: 'compteurs',
+    title: 'Test des Compteurs',
+    description: 'Lisez les valeurs de 8 compteurs cockpit et identifiez la bonne ligne de lecture',
+    longDescription:
+      'Test d\'observation spatiale et numerique. 8 compteurs cockpit (fuel, temperatures, pressions, horloge, vitesse, compte-tours) sont affiches simultanement. Un tableau de 6 lignes propose des lectures differentes. Identifiez la ligne correspondant aux valeurs reelles. 20 planches en 10 minutes.',
+    types: ['attention', 'numerique'],
+    primaryType: 'attention',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'moyen',
+    seoTitle: 'Test des Compteurs Cockpit - Lecture Instruments Pilote | AviaTest',
+    seoDescription:
+      'Entrainement au test des compteurs cockpit pour selections pilote. Lecture d\'instruments : fuel, temperatures, pressions, horloge. PSY0, PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test compteurs cockpit',
+      'lecture instruments pilote',
+      'test psychotechnique compteurs',
+      'compteurs psy0 psy1',
+      'instruments cockpit enac',
+    ],
+    iconName: 'Gauge',
+    estimatedDuration: 10,
+    ready: true,
+  },
 ];
 
 // ============================================================================
