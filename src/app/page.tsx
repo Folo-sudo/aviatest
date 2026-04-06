@@ -1,8 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Clock,
   Binary,
@@ -16,6 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
   Smartphone,
+  Lock,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -220,9 +223,104 @@ function CompetitionCard({
 // Main Component
 // ============================================================================
 
+const PASSWORD = 'Obelix41';
+
+function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === PASSWORD) {
+      sessionStorage.setItem('aviatest-auth', 'true');
+      onSuccess();
+    } else {
+      setError(true);
+      setPassword('');
+    }
+  };
+
+  return (
+    <main
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: homeStyles.colors.background }}
+    >
+      <div
+        className="w-full max-w-md mx-4 p-8 rounded-2xl text-center"
+        style={{
+          backgroundColor: homeStyles.colors.cardBg,
+          border: `1px solid ${homeStyles.colors.border}`,
+          boxShadow: homeStyles.shadows.card,
+        }}
+      >
+        <div
+          className="mx-auto mb-6 w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: '#f0eeeb' }}
+        >
+          <Lock className="h-7 w-7" style={{ color: homeStyles.colors.text }} />
+        </div>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Target className="h-6 w-6" style={{ color: homeStyles.colors.text }} />
+          <h1
+            className="text-2xl font-bold"
+            style={{ color: homeStyles.colors.text }}
+          >
+            AviaTest
+          </h1>
+        </div>
+        <p
+          className="text-sm mb-8"
+          style={{ color: homeStyles.colors.textMuted }}
+        >
+          Entrez le mot de passe pour acceder aux exercices
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="password"
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError(false);
+            }}
+            className="text-center text-lg"
+            autoFocus
+          />
+          {error && (
+            <p className="text-sm text-red-500">Mot de passe incorrect</p>
+          )}
+          <Button
+            type="submit"
+            className="w-full"
+            style={{
+              backgroundColor: homeStyles.colors.text,
+              color: homeStyles.colors.background,
+            }}
+          >
+            Acceder
+          </Button>
+        </form>
+      </div>
+    </main>
+  );
+}
+
 export default function Home() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
   const competitions = getAllCompetitions();
   const readyExercises = EXERCISES.filter((e) => e.ready);
+
+  useEffect(() => {
+    setAuthenticated(sessionStorage.getItem('aviatest-auth') === 'true');
+    setLoading(false);
+  }, []);
+
+  if (loading) return null;
+
+  if (!authenticated) {
+    return <PasswordGate onSuccess={() => setAuthenticated(true)} />;
+  }
 
   return (
     <main
