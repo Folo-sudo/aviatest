@@ -279,7 +279,7 @@ export default function CalculMentalTest() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Calcul Mental</CardTitle>
+            <CardTitle className="text-3xl font-bold">Calcul Mental 1</CardTitle>
             <CardDescription className="text-base mt-2">
               Resolvez des operations de calcul mental le plus vite possible
             </CardDescription>
