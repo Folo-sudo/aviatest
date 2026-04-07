@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 const mobileExercises = [
   {
     slug: 'calcul-mental',
-    title: 'Calcul Mental',
+    title: 'Calcul Mental 1',
     description: 'Chaine d\'additions et soustractions avec multiplication optionnelle',
     icon: Calculator,
     color: '#2563EB',

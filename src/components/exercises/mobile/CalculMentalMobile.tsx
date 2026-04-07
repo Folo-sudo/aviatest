@@ -145,7 +145,8 @@ export default function CalculMentalMobile() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const questionStartRef = useRef(0);
+  const timerStartRef = useRef(0);       // global timer start
+  const questionStartRef = useRef(0);    // per-question timing
   const inputRef = useRef<HTMLInputElement>(null);
 
   const clearTimer = useCallback(() => {
@@ -154,11 +155,11 @@ export default function CalculMentalMobile() {
 
   const startTimer = useCallback((durationMs: number) => {
     clearTimer();
-    questionStartRef.current = Date.now();
+    timerStartRef.current = Date.now();
     setTotalTime(durationMs);
     setTimeLeft(durationMs);
     timerRef.current = setInterval(() => {
-      const left = Math.max(0, durationMs - (Date.now() - questionStartRef.current));
+      const left = Math.max(0, durationMs - (Date.now() - timerStartRef.current));
       setTimeLeft(left);
     }, 50);
   }, [clearTimer]);
@@ -204,7 +205,6 @@ export default function CalculMentalMobile() {
       if (currentIdx + 1 >= questions.length) { clearTimer(); setGameState('results'); }
       else { setCurrentIdx(currentIdx + 1); setUserInput(''); setShowCorrection(false); }
     } else {
-      clearTimer();
       setShowCorrection(true);
     }
   }, [clearTimer, userInput, questions, currentIdx, scorer]);
@@ -215,10 +215,7 @@ export default function CalculMentalMobile() {
     setUserInput('');
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-    if (settingsRef.current.timeLimitSec > 0) {
-      startTimer(settingsRef.current.timeLimitSec * 1000);
-    }
-  }, [currentIdx, questions.length, clearTimer, startTimer]);
+  }, [currentIdx, questions.length, clearTimer]);
 
   useEffect(() => {
     if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') { clearTimer(); setGameState('results'); }
@@ -235,7 +232,7 @@ export default function CalculMentalMobile() {
         <div className="max-w-lg mx-auto pt-4">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">Calcul Mental</CardTitle>
+              <CardTitle className="text-2xl font-bold">Calcul Mental 1</CardTitle>
               <CardDescription className="text-sm mt-1">
                 Resolvez des operations de calcul mental
               </CardDescription>

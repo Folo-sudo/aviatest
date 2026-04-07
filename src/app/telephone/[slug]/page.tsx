@@ -5,7 +5,7 @@ import MobileExerciseClient from './MobileExerciseClient';
 const VALID_SLUGS = ['calcul-mental', 'calcul-mental-2', 'calcul-mental-3', 'fiche-angles', 'glossaire-angles'];
 
 const EXERCISE_TITLES: Record<string, string> = {
-  'calcul-mental': 'Calcul Mental - Mobile',
+  'calcul-mental': 'Calcul Mental 1 - Mobile',
   'calcul-mental-2': 'Calcul Mental 2 - Mobile',
   'calcul-mental-3': 'Calcul Mental 3 - Mobile',
   'fiche-angles': 'Fiche Angles - Mobile',

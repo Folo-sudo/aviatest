@@ -157,7 +157,8 @@ export default function CalculMentalTest() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const questionStartRef = useRef(0);
+  const timerStartRef = useRef(0);       // global timer start
+  const questionStartRef = useRef(0);    // per-question timing
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -170,11 +171,11 @@ export default function CalculMentalTest() {
 
   const startTimer = useCallback((durationMs: number) => {
     clearTimer();
-    questionStartRef.current = Date.now();
+    timerStartRef.current = Date.now();
     setTotalTime(durationMs);
     setTimeLeft(durationMs);
     timerRef.current = setInterval(() => {
-      const elapsed = Date.now() - questionStartRef.current;
+      const elapsed = Date.now() - timerStartRef.current;
       const left = Math.max(0, durationMs - elapsed);
       setTimeLeft(left);
     }, 50);
@@ -234,7 +235,6 @@ export default function CalculMentalTest() {
         setShowCorrection(false);
       }
     } else {
-      clearTimer();
       setShowCorrection(true);
     }
   }, [clearTimer, userInput, questions, currentIdx, scorer]);
@@ -252,10 +252,7 @@ export default function CalculMentalTest() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-    if (settingsRef.current.timeLimitSec > 0) {
-      startTimer(settingsRef.current.timeLimitSec * 1000);
-    }
-  }, [currentIdx, questions.length, clearTimer, startTimer]);
+  }, [currentIdx, questions.length, clearTimer]);
 
   // Global timer expiry → go to results
   useEffect(() => {
