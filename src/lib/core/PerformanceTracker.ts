@@ -22,6 +22,8 @@ export interface ExerciseStats {
   last7DaysAvg: number | null;
   last3DaysAvg: number | null;
   todayAvg: number | null;
+  avgTimeSec: number | null;      // average time per question across all sessions (seconds)
+  lastAvgTimeSec: number | null;  // average time per question of last session (seconds)
 }
 
 // Key format: aviatest-perf:{pseudo}:{exerciseId}
@@ -190,6 +192,16 @@ export function getExerciseStats(exerciseId: string): ExerciseStats | null {
   const last7 = filterByDays(7);
   const last3 = filterByDays(3);
 
+  // Average time per question (only entries that tracked time)
+  const timedEntries = entries.filter(e => e.avgTimeMs > 0);
+  const avgTimeSec = timedEntries.length > 0
+    ? Math.round(avg(timedEntries.map(e => e.avgTimeMs)) / 100) / 10
+    : null;
+  const lastEntry = entries[entries.length - 1];
+  const lastAvgTimeSec = lastEntry.avgTimeMs > 0
+    ? Math.round(lastEntry.avgTimeMs / 100) / 10
+    : null;
+
   return {
     exerciseId,
     entries,
@@ -201,6 +213,8 @@ export function getExerciseStats(exerciseId: string): ExerciseStats | null {
     last7DaysAvg: last7.length > 0 ? Math.round(avg(last7) * 10) / 10 : null,
     last3DaysAvg: last3.length > 0 ? Math.round(avg(last3) * 10) / 10 : null,
     todayAvg: todayScores.length > 0 ? Math.round(avg(todayScores) * 10) / 10 : null,
+    avgTimeSec,
+    lastAvgTimeSec,
   };
 }
 

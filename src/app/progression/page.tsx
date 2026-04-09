@@ -271,6 +271,10 @@ export default function ProgressionPage() {
                           <div>DERNIER</div>
                           <div className="font-bold text-slate-700">RESULTAT</div>
                         </th>
+                        <th className="text-center py-3 px-3 font-medium text-slate-500 text-xs hidden md:table-cell">
+                          <div>TEMPS MOY.</div>
+                          <div className="font-bold text-slate-700">PAR PLANCHE</div>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -311,6 +315,18 @@ export default function ProgressionPage() {
                             </td>
                             <td className="py-3 px-3 text-center">
                               {scoreBadge(stats.lastScore)}
+                            </td>
+                            <td className="py-3 px-3 text-center hidden md:table-cell">
+                              {stats.avgTimeSec !== null ? (
+                                <div>
+                                  <span className="font-semibold text-slate-700">{stats.avgTimeSec}s</span>
+                                  {stats.lastAvgTimeSec !== null && (
+                                    <div className="text-[10px] text-slate-400">dernier : {stats.lastAvgTimeSec}s</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400">-</span>
+                              )}
                             </td>
                           </tr>
                         );
