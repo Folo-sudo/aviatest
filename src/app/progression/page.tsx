@@ -57,7 +57,7 @@ export default function ProgressionPage() {
   const [allStats, setAllStats] = useState<ExerciseStats[]>([]);
   const [pseudo, setPseudo] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [confirmStep, setConfirmStep] = useState(0); // 0=hidden, 1=first confirm, 2=final confirm
 
   useEffect(() => {
     const currentPseudo = getPseudo();
@@ -72,7 +72,7 @@ export default function ProgressionPage() {
   const handleClear = () => {
     clearAllPerformanceData();
     setAllStats([]);
-    setShowConfirmClear(false);
+    setConfirmStep(0);
   };
 
   if (!loaded) return null;
@@ -139,26 +139,6 @@ export default function ProgressionPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {showConfirmClear ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-red-600">Supprimer tout ?</span>
-                <Button variant="destructive" size="sm" onClick={handleClear}>
-                  Confirmer
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowConfirmClear(false)}>
-                  Annuler
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowConfirmClear(true)}
-                disabled={exercisesWithStats.length === 0}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" /> Reinitialiser
-              </Button>
-            )}
           </div>
         </div>
       </header>
@@ -352,6 +332,61 @@ export default function ProgressionPage() {
                 </Badge>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Reset zone - bottom, discreet */}
+        {exercisesWithStats.length > 0 && (
+          <section className="mt-16 mb-8 border-t border-slate-200 pt-8">
+            {confirmStep === 0 && (
+              <div className="text-center">
+                <button
+                  onClick={() => setConfirmStep(1)}
+                  className="text-xs text-slate-400 hover:text-slate-500 transition-colors underline underline-offset-2"
+                >
+                  Reinitialiser les donnees
+                </button>
+              </div>
+            )}
+            {confirmStep === 1 && (
+              <div className="text-center space-y-3">
+                <p className="text-sm text-slate-500">
+                  Supprimer toutes les donnees de progression de <strong>{pseudo}</strong> ?
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmStep(2)}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    Oui, continuer
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmStep(0)}>
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            )}
+            {confirmStep === 2 && (
+              <div className="text-center space-y-3">
+                <p className="text-sm font-medium text-red-600">
+                  Cette action est irreversible. Confirmer la suppression ?
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleClear}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Supprimer definitivement
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmStep(0)}>
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </div>
