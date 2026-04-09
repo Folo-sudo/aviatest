@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Smartphone,
   Lock,
+  BarChart3,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -360,6 +361,20 @@ export default function Home() {
                   {competition.name}
                 </Link>
               ))}
+              <Link href="/progression">
+                <Badge
+                  variant="secondary"
+                  className="flex gap-1 cursor-pointer hover:opacity-80"
+                  style={{
+                    backgroundColor: homeStyles.colors.border,
+                    color: homeStyles.colors.text,
+                    border: 'none',
+                  }}
+                >
+                  <BarChart3 className="h-3 w-3" />
+                  Progression
+                </Badge>
+              </Link>
               <Link href="/telephone">
                 <Badge
                   variant="secondary"

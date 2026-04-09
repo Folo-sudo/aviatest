@@ -3,6 +3,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { Timer } from '@/lib/core/Timer';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -34,6 +36,7 @@ interface GameSettings {
 export function PairImpairTest() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const perfSavedRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>({
     numbersPerCategory: 5,
@@ -164,6 +167,7 @@ export function PairImpairTest() {
 
   const startPlaying = useCallback(() => {
     scorer.reset();
+    perfSavedRef.current = false;
     setSeriesCompleted(0);
     setErrors(0);
 
@@ -394,6 +398,11 @@ export function PairImpairTest() {
 
   if (gameState === 'results') {
     const scoreData = scorer.toJSON();
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult('pair-impair', scoreData.score, scoreData.correct, scoreData.total);
+    }
+    const perfEntries = loadEntries('pair-impair');
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
@@ -408,6 +417,14 @@ export function PairImpairTest() {
               <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
               <p className="text-slate-500">{seriesCompleted} series completees</p>
             </div>
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="pair-impair" />
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startPlaying}>
                 <RotateCcw className="mr-2 h-5 w-5" /> Rejouer

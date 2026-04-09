@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -185,6 +187,7 @@ export default function CalculMemoTest() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentPhaseDuration, setCurrentPhaseDuration] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const perfSavedRef = useRef(false);
   const phaseStartRef = useRef(0);
 
   // Recall grid
@@ -305,6 +308,7 @@ export default function CalculMemoTest() {
 
   const startGame = useCallback(() => {
     scorer.reset();
+    perfSavedRef.current = false;
     setSalveResults([]);
     setGameState('playing');
     startSalve(0);
@@ -576,6 +580,11 @@ export default function CalculMemoTest() {
     const totalLettersCorrect = salveResults.reduce((s, r) => s + r.correctCount, 0);
     const totalCalcs = salveResults.reduce((s, r) => s + r.calcTotal, 0);
     const totalCalcsCorrect = salveResults.reduce((s, r) => s + r.calcCorrect, 0);
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult('calcul-memo', scoreData.score, scoreData.correct, scoreData.total);
+    }
+    const perfEntries = loadEntries('calcul-memo');
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -626,6 +635,15 @@ export default function CalculMemoTest() {
                 ))}
               </div>
             </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-memo" />
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>

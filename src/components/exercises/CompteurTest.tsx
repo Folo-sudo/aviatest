@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -517,6 +519,7 @@ export function CompteurTest() {
   const [answered, setAnswered] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const perfSavedRef = useRef(false);
 
   const nextQ = useCallback(() => {
     const b = makeBoard();
@@ -528,6 +531,7 @@ export function CompteurTest() {
 
   const startGame = useCallback(() => {
     scorer.reset();
+    perfSavedRef.current = false;
     setQNum(0);
     setTimeLeft(settings.totalTime);
     setGs('playing');
@@ -625,6 +629,11 @@ export function CompteurTest() {
   /* ─── RESULTS ─── */
   if (gs === 'results') {
     const d = scorer.toJSON();
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult('compteurs', d.score, d.correct, d.total);
+    }
+    const perfEntries = loadEntries('compteurs');
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
@@ -647,6 +656,14 @@ export function CompteurTest() {
                 <p className="text-sm text-red-700">Erreurs</p>
               </div>
             </div>
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="compteurs" />
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}><RotateCcw className="mr-2 h-5 w-5" />Rejouer</Button>
               <Button variant="outline" size="lg" className="w-full" onClick={() => setGs('menu')}><ArrowLeft className="mr-2 h-5 w-5" />Menu</Button>

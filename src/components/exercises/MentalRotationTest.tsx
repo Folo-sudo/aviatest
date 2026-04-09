@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { Timer } from '@/lib/core/Timer';
 import { Scorer, ScoreData } from '@/lib/core/Scorer';
 import { TimerBar } from '@/lib/core/CanvasUI';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import * as THREE from 'three';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
@@ -210,6 +212,7 @@ export default function MentalRotationTest() {
   // Game refs
   const timerRef = useRef<Timer | null>(null);
   const scorerRef = useRef<Scorer>(new Scorer());
+  const perfSavedRef = useRef(false);
   const timerBarRef = useRef<TimerBar | null>(null);
 
   const referenceSceneRef = useRef<{ scene: THREE.Scene; carGroup: THREE.Group } | null>(null);
@@ -410,6 +413,7 @@ export default function MentalRotationTest() {
 
     // Initialize
     scorerRef.current.reset();
+    perfSavedRef.current = false;
     scoreRef.current = 0;
     totalQuestionsRef.current = 0;
 
@@ -816,6 +820,11 @@ export default function MentalRotationTest() {
   // Results screen
   if (gameState === 'results' && scoreData) {
     const percentage = numSequences > 0 ? Math.floor((100 * scoreRef.current) / numSequences) : 0;
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult('mental-rotation', percentage, scoreRef.current, numSequences);
+    }
+    const perfEntries = loadEntries('mental-rotation');
 
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -845,6 +854,15 @@ export default function MentalRotationTest() {
                 <div className="text-sm text-gray-500">Incorrect</div>
               </div>
             </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="mental-rotation" />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <Button

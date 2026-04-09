@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -321,6 +323,7 @@ export default function FicheAngleTest() {
   const [showCorrection, setShowCorrection] = useState(false);
   const [results, setResults] = useState<AngleResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const perfSavedRef = useRef(false);
 
   // Focus input when question changes
   useEffect(() => {
@@ -330,6 +333,7 @@ export default function FicheAngleTest() {
   }, [phase, currentIdx, showCorrection]);
 
   const startFiche = useCallback(() => {
+    perfSavedRef.current = false;
     setAngles(generateAngles());
     setCurrentIdx(0);
     setUserInput('');
@@ -412,6 +416,12 @@ export default function FicheAngleTest() {
       : 0;
     const perfect = results.filter(r => r.error === 0).length;
     const close = results.filter(r => r.error <= 10).length;
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      const score = Math.max(0, 100 - avgError * 2);
+      savePerformanceResult('fiche-angles', score, close, results.length);
+    }
+    const perfEntries = loadEntries('fiche-angles');
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -457,6 +467,15 @@ export default function FicheAngleTest() {
                 ))}
               </div>
             </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="fiche-angles" />
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startFiche}>

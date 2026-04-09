@@ -4,6 +4,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { Timer } from '@/lib/core/Timer';
 import { CanvasButton, TimerBar } from '@/lib/core/CanvasUI';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -39,6 +41,7 @@ interface GameSettings {
 export function ClockAngleTest() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const perfSavedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>({
@@ -124,6 +127,7 @@ export function ClockAngleTest() {
   // Start playing
   const startPlaying = useCallback(() => {
     scorer.reset();
+    perfSavedRef.current = false;
     setCurrentQuestion(0);
 
     const newTimer = new Timer(settings.timePerQuestion, () => {
@@ -645,6 +649,11 @@ export function ClockAngleTest() {
 
   if (gameState === 'results') {
     const scoreData = scorer.toJSON();
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult('clock-angle', scoreData.score, scoreData.correct, scoreData.total);
+    }
+    const perfEntries = loadEntries('clock-angle');
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
@@ -670,6 +679,15 @@ export function ClockAngleTest() {
                 <p className="text-sm text-red-700">Erreurs</p>
               </div>
             </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="clock-angle" />
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startPlaying}>

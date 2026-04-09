@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -230,6 +232,7 @@ export default function CalculMental2Test() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const perfSavedRef = useRef(false);
   const questionStartRef = useRef(0);
 
   const clearTimer = useCallback(() => {
@@ -255,6 +258,7 @@ export default function CalculMental2Test() {
 
   const startGame = useCallback(() => {
     scorer.reset();
+    perfSavedRef.current = false;
     const qs: QuestionData[] = [];
     for (let i = 0; i < settingsRef.current.totalQuestions; i++) {
       qs.push(generateQuestion(settingsRef.current));
@@ -471,6 +475,12 @@ export default function CalculMental2Test() {
     const avgTime = results.length > 0
       ? Math.round(results.reduce((s, r) => s + r.timeUsedMs, 0) / results.length / 1000 * 10) / 10
       : 0;
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      const avgMs = results.length > 0 ? results.reduce((s, r) => s + r.timeUsedMs, 0) / results.length : 0;
+      savePerformanceResult('calcul-mental-2', scoreData.score, scoreData.correct, scoreData.total, avgMs);
+    }
+    const perfEntries = loadEntries('calcul-mental-2');
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -530,6 +540,15 @@ export default function CalculMental2Test() {
                 })}
               </div>
             </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-mental-2" />
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>

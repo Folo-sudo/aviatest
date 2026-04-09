@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { Timer } from '@/lib/core/Timer';
 import { Scorer, ScoreData } from '@/lib/core/Scorer';
 import { TimerBar } from '@/lib/core/CanvasUI';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { WORD_THEMES } from '@/lib/data/word-themes';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
@@ -49,6 +51,7 @@ export default function UnMotSurDeuxTest() {
   // Game refs for playing state
   const timerRef = useRef<Timer | null>(null);
   const scorerRef = useRef<Scorer>(new Scorer());
+  const perfSavedRef = useRef(false);
   const timerBarRef = useRef<TimerBar | null>(null);
 
   const circlesRef = useRef<WordCircle[]>([]);
@@ -283,6 +286,7 @@ export default function UnMotSurDeuxTest() {
 
     // Initialize game
     scorerRef.current.reset();
+    perfSavedRef.current = false;
     seriesCompletedRef.current = 0;
     currentSeriesRef.current = 1;
     errorsRef.current = 0;
@@ -514,6 +518,11 @@ export default function UnMotSurDeuxTest() {
 
   // Results screen
   if (gameState === 'results' && scoreData) {
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult('un-mot-sur-deux', scoreData.percentage, scoreData.correct, scoreData.total);
+    }
+    const perfEntries = loadEntries('un-mot-sur-deux');
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -542,6 +551,15 @@ export default function UnMotSurDeuxTest() {
                 <div className="text-sm text-gray-500">Erreurs totales</div>
               </div>
             </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId="un-mot-sur-deux" />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <Button
