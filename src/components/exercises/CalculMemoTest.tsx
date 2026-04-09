@@ -582,7 +582,7 @@ export default function CalculMemoTest() {
     const totalCalcsCorrect = salveResults.reduce((s, r) => s + r.calcCorrect, 0);
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('calcul-memo', scoreData.score, scoreData.correct, scoreData.total);
+      savePerformanceResult('calcul-memo', scoreData.correct, settings.totalSalves);
     }
     const perfEntries = loadEntries('calcul-memo');
 

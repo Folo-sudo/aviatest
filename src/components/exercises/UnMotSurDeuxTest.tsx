@@ -520,7 +520,7 @@ export default function UnMotSurDeuxTest() {
   if (gameState === 'results' && scoreData) {
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('un-mot-sur-deux', scoreData.percentage, scoreData.correct, scoreData.total);
+      savePerformanceResult('un-mot-sur-deux', scoreData.correct, numSeries);
     }
     const perfEntries = loadEntries('un-mot-sur-deux');
     return (

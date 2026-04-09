@@ -400,7 +400,7 @@ export function PairImpairTest() {
     const scoreData = scorer.toJSON();
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('pair-impair', scoreData.score, scoreData.correct, scoreData.total);
+      savePerformanceResult('pair-impair', scoreData.correct, settings.numSeries);
     }
     const perfEntries = loadEntries('pair-impair');
     return (

@@ -651,7 +651,7 @@ export function ClockAngleTest() {
     const scoreData = scorer.toJSON();
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('clock-angle', scoreData.score, scoreData.correct, scoreData.total);
+      savePerformanceResult('clock-angle', scoreData.correct, settings.numQuestions);
     }
     const perfEntries = loadEntries('clock-angle');
     return (

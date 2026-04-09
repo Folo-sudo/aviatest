@@ -822,7 +822,7 @@ export default function MentalRotationTest() {
     const percentage = numSequences > 0 ? Math.floor((100 * scoreRef.current) / numSequences) : 0;
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('mental-rotation', percentage, scoreRef.current, numSequences);
+      savePerformanceResult('mental-rotation', scoreRef.current, numSequences);
     }
     const perfEntries = loadEntries('mental-rotation');
 

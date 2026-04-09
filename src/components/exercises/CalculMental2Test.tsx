@@ -478,7 +478,7 @@ export default function CalculMental2Test() {
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
       const avgMs = results.length > 0 ? results.reduce((s, r) => s + r.timeUsedMs, 0) / results.length : 0;
-      savePerformanceResult('calcul-mental-2', scoreData.score, scoreData.correct, scoreData.total, avgMs);
+      savePerformanceResult('calcul-mental-2', scoreData.correct, questions.length, avgMs);
     }
     const perfEntries = loadEntries('calcul-mental-2');
 

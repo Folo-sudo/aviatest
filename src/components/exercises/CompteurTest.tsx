@@ -631,7 +631,7 @@ export function CompteurTest() {
     const d = scorer.toJSON();
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('compteurs', d.score, d.correct, d.total);
+      savePerformanceResult('compteurs', d.correct, settings.numQuestions);
     }
     const perfEntries = loadEntries('compteurs');
     return (

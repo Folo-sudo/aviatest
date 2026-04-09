@@ -418,8 +418,7 @@ export default function FicheAngleTest() {
     const close = results.filter(r => r.error <= 10).length;
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      const score = Math.max(0, 100 - avgError * 2);
-      savePerformanceResult('fiche-angles', score, close, results.length);
+      savePerformanceResult('fiche-angles', close, results.length);
     }
     const perfEntries = loadEntries('fiche-angles');
 

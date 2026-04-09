@@ -406,7 +406,7 @@ export function MBackTest() {
     const mbackId = n === 3 ? 'm3-back' : 'm2-back';
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult(mbackId, scoreData.score, scoreData.correct, scoreData.total);
+      savePerformanceResult(mbackId, scoreData.correct, settings.totalQuestions);
     }
     const perfEntries = loadEntries(mbackId);
     return (

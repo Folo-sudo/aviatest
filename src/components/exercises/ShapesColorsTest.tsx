@@ -387,7 +387,7 @@ export function ShapesColorsTest() {
     const scoreData = scorer.toJSON();
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('shapes-colors', scoreData.score, scoreData.correct, scoreData.total);
+      savePerformanceResult('shapes-colors', scoreData.correct, settings.numShapes);
     }
     const perfEntries = loadEntries('shapes-colors');
     return (

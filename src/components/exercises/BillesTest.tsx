@@ -369,7 +369,7 @@ export function BillesTest() {
     const scoreData = scorer.toJSON();
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult('billes', scoreData.score, scoreData.correct, scoreData.total);
+      savePerformanceResult('billes', scoreData.correct, settings.numSeries);
     }
     const perfEntries = loadEntries('billes');
     return (

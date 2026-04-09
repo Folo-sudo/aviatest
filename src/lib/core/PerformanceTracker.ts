@@ -121,10 +121,11 @@ function currentPrefix(): string | null {
 
 /**
  * Save a performance result for an exercise (uses current pseudo).
+ * Score is always computed as (correct / total) * 100 to ensure
+ * unanswered questions count against the score.
  */
 export function savePerformanceResult(
   exerciseId: string,
-  score: number,
   correct: number,
   total: number,
   avgTimeMs: number = 0,
@@ -137,7 +138,7 @@ export function savePerformanceResult(
     const existing = loadEntries(exerciseId);
     const entry: PerformanceEntry = {
       date: new Date().toISOString(),
-      score: Math.round(score * 10) / 10,
+      score: total > 0 ? Math.round((correct / total) * 1000) / 10 : 0,
       correct,
       total,
       avgTimeMs: Math.round(avgTimeMs),
