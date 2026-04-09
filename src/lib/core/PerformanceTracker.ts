@@ -241,6 +241,44 @@ export function getAllExerciseStats(): ExerciseStats[] {
 }
 
 /**
+ * Migrate existing entries: recalculate score = (correct / total) * 100
+ * for all stored entries. Runs once per pseudo.
+ */
+export function migratePerformanceData(): void {
+  if (typeof window === 'undefined') return;
+  const pseudo = getPseudo();
+  if (!pseudo) return;
+  const migrationKey = `aviatest-migrated:${pseudo}`;
+  if (localStorage.getItem(migrationKey)) return; // already migrated
+
+  const prefix = `${KEY_PREFIX}${pseudo}:`;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const entries: PerformanceEntry[] = JSON.parse(raw);
+        let changed = false;
+        for (const entry of entries) {
+          if (entry.total > 0) {
+            const expected = Math.round((entry.correct / entry.total) * 1000) / 10;
+            if (entry.score !== expected) {
+              entry.score = expected;
+              changed = true;
+            }
+          }
+        }
+        if (changed) {
+          localStorage.setItem(key, JSON.stringify(entries));
+        }
+      }
+    }
+    localStorage.setItem(migrationKey, '1');
+  } catch { /* ignore */ }
+}
+
+/**
  * Clear all performance data for the current pseudo.
  */
 export function clearAllPerformanceData(): void {

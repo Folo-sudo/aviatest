@@ -13,6 +13,7 @@ import {
 import {
   getAllExerciseStats,
   clearAllPerformanceData,
+  migratePerformanceData,
   scoreToStanine,
   getPseudo,
   type ExerciseStats,
@@ -64,6 +65,7 @@ export default function ProgressionPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only localStorage data after hydration
     setPseudo(currentPseudo);
     if (currentPseudo) {
+      migratePerformanceData();
       setAllStats(getAllExerciseStats());
     }
     setLoaded(true);
