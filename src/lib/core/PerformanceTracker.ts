@@ -1,6 +1,6 @@
 /**
- * PerformanceTracker - Persists exercise results in localStorage
- * and provides stats/history for the progression dashboard.
+ * PerformanceTracker - Persists exercise results in localStorage,
+ * namespaced by user pseudo.
  */
 
 export interface PerformanceEntry {
@@ -24,8 +24,65 @@ export interface ExerciseStats {
   todayAvg: number | null;
 }
 
-const STORAGE_PREFIX = 'aviatest-perf-';
+// Key format: aviatest-perf:{pseudo}:{exerciseId}
+const KEY_PREFIX = 'aviatest-perf:';
+const PSEUDO_KEY = 'aviatest-pseudo';
+const PSEUDOS_LIST_KEY = 'aviatest-pseudos';
 const MAX_ENTRIES = 200;
+
+// ============================================================================
+// Pseudo management
+// ============================================================================
+
+/**
+ * Get the current pseudo. Returns null if none set.
+ */
+export function getPseudo(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(PSEUDO_KEY) || null;
+}
+
+/**
+ * Set the current pseudo and register it in the known list.
+ */
+export function setPseudo(name: string): void {
+  if (typeof window === 'undefined') return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  localStorage.setItem(PSEUDO_KEY, trimmed);
+  // Add to known pseudos list
+  const list = listPseudos();
+  if (!list.includes(trimmed)) {
+    list.push(trimmed);
+    localStorage.setItem(PSEUDOS_LIST_KEY, JSON.stringify(list));
+  }
+}
+
+/**
+ * List all known pseudos.
+ */
+export function listPseudos(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PSEUDOS_LIST_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Clear the current pseudo (logout).
+ */
+export function clearPseudo(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(PSEUDO_KEY);
+}
+
+// ============================================================================
+// Stanine
+// ============================================================================
 
 /**
  * Convert a percentage score (0-100) to a stanine-like 1-9 scale
@@ -42,8 +99,26 @@ export function scoreToStanine(percent: number): number {
   return 1;
 }
 
+// ============================================================================
+// Internal helpers
+// ============================================================================
+
+function storageKey(pseudo: string, exerciseId: string): string {
+  return `${KEY_PREFIX}${pseudo}:${exerciseId}`;
+}
+
+function currentPrefix(): string | null {
+  const pseudo = getPseudo();
+  if (!pseudo) return null;
+  return `${KEY_PREFIX}${pseudo}:`;
+}
+
+// ============================================================================
+// Performance data CRUD
+// ============================================================================
+
 /**
- * Save a performance result for an exercise
+ * Save a performance result for an exercise (uses current pseudo).
  */
 export function savePerformanceResult(
   exerciseId: string,
@@ -53,8 +128,10 @@ export function savePerformanceResult(
   avgTimeMs: number = 0,
 ): void {
   if (typeof window === 'undefined') return;
+  const pseudo = getPseudo();
+  if (!pseudo) return;
   try {
-    const key = STORAGE_PREFIX + exerciseId;
+    const key = storageKey(pseudo, exerciseId);
     const existing = loadEntries(exerciseId);
     const entry: PerformanceEntry = {
       date: new Date().toISOString(),
@@ -64,7 +141,6 @@ export function savePerformanceResult(
       avgTimeMs: Math.round(avgTimeMs),
     };
     existing.push(entry);
-    // Keep only the last MAX_ENTRIES
     if (existing.length > MAX_ENTRIES) {
       existing.splice(0, existing.length - MAX_ENTRIES);
     }
@@ -73,12 +149,14 @@ export function savePerformanceResult(
 }
 
 /**
- * Load all entries for an exercise
+ * Load all entries for an exercise (uses current pseudo).
  */
 export function loadEntries(exerciseId: string): PerformanceEntry[] {
   if (typeof window === 'undefined') return [];
+  const pseudo = getPseudo();
+  if (!pseudo) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + exerciseId);
+    const raw = localStorage.getItem(storageKey(pseudo, exerciseId));
     if (!raw) return [];
     return JSON.parse(raw) as PerformanceEntry[];
   } catch {
@@ -87,7 +165,7 @@ export function loadEntries(exerciseId: string): PerformanceEntry[] {
 }
 
 /**
- * Get full stats for an exercise
+ * Get full stats for an exercise (uses current pseudo).
  */
 export function getExerciseStats(exerciseId: string): ExerciseStats | null {
   const entries = loadEntries(exerciseId);
@@ -127,16 +205,18 @@ export function getExerciseStats(exerciseId: string): ExerciseStats | null {
 }
 
 /**
- * Get stats for all exercises that have data
+ * Get stats for all exercises that have data (uses current pseudo).
  */
 export function getAllExerciseStats(): ExerciseStats[] {
   if (typeof window === 'undefined') return [];
+  const prefix = currentPrefix();
+  if (!prefix) return [];
   const results: ExerciseStats[] = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(STORAGE_PREFIX)) {
-        const exerciseId = key.slice(STORAGE_PREFIX.length);
+      if (key && key.startsWith(prefix)) {
+        const exerciseId = key.slice(prefix.length);
         const stats = getExerciseStats(exerciseId);
         if (stats) results.push(stats);
       }
@@ -146,25 +226,17 @@ export function getAllExerciseStats(): ExerciseStats[] {
 }
 
 /**
- * Clear all performance data for an exercise
- */
-export function clearPerformanceData(exerciseId: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem(STORAGE_PREFIX + exerciseId);
-  } catch { /* ignore */ }
-}
-
-/**
- * Clear ALL performance data
+ * Clear all performance data for the current pseudo.
  */
 export function clearAllPerformanceData(): void {
   if (typeof window === 'undefined') return;
+  const prefix = currentPrefix();
+  if (!prefix) return;
   try {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(STORAGE_PREFIX)) {
+      if (key && key.startsWith(prefix)) {
         keysToRemove.push(key);
       }
     }

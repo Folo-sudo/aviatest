@@ -20,6 +20,7 @@ import {
   Smartphone,
   Lock,
   BarChart3,
+  User,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -28,6 +29,11 @@ import {
   getDifficultyLabel,
   type ExerciseConfig,
 } from '@/lib/data/exercises';
+import {
+  getPseudo,
+  setPseudo as setStoredPseudo,
+  listPseudos,
+} from '@/lib/core/PerformanceTracker';
 
 // ============================================================================
 // Design System - Warm Cream/Beige Palette
@@ -306,14 +312,129 @@ function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+function PseudoGate({ onSelect }: { onSelect: (pseudo: string) => void }) {
+  const [name, setName] = useState('');
+  const [known, setKnown] = useState<string[]>([]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only localStorage data after hydration
+    setKnown(listPseudos());
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setStoredPseudo(trimmed);
+    onSelect(trimmed);
+  };
+
+  const selectExisting = (pseudo: string) => {
+    setStoredPseudo(pseudo);
+    onSelect(pseudo);
+  };
+
+  return (
+    <main
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: homeStyles.colors.background }}
+    >
+      <div
+        className="w-full max-w-md mx-4 p-8 rounded-2xl text-center"
+        style={{
+          backgroundColor: homeStyles.colors.cardBg,
+          border: `1px solid ${homeStyles.colors.border}`,
+          boxShadow: homeStyles.shadows.card,
+        }}
+      >
+        <div
+          className="mx-auto mb-6 w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: '#f0eeeb' }}
+        >
+          <User className="h-7 w-7" style={{ color: homeStyles.colors.text }} />
+        </div>
+        <h1
+          className="text-2xl font-bold mb-2"
+          style={{ color: homeStyles.colors.text }}
+        >
+          Qui es-tu ?
+        </h1>
+        <p
+          className="text-sm mb-6"
+          style={{ color: homeStyles.colors.textMuted }}
+        >
+          Choisis un pseudo pour suivre ta progression
+        </p>
+
+        {known.length > 0 && (
+          <div className="mb-6">
+            <p
+              className="text-xs font-medium mb-3"
+              style={{ color: homeStyles.colors.textMuted }}
+            >
+              Pseudos existants
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {known.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => selectExisting(p)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: homeStyles.colors.border,
+                    color: homeStyles.colors.text,
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px" style={{ backgroundColor: homeStyles.colors.border }} />
+              <span className="text-xs" style={{ color: homeStyles.colors.textMuted }}>ou</span>
+              <div className="flex-1 h-px" style={{ backgroundColor: homeStyles.colors.border }} />
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="text"
+            placeholder="Nouveau pseudo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="text-center text-lg"
+            maxLength={20}
+            autoFocus={known.length === 0}
+          />
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!name.trim()}
+            style={{
+              backgroundColor: homeStyles.colors.text,
+              color: homeStyles.colors.background,
+            }}
+          >
+            Continuer
+          </Button>
+        </form>
+      </div>
+    </main>
+  );
+}
+
 export default function Home() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [pseudo, setPseudoState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const competitions = getAllCompetitions();
   const readyExercises = EXERCISES.filter((e) => e.ready);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only state after hydration
     setAuthenticated(sessionStorage.getItem('aviatest-auth') === 'true');
+    setPseudoState(getPseudo());
     setLoading(false);
   }, []);
 
@@ -321,6 +442,10 @@ export default function Home() {
 
   if (!authenticated) {
     return <PasswordGate onSuccess={() => setAuthenticated(true)} />;
+  }
+
+  if (!pseudo) {
+    return <PseudoGate onSelect={(p) => setPseudoState(p)} />;
   }
 
   return (
@@ -361,6 +486,15 @@ export default function Home() {
                   {competition.name}
                 </Link>
               ))}
+              <button
+                onClick={() => setPseudoState(null)}
+                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ color: homeStyles.colors.text }}
+                title="Changer de pseudo"
+              >
+                <User className="h-3.5 w-3.5" />
+                <span className="font-medium">{pseudo}</span>
+              </button>
               <Link href="/progression">
                 <Badge
                   variant="secondary"

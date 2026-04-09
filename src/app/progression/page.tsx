@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, Trash2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, BarChart3, Trash2, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import {
   getAllExerciseStats,
   clearAllPerformanceData,
   scoreToStanine,
+  getPseudo,
   type ExerciseStats,
 } from '@/lib/core/PerformanceTracker';
 import PerformanceChart from '@/components/PerformanceChart';
@@ -54,13 +55,17 @@ function scoreBadge(score: number | null) {
 
 export default function ProgressionPage() {
   const [allStats, setAllStats] = useState<ExerciseStats[]>([]);
+  const [pseudo, setPseudo] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   useEffect(() => {
-    const stats = getAllExerciseStats();
+    const currentPseudo = getPseudo();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only localStorage data after hydration
-    setAllStats(stats);
+    setPseudo(currentPseudo);
+    if (currentPseudo) {
+      setAllStats(getAllExerciseStats());
+    }
     setLoaded(true);
   }, []);
 
@@ -71,6 +76,23 @@ export default function ProgressionPage() {
   };
 
   if (!loaded) return null;
+
+  if (!pseudo) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <User className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-lg font-medium text-slate-500 mb-2">Aucun pseudo selectionne</p>
+            <p className="text-sm text-slate-400 mb-6">Retournez a l&apos;accueil pour choisir votre pseudo.</p>
+            <Link href="/">
+              <Button>Retour a l&apos;accueil</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Match stats with exercise configs
   const exercisesWithStats: { config: ExerciseConfig; stats: ExerciseStats }[] = [];
@@ -109,6 +131,12 @@ export default function ProgressionPage() {
               <BarChart3 className="h-5 w-5 text-slate-700" />
               <h1 className="text-lg font-bold text-slate-700">Progression</h1>
             </div>
+            {pseudo && (
+              <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                <User className="h-3.5 w-3.5" />
+                <span className="font-medium">{pseudo}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {showConfirmClear ? (
