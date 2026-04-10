@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Smartphone, Calculator, Target, TriangleRight } from 'lucide-react';
+import { ArrowLeft, Smartphone, Calculator, Target, TriangleRight, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -37,6 +37,14 @@ const mobileExercises = [
     icon: TriangleRight,
     color: '#D97706',
     bgColor: '#FFFBEB',
+  },
+  {
+    slug: 'fiche-calcul',
+    title: 'Fiche Calcul',
+    description: 'Entrainement continu aux multiplications ab x cd',
+    icon: X,
+    color: '#0891B2',
+    bgColor: '#ECFEFF',
   },
 ];
 

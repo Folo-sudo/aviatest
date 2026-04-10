@@ -17,8 +17,8 @@ import { useRouter } from 'next/navigation';
 type Phase = 'menu' | 'playing';
 
 interface MulQuestion {
-  a: number; // 2-digit
-  b: number; // 2-digit
+  a: number;
+  b: number;
   answer: number;
 }
 
@@ -26,8 +26,8 @@ interface MulResult {
   question: MulQuestion;
   userAnswer: number | null;
   isCorrect: boolean;
-  revealed: boolean;  // true if user clicked "voir la reponse"
-  timeMs: number;     // time taken for this question
+  revealed: boolean;
+  timeMs: number;
 }
 
 // ============================================================================
@@ -48,7 +48,7 @@ function generateQuestion(): MulQuestion {
 // Main Component
 // ============================================================================
 
-export default function FicheCalculTest() {
+export default function FicheCalculMobile() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('menu');
 
@@ -61,7 +61,6 @@ export default function FicheCalculTest() {
   const sessionSavedRef = useRef(false);
   const questionStartRef = useRef<number>(0);
 
-  // Focus input when question changes
   useEffect(() => {
     if (phase === 'playing' && !showCorrection) {
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -118,7 +117,6 @@ export default function FicheCalculTest() {
     questionStartRef.current = Date.now();
   }, []);
 
-  // Save session stats when user exits (at least 3 non-revealed answers)
   const exitToMenu = useCallback(() => {
     const answered = results.filter(r => !r.revealed);
     if (!sessionSavedRef.current && answered.length >= 3) {
@@ -142,40 +140,42 @@ export default function FicheCalculTest() {
   if (phase === 'menu') {
     const perfEntries = loadEntries('fiche-calcul');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Fiche Calcul</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Entrainement continu aux multiplications ab &times; cd
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
-              <p>Des multiplications de <strong>2 chiffres par 2 chiffres</strong> s&apos;enchainent sans fin.</p>
-              <p>Correction immediate apres chaque reponse.</p>
-              <p>Bouton <strong>&quot;Voir la reponse&quot;</strong> pour passer plus vite si besoin.</p>
-            </div>
-
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId="fiche-calcul" />
-                </div>
+      <div className="min-h-screen p-4" style={{ backgroundColor: '#fbfaf9' }}>
+        <div className="max-w-lg mx-auto pt-4">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold">Fiche Calcul</CardTitle>
+              <CardDescription className="text-sm mt-1">
+                Entrainement continu aux multiplications ab &times; cd
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-1.5">
+                <p>Multiplications de <strong>2 chiffres par 2 chiffres</strong> sans fin.</p>
+                <p>Correction immediate apres chaque reponse.</p>
+                <p><strong>&quot;Voir la reponse&quot;</strong> pour passer plus vite.</p>
               </div>
-            )}
 
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startSession}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <ArrowLeft className="mr-2 h-5 w-5" /> Retour
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              {perfEntries.length >= 2 && (
+                <div className="border-t pt-3">
+                  <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                  <div className="flex justify-center">
+                    <MiniPerformanceChart entries={perfEntries} exerciseId="fiche-calcul" />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <Button size="lg" className="w-full h-12" onClick={startSession}>
+                  <Play className="mr-2 h-5 w-5" /> Commencer
+                </Button>
+                <Button variant="ghost" size="lg" className="w-full h-12" onClick={() => router.push('/telephone')}>
+                  <ArrowLeft className="mr-2 h-5 w-5" /> Retour
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -189,43 +189,44 @@ export default function FicheCalculTest() {
 
   if (showCorrection && lastResult) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-        <div className="w-full max-w-md">
-          <div className="flex items-center justify-between mb-4">
-            <Badge variant="outline" className="text-base px-3 py-1">
+      <div className="min-h-screen p-3" style={{ backgroundColor: '#fbfaf9' }}>
+        <div className="max-w-lg mx-auto pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <Badge variant="outline" className="text-sm px-2 py-1">
               {correctCount} / {answeredCount}
-              {revealedCount > 0 && <span className="text-slate-400 ml-1">({revealedCount} reveles)</span>}
+              {revealedCount > 0 && <span className="text-slate-400 ml-1">({revealedCount}r)</span>}
             </Badge>
             <Badge
               variant={
                 lastResult.revealed ? 'secondary' :
                 lastResult.isCorrect ? 'default' : 'destructive'
               }
+              className="text-sm"
             >
               {lastResult.revealed
                 ? 'Revele'
                 : lastResult.isCorrect
-                  ? '\u2713 Correct !'
+                  ? '\u2713 Correct'
                   : '\u2717 Incorrect'}
             </Badge>
           </div>
 
-          <Card className="mb-4">
-            <CardContent className="py-8 text-center space-y-4">
-              <p className="text-3xl sm:text-4xl font-bold text-slate-800 font-mono">
+          <Card className="mb-3">
+            <CardContent className="py-6 text-center space-y-3">
+              <p className="text-3xl font-bold text-slate-800 font-mono">
                 {currentQ.a} &times; {currentQ.b}
               </p>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {lastResult.revealed ? (
-                  <p className="text-4xl font-bold text-blue-600">= {currentQ.answer}</p>
+                  <p className="text-3xl font-bold text-blue-600">= {currentQ.answer}</p>
                 ) : lastResult.isCorrect ? (
-                  <p className="text-4xl font-bold text-green-600">= {currentQ.answer}</p>
+                  <p className="text-3xl font-bold text-green-600">= {currentQ.answer}</p>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold text-red-600 line-through">
+                    <p className="text-xl font-bold text-red-600 line-through">
                       = {lastResult.userAnswer}
                     </p>
-                    <p className="text-4xl font-bold text-green-600">= {currentQ.answer}</p>
+                    <p className="text-3xl font-bold text-green-600">= {currentQ.answer}</p>
                   </>
                 )}
               </div>
@@ -236,11 +237,11 @@ export default function FicheCalculTest() {
           </Card>
 
           <div className="flex flex-col gap-2">
-            <Button size="lg" className="w-full" onClick={nextQuestion}>
+            <Button size="lg" className="w-full h-14" onClick={nextQuestion}>
               Suivant
               <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="sm" className="w-full" onClick={exitToMenu}>
+            <Button variant="ghost" size="sm" className="w-full h-10" onClick={exitToMenu}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Quitter
             </Button>
           </div>
@@ -250,44 +251,50 @@ export default function FicheCalculTest() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-between mb-4">
-          <Badge variant="outline" className="text-base px-3 py-1">
+    <div className="min-h-screen p-3" style={{ backgroundColor: '#fbfaf9' }}>
+      <div className="max-w-lg mx-auto pt-2">
+        <div className="flex items-center justify-between mb-3">
+          <Badge variant="outline" className="text-sm px-2 py-1">
             {correctCount} / {answeredCount}
-            {revealedCount > 0 && <span className="text-slate-400 ml-1">({revealedCount} reveles)</span>}
+            {revealedCount > 0 && <span className="text-slate-400 ml-1">({revealedCount}r)</span>}
           </Badge>
         </div>
 
-        <Card className="mb-4">
-          <CardContent className="py-10 text-center">
-            <p className="text-4xl sm:text-5xl font-bold text-slate-800 font-mono tracking-wide">
+        <Card className="mb-3">
+          <CardContent className="py-8 text-center">
+            <p className="text-4xl font-bold text-slate-800 font-mono tracking-wide">
               {currentQ.a} &times; {currentQ.b}
             </p>
-            <p className="text-sm text-slate-400 mt-3">Entrez le resultat</p>
+            <p className="text-xs text-slate-400 mt-2">Entrez le resultat</p>
           </CardContent>
         </Card>
 
-        <div className="flex items-center gap-3 mb-3">
+        <div className="space-y-2 mb-2">
           <Input
             ref={inputRef}
             type="number"
-            placeholder="?"
+            inputMode="numeric"
+            placeholder="Votre reponse"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && userInput.trim() !== '' && submitAnswer()}
-            className="text-center text-lg font-mono h-12 flex-1"
+            className="w-full text-center text-2xl font-bold h-14 text-slate-800"
           />
-          <Button size="lg" className="h-12" onClick={submitAnswer} disabled={userInput.trim() === ''}>
-            Valider
+          <Button
+            size="lg"
+            className="w-full h-14"
+            onClick={submitAnswer}
+            disabled={userInput.trim() === ''}
+          >
+            Valider <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button variant="outline" size="sm" className="w-full" onClick={revealAnswer}>
+          <Button variant="outline" size="lg" className="w-full h-12" onClick={revealAnswer}>
             <Eye className="mr-2 h-4 w-4" /> Voir la reponse
           </Button>
-          <Button variant="ghost" size="sm" className="w-full" onClick={exitToMenu}>
+          <Button variant="ghost" size="sm" className="w-full h-10" onClick={exitToMenu}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Quitter
           </Button>
         </div>
