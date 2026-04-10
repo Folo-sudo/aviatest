@@ -25,6 +25,7 @@ interface GameSettings {
   examMode: boolean;
   maxCoeff: number;       // max coefficient for variables
   maxConst: number;       // max constant value
+  includeMultiply: boolean; // include ab*cd multiplication term in eq 3
 }
 
 interface SystemEquation {
@@ -36,13 +37,15 @@ interface SystemEquation {
   coeffC: number;
   constC: number;
   resultC: number;
-  // Eq 3: coeffB * B + constB = coeffC3 * C + coeffA3 * A + const3
-  //   =>  B = (coeffC3*C + coeffA3*A + const3 - constB) / coeffB3
+  // Eq 3: coeffB * B + constB = coeffC3 * C + coeffA3 * A + const3 [+ mulA * mulB]
+  //   =>  B = (coeffC3*C + coeffA3*A + const3 + mulA*mulB - constB) / coeffB3
   coeffB3: number;
   constB3: number;
   coeffC3: number;
   coeffA3: number;
   const3: number;
+  mulA: number | null;  // 2-digit multiplicand (null = no multiplication)
+  mulB: number | null;  // 2-digit multiplicand
   // Solution
   valueA: number;
   valueC: number;
@@ -66,6 +69,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   examMode: false,
   maxCoeff: 12,
   maxConst: 15,
+  includeMultiply: false,
 };
 
 const SETTINGS_KEY = 'aviatest-calcul-mental-3-settings';
@@ -116,29 +120,38 @@ function generateSystem(settings: GameSettings): SystemEquation {
   const constC = randInt(-mk, mk);
   const resultC = coeffC * valueC + constC;
 
-  // Eq3: coeffB3 * B + constB3 = coeffC3 * C + coeffA3 * A + const3
-  // Pick coeffB3, coeffC3, coeffA3, const3, then compute B
+  // Optional ab*cd multiplication (2-digit each) appended to eq 3 RHS
+  let mulA: number | null = null;
+  let mulB: number | null = null;
+  let mulResult = 0;
+  if (settings.includeMultiply) {
+    mulA = randInt(11, 99);
+    mulB = randInt(11, 99);
+    mulResult = mulA * mulB;
+  }
+
+  // Eq3: coeffB3 * B + constB3 = coeffC3 * C + coeffA3 * A + const3 [+ mulA*mulB]
   const coeffB3 = randNonZero(1, Math.min(mc, 6));
   const coeffC3 = randNonZero(-mc, mc);
   const coeffA3 = randNonZero(-mc, mc);
   const const3 = randInt(-mk, mk);
   const constB3 = randInt(-mk, mk);
 
-  // coeffB3 * B + constB3 = coeffC3 * C + coeffA3 * A + const3
-  // coeffB3 * B = coeffC3 * C + coeffA3 * A + const3 - constB3
-  const rhs = coeffC3 * valueC + coeffA3 * valueA + const3 - constB3;
+  // coeffB3 * B = coeffC3 * C + coeffA3 * A + const3 + mulResult - constB3
+  const rhs = coeffC3 * valueC + coeffA3 * valueA + const3 + mulResult - constB3;
 
   // We need B to be an integer, so rhs must be divisible by coeffB3
   // If not, adjust const3
   const remainder = ((rhs % coeffB3) + coeffB3) % coeffB3;
-  const adjustedConst3 = const3 - remainder; // or + (coeffB3 - remainder)
-  const adjustedRhs = coeffC3 * valueC + coeffA3 * valueA + adjustedConst3 - constB3;
+  const adjustedConst3 = const3 - remainder;
+  const adjustedRhs = coeffC3 * valueC + coeffA3 * valueA + adjustedConst3 + mulResult - constB3;
   const valueB = adjustedRhs / coeffB3;
 
   return {
     coeffA, constA, resultA,
     coeffC, constC, resultC,
     coeffB3, constB3, coeffC3, coeffA3, const3: adjustedConst3,
+    mulA, mulB,
     valueA, valueC, valueB,
   };
 }
@@ -191,7 +204,7 @@ function formatEquation3(sys: SystemEquation): string {
   if (sys.constB3 > 0) lhsParts.push(`+ ${sys.constB3}`);
   else if (sys.constB3 < 0) lhsParts.push(`- ${Math.abs(sys.constB3)}`);
 
-  // RHS: coeffC3 * C + coeffA3 * A + const3
+  // RHS: coeffC3 * C + coeffA3 * A + const3 [+ mulA * mulB]
   const rhsParts: string[] = [];
 
   // First RHS term (no leading +)
@@ -208,6 +221,11 @@ function formatEquation3(sys: SystemEquation): string {
   // const3
   if (sys.const3 > 0) rhsParts.push(`+ ${sys.const3}`);
   else if (sys.const3 < 0) rhsParts.push(`- ${Math.abs(sys.const3)}`);
+
+  // Optional multiplication term
+  if (sys.mulA !== null && sys.mulB !== null) {
+    rhsParts.push(`+ ${sys.mulA} x ${sys.mulB}`);
+  }
 
   return `${lhsParts.join(' ')} = ${rhsParts.join(' ')}`;
 }
@@ -376,6 +394,9 @@ export default function CalculMental3Test() {
               <p><strong>{settings.totalQuestions} systemes</strong> a resoudre.</p>
               <p>Chaque systeme contient 3 equations a 3 inconnues (A, B, C).</p>
               <p>Resolvez A et C d&apos;abord, puis substituez pour trouver <strong>B</strong>.</p>
+              {settings.includeMultiply && (
+                <p>Certaines equations incluent des <strong>multiplications ab &times; cd</strong>.</p>
+              )}
               {settings.timeLimitSec > 0 && (
                 <p>Temps total : <strong>{Math.floor(settings.timeLimitSec / 60)}min{settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}</strong>.</p>
               )}
@@ -462,6 +483,16 @@ export default function CalculMental3Test() {
                   value={[settings.timeLimitSec]}
                   onValueChange={([v]) => setSettings(s => ({ ...s, timeLimitSec: v }))}
                   min={0} max={1800} step={30} className="mt-2"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Multiplications ab &times; cd</Label>
+                  <p className="text-xs text-slate-500 mt-0.5">Ajouter un terme ab &times; cd dans l&apos;equation de B</p>
+                </div>
+                <Switch
+                  checked={settings.includeMultiply}
+                  onCheckedChange={v => setSettings(s => ({ ...s, includeMultiply: v }))}
                 />
               </div>
               <div className="flex items-center justify-between">
