@@ -497,6 +497,31 @@ export const EXERCISES: ExerciseConfig[] = [
     ready: true,
   },
   {
+    id: 'fiche-calcul',
+    slug: 'fiche-calcul',
+    title: 'Fiche Calcul',
+    description: 'Entrainement continu aux multiplications ab x cd',
+    longDescription:
+      'Fiche d\'entrainement aux multiplications de deux nombres a 2 chiffres. Enchainement continu de multiplications ab x cd avec correction immediate. Un bouton permet de reveler la reponse pour passer plus vite. Pas de limite de temps ni de nombre de questions.',
+    types: ['numerique'],
+    primaryType: 'numerique',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'moyen',
+    seoTitle: 'Fiche Calcul - Multiplications 2 Chiffres Pilote | AviaTest',
+    seoDescription:
+      'Entrainement libre aux multiplications ab x cd pour selections pilote. Correction immediate, sans limite de temps.',
+    seoKeywords: [
+      'fiche calcul',
+      'multiplication deux chiffres',
+      'calcul mental pilote',
+      'entrainement multiplication',
+      'calcul rapide pilote',
+    ],
+    iconName: 'Calculator',
+    estimatedDuration: 0,
+    ready: true,
+  },
+  {
     id: 'fiche-angles',
     slug: 'fiche-angles',
     title: 'Fiche Angles',
