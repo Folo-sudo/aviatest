@@ -106,9 +106,11 @@ function generateSystem(settings: GameSettings): SystemEquation {
   const mc = settings.maxCoeff;
   const mk = settings.maxConst;
 
-  // Generate integer solutions for A and C first, then build equations
-  const valueA = randInt(-20, 20);
-  const valueC = randInt(-20, 20);
+  // Generate bounded integer solutions first, then derive equations so the
+  // answers stay reasonable (~ ±15).
+  const valueA = randInt(-15, 15);
+  const valueC = randInt(-15, 15);
+  const valueB = randNonZero(-12, 12);
 
   // Eq1: coeffA * A + constA = resultA
   const coeffA = randNonZero(2, mc);
@@ -131,26 +133,21 @@ function generateSystem(settings: GameSettings): SystemEquation {
   }
 
   // Eq3: coeffB3 * B + constB3 = coeffC3 * C + coeffA3 * A + const3 [+ mulA*mulB]
+  // const3 is derived from the chosen valueB so the equation always balances
+  // and B remains in the chosen range (integer by construction).
   const coeffB3 = randNonZero(1, Math.min(mc, 6));
   const coeffC3 = randNonZero(-mc, mc);
   const coeffA3 = randNonZero(-mc, mc);
-  const const3 = randInt(-mk, mk);
   const constB3 = randInt(-mk, mk);
 
-  // coeffB3 * B = coeffC3 * C + coeffA3 * A + const3 + mulResult - constB3
-  const rhs = coeffC3 * valueC + coeffA3 * valueA + const3 + mulResult - constB3;
-
-  // We need B to be an integer, so rhs must be divisible by coeffB3
-  // If not, adjust const3
-  const remainder = ((rhs % coeffB3) + coeffB3) % coeffB3;
-  const adjustedConst3 = const3 - remainder;
-  const adjustedRhs = coeffC3 * valueC + coeffA3 * valueA + adjustedConst3 + mulResult - constB3;
-  const valueB = adjustedRhs / coeffB3;
+  // coeffB3 * B + constB3 = coeffC3 * C + coeffA3 * A + const3 + mulResult
+  // => const3 = coeffB3 * B + constB3 - coeffC3 * C - coeffA3 * A - mulResult
+  const const3 = coeffB3 * valueB + constB3 - coeffC3 * valueC - coeffA3 * valueA - mulResult;
 
   return {
     coeffA, constA, resultA,
     coeffC, constC, resultC,
-    coeffB3, constB3, coeffC3, coeffA3, const3: adjustedConst3,
+    coeffB3, constB3, coeffC3, coeffA3, const3,
     mulA, mulB,
     valueA, valueC, valueB,
   };
