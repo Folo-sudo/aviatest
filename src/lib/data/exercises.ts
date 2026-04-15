@@ -621,29 +621,6 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 8,
     ready: true,
   },
-  {
-    id: 'quadrilogie-angles-2',
-    slug: 'quadrilogie-angles-2',
-    title: 'Quadrilogie des Angles v2',
-    description: 'Version de test avec corrections niveau 2 (origine fleche) et niveau 4 (H vers haut ecran)',
-    longDescription:
-      'Variante de la Quadrilogie des Angles servant a valider deux corrections avant application sur l\'exercice principal : (1) niveau 2 mesure l\'angle depuis la fleche vers le point (au lieu de l\'inverse); (2) niveau 4 demande la rotation pour que H soit en haut de l\'ecran (au lieu de la position du 12 de l\'horloge, l\'horloge ne sert qu\'a donner le sens positif).',
-    types: ['spatiale', 'attention'],
-    primaryType: 'spatiale',
-    competitions: ['psy0', 'psy1', 'enac-epl'],
-    difficulty: 'difficile',
-    seoTitle: 'Quadrilogie des Angles v2 - Test Orientation Spatiale Pilote | AviaTest',
-    seoDescription:
-      'Variante de test de la Quadrilogie des Angles avec corrections sur les niveaux 2 et 4.',
-    seoKeywords: [
-      'quadrilogie angles v2',
-      'test angles 4 niveaux',
-      'orientation spatiale pilote',
-    ],
-    iconName: 'Clock',
-    estimatedDuration: 8,
-    ready: true,
-  },
 ];
 
 // ============================================================================
