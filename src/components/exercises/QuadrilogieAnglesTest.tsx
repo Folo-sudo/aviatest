@@ -322,6 +322,16 @@ export function QuadrilogieAnglesTest() {
     remainingRef.current = settings.totalDurationSec;
     setGameState('playing');
     setTimeout(() => inputRef.current?.focus(), 50);
+
+    // Preload all Level 1 background images so they are already in the
+    // HTTP cache (and our imageCache) by the time the user reaches them.
+    if (typeof window !== 'undefined') {
+      for (const q of qs) {
+        if (q.data.level === 1) {
+          getCachedImage(q.data.backgroundUrl, () => { /* no-op: preload */ });
+        }
+      }
+    }
   }, [settings]);
 
   // Save current input into answers when navigating away

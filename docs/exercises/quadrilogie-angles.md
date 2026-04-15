@@ -57,7 +57,10 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
   Les segments O et A sont traces par-dessus en noir, avec un halo blanc
   sur les lettres pour rester lisibles sur n'importe quelle image. Chaque
   question pioche son image a la generation et la conserve lors des
-  navigations Precedent/Suivant.
+  navigations Precedent/Suivant. **Preloading** : a la generation des
+  questions (clic sur "Jouer"), toutes les images des questions niveau 1
+  sont mises en cache en parallele, ce qui reduit a zero la latence de
+  chargement pour l'utilisateur quand il arrive sur ces questions.
 
 ### Niveau 2 (Q11-20) - Point + fleche
 
