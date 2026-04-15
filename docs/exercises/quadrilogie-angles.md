@@ -94,10 +94,17 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
   bas). **L'horloge ne sert ici qu'a indiquer le sens de rotation**
   (horaire / anti-horaire), pas la cible (la cible est toujours le haut
   de l'ecran, peu importe ou est dessine le '12' de l'horloge).
-- Pour l'instant, **seul l'ours** est implemente comme silhouette
-  (dessin canvas vectoriel). Les autres objets vus dans EPLtest
-  (appareil photo, mais, mouton, haricot, piquets, aimant, etc.) restent
-  a ajouter.
+- **Banque de silhouettes** : 21 silhouettes extraites directement des
+  captures d'ecran EPLtest originales, stockees localement sous
+  `public/images/quadrilogie-angles/objects/shape-N.png` (PNG avec fond
+  transparent, 21 fichiers pour un total de ~80 Ko). Chaque question
+  niveau 4 pioche aleatoirement une silhouette a la generation, et la
+  conserve lors des navigations Precedent/Suivant. Les 21 silhouettes
+  incluent : piquets/aimant, papillon, canon, pansement, bouteille,
+  oiseau, tete de chien, plume, glace, pomme, casserole, appareil photo,
+  poisson, mais, ours, mouton, chocolat, concombre, cornet, pager, steak.
+  Extraction automatisee via `scripts/extract-level4-shapes.py` (crop +
+  alpha + filtrage des labels H/B par proximite).
 
 ## UI
 
@@ -238,9 +245,10 @@ indiquer le sens positif de la rotation.
       Picsum Photos (50 IDs cures, CDN public, pas de stockage local).
       Possible evolution : telecharger localement dans `public/images/`
       pour supprimer la dependance externe.
-- [ ] **Bibliotheque de silhouettes** pour le niveau 4 (appareil photo,
-      mais, mouton, haricot, piquets, aimant, ours...). Pour l'instant,
-      seul l'ours est dessine en canvas.
+- [x] **Bibliotheque de silhouettes** pour le niveau 4 : 21 silhouettes
+      extraites des captures EPLtest, stockees en PNG avec transparence
+      sous `public/images/quadrilogie-angles/objects/`. Preload toutes
+      au demarrage pour eviter la latence de chargement.
 - [x] Mode "revoir les reponses" apres l'ecran de resultats (implemente
       avec arcs vert/rouge sur la zone visuelle).
 - [ ] Bouton "Terminer" pour finir le test avant la fin du chrono.
