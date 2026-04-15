@@ -22,6 +22,7 @@ interface Level1Data {
   level: 1;
   oDx: number; oDy: number;  // O endpoint relative to vertex (screen coords, y down)
   aDx: number; aDy: number;  // A endpoint relative to vertex
+  backgroundUrl: string;     // URL of the background image (Picsum)
 }
 
 interface Level2Data {
@@ -109,6 +110,24 @@ function clockAngleToMathDir(clockAngle: number, clockUpAngle: number, isReverse
 }
 
 // ============================================================================
+// Background images for Level 1 (Picsum Photos, stable public CDN)
+// 50 curated Picsum IDs verified to return 200 OK. Using 800x600 crop.
+// ============================================================================
+
+const LEVEL1_BACKGROUND_IDS = [
+  0, 2, 4, 10, 13, 15, 16, 17, 18, 19,
+  30, 33, 36, 40, 43, 48, 60, 63, 70, 76,
+  80, 100, 110, 122, 133, 145, 156, 164, 177, 180,
+  201, 225, 244, 250, 270, 290, 311, 326, 354, 380,
+  400, 427, 437, 447, 454, 480, 493, 510, 528, 548,
+] as const;
+
+function pickRandomBackgroundUrl(): string {
+  const id = LEVEL1_BACKGROUND_IDS[Math.floor(Math.random() * LEVEL1_BACKGROUND_IDS.length)];
+  return `https://picsum.photos/id/${id}/800/600`;
+}
+
+// ============================================================================
 // Question generators
 // ============================================================================
 
@@ -135,7 +154,7 @@ function generateLevel1(clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean): 
   const aDy = -len2 * Math.sin((aMath * Math.PI) / 180);
 
   return {
-    data: { level: 1, oDx, oDy, aDx, aDy },
+    data: { level: 1, oDx, oDy, aDx, aDy, backgroundUrl: pickRandomBackgroundUrl() },
     correctAngle: targetAngle,
   };
 }
@@ -592,19 +611,65 @@ function drawClock(
   }
 }
 
-function drawLevel1(ctx: CanvasRenderingContext2D, cx: number, cy: number, data: Level1Data) {
+// Module-level image cache so we don't reload the same image across renders.
+const imageCache = new Map<string, HTMLImageElement>();
+
+function getCachedImage(url: string, onLoad: () => void): HTMLImageElement {
+  let img = imageCache.get(url);
+  if (img) return img;
+  img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = onLoad;
+  img.onerror = onLoad; // trigger re-render even if it fails (so we skip drawing bg)
+  img.src = url;
+  imageCache.set(url, img);
+  return img;
+}
+
+function drawLevel1(ctx: CanvasRenderingContext2D, cx: number, cy: number, data: Level1Data, onImageLoad?: () => void) {
+  // Background image (centered on cx, cy, 400x300 display size — similar to EPLtest)
+  const bgW = 400;
+  const bgH = 300;
+  const bgX = cx - bgW / 2;
+  const bgY = cy - bgH / 2;
+
+  const img = getCachedImage(data.backgroundUrl, onImageLoad ?? (() => {}));
+  if (img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, bgX, bgY, bgW, bgH);
+  } else {
+    // Placeholder rectangle while loading
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(bgX, bgY, bgW, bgH);
+  }
+
+  // Two segments from (cx, cy) to O and to A (drawn ON TOP of the image)
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 1.8;
-  // Two segments from (cx, cy) to O and to A
   ctx.beginPath();
   ctx.moveTo(cx + data.oDx, cy + data.oDy);
   ctx.lineTo(cx, cy);
   ctx.lineTo(cx + data.aDx, cy + data.aDy);
   ctx.stroke();
 
-  // Labels O (origin) and A (arrival), offset slightly outward
-  drawLabel(ctx, 'O', cx + data.oDx, cy + data.oDy, data.oDx, data.oDy);
-  drawLabel(ctx, 'A', cx + data.aDx, cy + data.aDy, data.aDx, data.aDy);
+  // Labels O (origin) and A (arrival), offset slightly outward.
+  // Draw with a white halo so they remain readable over any image.
+  drawLabelOutlined(ctx, 'O', cx + data.oDx, cy + data.oDy, data.oDx, data.oDy);
+  drawLabelOutlined(ctx, 'A', cx + data.aDx, cy + data.aDy, data.aDx, data.aDy);
+}
+
+function drawLabelOutlined(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, dirX: number, dirY: number) {
+  const len = Math.hypot(dirX, dirY) || 1;
+  const ox = (dirX / len) * 14;
+  const oy = (dirY / len) * 14;
+  ctx.font = 'bold 14px Inter, Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // White halo
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeText(text, x + ox, y + oy);
+  ctx.fillStyle = '#000';
+  ctx.fillText(text, x + ox, y + oy);
 }
 
 function drawLevel2(ctx: CanvasRenderingContext2D, cx: number, cy: number, data: Level2Data) {
@@ -771,18 +836,6 @@ function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   ctx.fill();
 }
 
-function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, dirX: number, dirY: number) {
-  // Place label slightly outside in the direction (dirX, dirY).
-  const len = Math.hypot(dirX, dirY) || 1;
-  const ox = (dirX / len) * 14;
-  const oy = (dirY / len) * 14;
-  ctx.font = 'bold 14px Inter, Arial';
-  ctx.fillStyle = '#000';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + ox, y + oy);
-}
-
 function drawTimerBar(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number,
@@ -837,9 +890,10 @@ function renderQuestionToCanvas(
     drawBottomBar?: boolean;      // default true
     showCorrection?: boolean;     // review mode
     userAnswer?: number | null;   // user's parsed answer (deg) for correction arc
+    onImageLoad?: () => void;     // callback to re-render once image is ready
   } = {}
 ) {
-  const { remainingSec, totalDurationSec, drawBottomBar = true, showCorrection = false, userAnswer = null } = opts;
+  const { remainingSec, totalDurationSec, drawBottomBar = true, showCorrection = false, userAnswer = null, onImageLoad } = opts;
 
   // Background
   ctx.fillStyle = '#ffffff';
@@ -860,7 +914,7 @@ function renderQuestionToCanvas(
   const zoneCY = 360;
 
   if (question.data.level === 1) {
-    drawLevel1(ctx, zoneCX, zoneCY, question.data);
+    drawLevel1(ctx, zoneCX, zoneCY, question.data, onImageLoad);
   } else if (question.data.level === 2) {
     drawLevel2(ctx, zoneCX, zoneCY, question.data);
   } else if (question.data.level === 3) {
@@ -991,6 +1045,8 @@ function PlayingScreen(props: {
   const { canvasRef, inputRef, width, height, question, questionIdx, totalQuestions,
     remainingSec, totalDurationSec, inputValue, onInputChange, onPrev, onNext } = props;
 
+  const [imgTick, setImgTick] = useState(0);
+
   // Render canvas whenever question or timer changes
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1000,8 +1056,9 @@ function PlayingScreen(props: {
     renderQuestionToCanvas(ctx, width, height, question, {
       remainingSec,
       totalDurationSec,
+      onImageLoad: () => setImgTick(t => t + 1),
     });
-  }, [canvasRef, width, height, question, remainingSec, totalDurationSec]);
+  }, [canvasRef, width, height, question, remainingSec, totalDurationSec, imgTick]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
@@ -1260,6 +1317,8 @@ function ReviewScreen(props: {
   const isCorrect = userAnswerNormalized !== null && userAnswerNormalized === q.correctAngle;
   const isAnswered = userAnswerNormalized !== null;
 
+  const [imgTick, setImgTick] = useState(0);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1268,8 +1327,9 @@ function ReviewScreen(props: {
     renderQuestionToCanvas(ctx, width, height, q, {
       showCorrection: true,
       userAnswer: userAnswerNormalized,
+      onImageLoad: () => setImgTick(t => t + 1),
     });
-  }, [q, userAnswerNormalized, width, height]);
+  }, [q, userAnswerNormalized, width, height, imgTick]);
 
   const levelName = `Niveau ${q.level}`;
 

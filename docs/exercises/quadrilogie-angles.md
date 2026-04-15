@@ -51,9 +51,13 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
 - Note : les angles peuvent etre **superieurs a 180°** (angles reflexes /
   rentrants). Exemple : si la cassure est tres legere, on peut avoir 175°
   ou 185° selon le sens.
-- TODO : ajouter des **images de fond parasites** (herbe, livres, roche,
-  escabeau, circuit electronique...) pour augmenter la difficulte. Pour
-  l'instant le fond est blanc.
+- **Images de fond parasites** : une image 400x300 est affichee en
+  arriere-plan de la zone visuelle, piochee aleatoirement parmi 50 photos
+  via le CDN public **Picsum Photos** (`https://picsum.photos/id/<ID>/800/600`).
+  Les segments O et A sont traces par-dessus en noir, avec un halo blanc
+  sur les lettres pour rester lisibles sur n'importe quelle image. Chaque
+  question pioche son image a la generation et la conserve lors des
+  navigations Precedent/Suivant.
 
 ### Niveau 2 (Q11-20) - Point + fleche
 
@@ -221,8 +225,10 @@ rotation           = (90 - currentHMath + 360) mod 360  // arrondi a 10°
 
 ## Points d'extension prevus
 
-- [ ] **Banque d'images de fond** pour le niveau 1 (herbe, livres, roche,
-      escabeau, circuit electronique, etc.).
+- [x] **Banque d'images de fond** pour le niveau 1 : implementee via
+      Picsum Photos (50 IDs cures, CDN public, pas de stockage local).
+      Possible evolution : telecharger localement dans `public/images/`
+      pour supprimer la dependance externe.
 - [ ] **Bibliotheque de silhouettes** pour le niveau 4 (appareil photo,
       mais, mouton, haricot, piquets, aimant, ours...). Pour l'instant,
       seul l'ours est dessine en canvas.
