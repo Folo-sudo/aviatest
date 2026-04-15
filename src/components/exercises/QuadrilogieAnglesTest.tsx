@@ -161,25 +161,23 @@ function generateLevel1(clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean): 
 
 function generateLevel2(clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean): { data: Level2Data; correctAngle: number } {
   const targetAngle = pickAngle10(10, 350);
-  // Origin direction: from base to point (vector base -> point), but our origin segment is "point -> base"
-  // We define origin direction as vector from base to point reversed = point -> base direction = -(point - base)
-  // Easier: pick origin clock angle = direction from base to the *start*. Origin segment = [point -> base], so its direction (as a vector pointing toward the joint base) is from point to base. The "outgoing" direction from the vertex (base) along this segment is toward the point.
-  // For the angle calculation, both branches must point AWAY from the vertex.
-  // Branch 1 (origin): from base toward point  -> vector = point - base = (pointDx, pointDy)
-  // Branch 2 (arrival): from base toward tip   -> vector = tip - base   = (tipDx, tipDy)
-  const oClockAngle = Math.floor(Math.random() * 36) * 10;
-  const aClockAngle = (oClockAngle + targetAngle) % 360;
+  // Angle measured from [base -> tip] (arrow = origin) to [base -> point] (point = arrival).
+  // Vertex = arrow base. Both branches point away from it.
+  //   Branch 1 (ORIGIN): from base toward tip    = (tipDx, tipDy)
+  //   Branch 2 (ARRIVAL): from base toward point = (pointDx, pointDy)
+  const tipClockAngle = Math.floor(Math.random() * 36) * 10;
+  const pointClockAngle = (tipClockAngle + targetAngle) % 360;
 
-  const oMath = clockAngleToMathDir(oClockAngle, clockUpAngle, isReversed);
-  const aMath = clockAngleToMathDir(aClockAngle, clockUpAngle, isReversed);
+  const tipMath = clockAngleToMathDir(tipClockAngle, clockUpAngle, isReversed);
+  const pointMath = clockAngleToMathDir(pointClockAngle, clockUpAngle, isReversed);
 
   const lenPoint = 110 + Math.random() * 40;
   const lenArrow = 90 + Math.random() * 40;
 
-  const pointDx = lenPoint * Math.cos((oMath * Math.PI) / 180);
-  const pointDy = -lenPoint * Math.sin((oMath * Math.PI) / 180);
-  const tipDx = lenArrow * Math.cos((aMath * Math.PI) / 180);
-  const tipDy = -lenArrow * Math.sin((aMath * Math.PI) / 180);
+  const tipDx = lenArrow * Math.cos((tipMath * Math.PI) / 180);
+  const tipDy = -lenArrow * Math.sin((tipMath * Math.PI) / 180);
+  const pointDx = lenPoint * Math.cos((pointMath * Math.PI) / 180);
+  const pointDy = -lenPoint * Math.sin((pointMath * Math.PI) / 180);
 
   return {
     data: { level: 2, pointDx, pointDy, tipDx, tipDy },
@@ -209,26 +207,19 @@ function generateLevel3(clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean): 
   };
 }
 
-function generateLevel4(clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean): { data: Level4Data; correctAngle: number } {
-  // The bear is rotated by `rotation` clockwise on screen.
-  // To upright it (H back to '12' position), rotation to apply = clock-angle from currentHDir to clockUpAngle.
-  // Bear upright has H pointing up = math angle 90.
-  // After clockwise screen rotation by R, H points at math angle (90 - R).
-  // We want target rotation in clock positive direction = pickAngle10.
+function generateLevel4(_clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean): { data: Level4Data; correctAngle: number } {
+  // The target is the rotation (in clock-positive direction) needed to bring H to the
+  // TOP OF THE SCREEN, regardless of where the '12' of the clock is drawn. The clock
+  // only serves to indicate the positive direction (clockwise vs anti-clockwise).
+  //
+  // Bear upright has H at math angle 90 (screen top). After clockwise screen rotation by R,
+  // H is at math angle (90 - R).
+  //   - If !isReversed (clock-positive = clockwise screen): rotating by X brings H to
+  //     math angle (90 - R - X). Want result = 90 => X = -R mod 360 = (360 - R) mod 360.
+  //   - If isReversed (clock-positive = anti-clockwise screen): rotating by X brings H to
+  //     math angle (90 - R + X). Want result = 90 => X = R.
   const targetAngle = pickAngle10(10, 350);
-  // currentHDir (math) such that going from currentHDir to clockUpAngle in clock-positive = targetAngle
-  // mathAngleToClockAngle(currentHDir, clockUp, rev) gives the clock position of currentHDir.
-  // Going from currentHDir to clockUpAngle in clock-positive = (0 - currentHClockAngle) mod 360 = -currentHClockAngle mod 360
-  // = (360 - currentHClockAngle) mod 360 = targetAngle
-  // => currentHClockAngle = (360 - targetAngle) mod 360
-  const currentHClockAngle = (360 - targetAngle) % 360;
-  const currentHMath = clockAngleToMathDir(currentHClockAngle, clockUpAngle, isReversed);
-  // Bear's clockwise screen rotation R such that H math angle = 90 - R => R = 90 - currentHMath
-  let rotation = (90 - currentHMath) % 360;
-  if (rotation < 0) rotation += 360;
-  // Snap to multiple of 10
-  rotation = Math.round(rotation / 10) * 10;
-  if (rotation === 360) rotation = 0;
+  const rotation = isReversed ? targetAngle : ((360 - targetAngle) % 360);
 
   return {
     data: { level: 4, rotation },
@@ -973,8 +964,8 @@ function drawCorrectionArc(
   if (d.level === 1) {
     oMathDir = vectorMathAngle(d.oDx, d.oDy);
   } else if (d.level === 2) {
-    // Vertex = arrow base = (cx, cy). O direction = from base to isolated point.
-    oMathDir = vectorMathAngle(d.pointDx, d.pointDy);
+    // Vertex = arrow base = (cx, cy). Origin direction = from base toward the arrow tip.
+    oMathDir = vectorMathAngle(d.tipDx, d.tipDy);
   } else if (d.level === 3) {
     oMathDir = vectorMathAngle(d.oDx, d.oDy);
   } else if (d.level === 4) {

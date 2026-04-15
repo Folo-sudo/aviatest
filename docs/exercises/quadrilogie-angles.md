@@ -69,8 +69,9 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
 - Le **sommet de l'angle** est la **base (queue) de la fleche**.
 - L'utilisateur doit **imaginer** un segment qui relie le point a la base
   de la fleche.
-- Angle a donner : du segment imaginaire `[point -> base fleche]` vers la
-  fleche elle-meme `[base -> pointe]`, dans le sens positif de l'horloge.
+- Angle a donner : **depuis la fleche** (segment `[base -> pointe]`, origine)
+  **vers le segment imaginaire** (`[base -> point]`, arrivee), dans le sens
+  positif de l'horloge.
 
 ### Niveau 3 (Q21-30) - Croix rouge + 2 points bleus
 
@@ -89,9 +90,10 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
   (Haut) et **B** (Bas) "gravees" a cote de l'objet (donc tournees avec
   lui).
 - Angle a donner : la **rotation a appliquer a l'objet** (dans le sens
-  positif de l'horloge) pour le **redresser**, c'est-a-dire pour que H
-  pointe vers la position du `12` de l'horloge et B vers la position du
-  `6`.
+  positif de l'horloge) pour que H soit **en haut de l'ecran** (et B en
+  bas). **L'horloge ne sert ici qu'a indiquer le sens de rotation**
+  (horaire / anti-horaire), pas la cible (la cible est toujours le haut
+  de l'ecran, peu importe ou est dessine le '12' de l'horloge).
 - Pour l'instant, **seul l'ours** est implemente comme silhouette
   (dessin canvas vectoriel). Les autres objets vus dans EPLtest
   (appareil photo, mais, mouton, haricot, piquets, aimant, etc.) restent
@@ -202,22 +204,26 @@ L'ours est tourne de `rotation` degres dans le sens **horaire ecran**
 depuis la position droite (H en haut). Apres rotation, le H pointe dans
 la direction math `90 - rotation`.
 
-Pour redresser, on doit ramener H vers la position du `12` (math angle
-`clockUpAngle`). La rotation a appliquer dans le sens positif de
-l'horloge est :
+Pour redresser, on doit ramener H vers le **haut de l'ecran** (math
+angle 90), dans le sens positif de l'horloge :
+
+- Si `!isReversed` (sens positif = horaire ecran) : rotation de `X`
+  amene H en math `(90 - rotation - X)`. Pour que ca fasse 90 :
+  `X = (360 - rotation) mod 360`.
+- Si `isReversed` (sens positif = anti-horaire ecran) : rotation de `X`
+  amene H en math `(90 - rotation + X)`. Pour que ca fasse 90 :
+  `X = rotation`.
+
+Pour generer une question avec une rotation cible `target` (multiple de
+10°) :
 
 ```
-target = (clockAngleOf(currentHMath) - 0) mod 360
-       = mathAngleToClockAngle(currentHMath, clockUpAngle, isReversed)
+rotation = isReversed ? target : (360 - target) mod 360
 ```
 
-Pour generer une question avec une rotation cible `target` :
-
-```
-currentHClockAngle = (360 - target) mod 360
-currentHMath       = clockAngleToMathDir(currentHClockAngle, ...)
-rotation           = (90 - currentHMath + 360) mod 360  // arrondi a 10°
-```
+A noter : avec cette formulation, le `clockUpAngle` (position visuelle
+du '12') n'intervient pas dans le calcul. L'horloge ne sert qu'a
+indiquer le sens positif de la rotation.
 
 ## Parametres disponibles
 
