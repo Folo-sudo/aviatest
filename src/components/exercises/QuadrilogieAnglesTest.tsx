@@ -39,7 +39,8 @@ interface Level3Data {
 
 interface Level4Data {
   level: 4;
-  rotation: number;  // current rotation of the bear in screen-clockwise degrees from upright
+  rotation: number;  // current rotation of the shape in screen-clockwise degrees from upright
+  shapeUrl: string;  // URL of the silhouette PNG (centered, transparent background)
 }
 
 type LevelData = Level1Data | Level2Data | Level3Data | Level4Data;
@@ -107,6 +108,22 @@ function clockAngleToMathDir(clockAngle: number, clockUpAngle: number, isReverse
   } else {
     return (clockAngle + clockUpAngle) % 360;
   }
+}
+
+// ============================================================================
+// Silhouette images for Level 4 (black silhouettes with transparent background,
+// stored in /public/images/quadrilogie-angles/objects/).
+// These are extracted from the original EPLtest screenshots.
+// ============================================================================
+
+const LEVEL4_SHAPE_COUNT = 21;
+const LEVEL4_SHAPE_URLS: string[] = Array.from(
+  { length: LEVEL4_SHAPE_COUNT },
+  (_, i) => `/images/quadrilogie-angles/objects/shape-${i}.png`
+);
+
+function pickRandomShapeUrl(): string {
+  return LEVEL4_SHAPE_URLS[Math.floor(Math.random() * LEVEL4_SHAPE_URLS.length)];
 }
 
 // ============================================================================
@@ -222,7 +239,7 @@ function generateLevel4(_clockUpAngle: 0 | 90 | 180 | 270, isReversed: boolean):
   const rotation = isReversed ? targetAngle : ((360 - targetAngle) % 360);
 
   return {
-    data: { level: 4, rotation },
+    data: { level: 4, rotation, shapeUrl: pickRandomShapeUrl() },
     correctAngle: targetAngle,
   };
 }
@@ -314,12 +331,15 @@ export function QuadrilogieAnglesTest() {
     setGameState('playing');
     setTimeout(() => inputRef.current?.focus(), 50);
 
-    // Preload all Level 1 background images so they are already in the
-    // HTTP cache (and our imageCache) by the time the user reaches them.
+    // Preload all Level 1 background images and Level 4 silhouettes so they are
+    // already in the HTTP cache (and our imageCache) by the time the user
+    // reaches them.
     if (typeof window !== 'undefined') {
       for (const q of qs) {
         if (q.data.level === 1) {
           getCachedImage(q.data.backgroundUrl, () => { /* no-op: preload */ });
+        } else if (q.data.level === 4) {
+          getCachedImage(q.data.shapeUrl, () => { /* no-op: preload */ });
         }
       }
     }
@@ -752,18 +772,34 @@ function drawLevel3(ctx: CanvasRenderingContext2D, cx: number, cy: number, data:
   ctx.fillText('A', aX + aLabelOffsetX, aY + aLabelOffsetY);
 }
 
-function drawLevel4(ctx: CanvasRenderingContext2D, cx: number, cy: number, data: Level4Data) {
-  // The bear is rotated by `rotation` (clockwise on screen) from upright.
+function drawLevel4(ctx: CanvasRenderingContext2D, cx: number, cy: number, data: Level4Data, onImageLoad?: () => void) {
+  // The shape is rotated by `rotation` (clockwise on screen) from its upright position.
+  const img = getCachedImage(data.shapeUrl, onImageLoad ?? (() => {}));
+
   ctx.save();
   ctx.translate(cx, cy);
   // Canvas rotate uses radians, positive = clockwise (since y is down).
   ctx.rotate((data.rotation * Math.PI) / 180);
-  drawBearShape(ctx, 110);
+
+  if (img.complete && img.naturalWidth > 0) {
+    // Scale the silhouette so that its larger side fits ~230 px (similar to EPLtest).
+    const targetSize = 230;
+    const maxSide = Math.max(img.naturalWidth, img.naturalHeight);
+    const scale = targetSize / maxSide;
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  } else {
+    // Placeholder rectangle while the image loads.
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillRect(-60, -90, 120, 180);
+  }
   ctx.restore();
 
-  // Labels H (head/top) and B (bottom), positioned around the bear in its current orientation.
-  // In bear's local frame, H is up (math angle 90), B is down (math angle -90).
-  // After clockwise screen rotation by R, H direction in screen-math = 90 - R.
+  // Labels H (top) and B (bottom), positioned above and below the shape in its
+  // current orientation. In the shape's local frame, H is up (math angle 90),
+  // B is down (math angle -90). After clockwise screen rotation by R, H direction
+  // in screen-math = 90 - R.
   const labelDist = 145;
   const hMath = (90 - data.rotation) * Math.PI / 180;
   const bMath = (-90 - data.rotation) * Math.PI / 180;
@@ -772,7 +808,7 @@ function drawLevel4(ctx: CanvasRenderingContext2D, cx: number, cy: number, data:
   const bX = cx + labelDist * Math.cos(bMath);
   const bY = cy - labelDist * Math.sin(bMath);
 
-  // Draw labels rotated with the bear (so they appear "stuck" to it)
+  // Draw labels rotated with the shape (so they appear "stuck" to it)
   drawRotatedText(ctx, 'H', hX, hY, data.rotation);
   drawRotatedText(ctx, 'B', bX, bY, data.rotation);
 }
@@ -787,54 +823,6 @@ function drawRotatedText(ctx: CanvasRenderingContext2D, text: string, x: number,
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 0, 0);
   ctx.restore();
-}
-
-function drawBearShape(ctx: CanvasRenderingContext2D, size: number) {
-  // Stylized bear silhouette, drawn upright facing right.
-  // Centered around (0, 0). Drawn entirely in black.
-  ctx.fillStyle = '#000';
-
-  // Body (large rounded shape)
-  ctx.beginPath();
-  ctx.ellipse(-size * 0.05, size * 0.18, size * 0.42, size * 0.32, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Head (rounded, front of body)
-  ctx.beginPath();
-  ctx.arc(size * 0.32, -size * 0.18, size * 0.22, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Snout
-  ctx.beginPath();
-  ctx.ellipse(size * 0.5, -size * 0.05, size * 0.1, size * 0.07, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Ears (two small circles)
-  ctx.beginPath();
-  ctx.arc(size * 0.18, -size * 0.36, size * 0.07, 0, Math.PI * 2);
-  ctx.arc(size * 0.42, -size * 0.36, size * 0.07, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Legs (4 stocky rounded rectangles)
-  drawRoundedRect(ctx, -size * 0.38, size * 0.32, size * 0.18, size * 0.28, size * 0.06);
-  drawRoundedRect(ctx, -size * 0.12, size * 0.36, size * 0.18, size * 0.28, size * 0.06);
-  drawRoundedRect(ctx,  size * 0.12, size * 0.36, size * 0.18, size * 0.28, size * 0.06);
-  drawRoundedRect(ctx,  size * 0.32, size * 0.32, size * 0.16, size * 0.26, size * 0.06);
-}
-
-function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-  ctx.fill();
 }
 
 function drawTimerBar(
@@ -921,7 +909,7 @@ function renderQuestionToCanvas(
   } else if (question.data.level === 3) {
     drawLevel3(ctx, zoneCX, zoneCY, question.data);
   } else if (question.data.level === 4) {
-    drawLevel4(ctx, zoneCX, zoneCY, question.data);
+    drawLevel4(ctx, zoneCX, zoneCY, question.data, onImageLoad);
   }
 
   // Correction overlays (review mode)
