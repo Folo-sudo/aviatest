@@ -131,7 +131,29 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
   de l'utilisateur est mise en evidence par une bordure noire.
 - Si l'utilisateur a deja realise plusieurs sessions, un **mini graphique
   de progression** s'affiche.
-- Boutons : **Refaire / Menu / Accueil**.
+- Boutons : **Revoir les reponses / Refaire / Menu / Accueil**.
+
+## Ecran de correction (Revoir)
+
+Accessible depuis l'ecran de resultats via le bouton **Revoir les
+reponses**. L'utilisateur parcourt les 40 questions une par une avec :
+
+- Le **visuel d'origine** de la question (fond blanc + horloge +
+  elements du niveau).
+- Un **arc vert** dessine depuis le sommet de l'angle, representant la
+  **bonne reponse** (angle correct balaye depuis l'origine O dans le sens
+  positif de l'horloge).
+- Un **arc rouge en pointilles** (rayon legerement plus grand) qui
+  represente la **reponse de l'utilisateur**, uniquement si celle-ci est
+  differente de la bonne reponse.
+- Une pastille de feedback sous le visuel :
+  - **Vert** : "Correct : XX°" si bonne reponse.
+  - **Rouge** : "Votre reponse : XX°  |  Bonne reponse : YY°" si fausse.
+  - **Gris** : "Pas de reponse  |  Bonne reponse : YY°" si pas repondu.
+- Boutons **Precedent / Suivant** pour naviguer, bouton **Resultats**
+  en haut a gauche pour revenir.
+- Le numero de question et le niveau sont affiches en haut (ex:
+  "Question 5 / 40 — Niveau 1").
 
 ## Logique mathematique (calcul des angles)
 
@@ -204,7 +226,7 @@ rotation           = (90 - currentHMath + 360) mod 360  // arrondi a 10°
 - [ ] **Bibliotheque de silhouettes** pour le niveau 4 (appareil photo,
       mais, mouton, haricot, piquets, aimant, ours...). Pour l'instant,
       seul l'ours est dessine en canvas.
-- [ ] Mode "revoir les reponses" apres l'ecran de resultats (bouton
-      "Revoir" present dans EPLtest mais pas encore implemente).
+- [x] Mode "revoir les reponses" apres l'ecran de resultats (implemente
+      avec arcs vert/rouge sur la zone visuelle).
 - [ ] Bouton "Terminer" pour finir le test avant la fin du chrono.
 - [ ] Animation d'arc lors de l'affichage de la correction.

@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 // Types
 // ============================================================================
 
-type GameState = 'menu' | 'settings' | 'playing' | 'results';
+type GameState = 'menu' | 'settings' | 'playing' | 'results' | 'review';
 type Level = 1 | 2 | 3 | 4;
 
 interface Level1Data {
@@ -235,6 +235,7 @@ export function QuadrilogieAnglesTest() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [remainingSec, setRemainingSec] = useState(settings.totalDurationSec);
+  const [reviewIdx, setReviewIdx] = useState(0);
 
   const totalQuestions = questions.length;
 
@@ -374,6 +375,21 @@ export function QuadrilogieAnglesTest() {
       onReplay={startPlaying}
       onMenu={() => setGameState('menu')}
       onHome={() => router.push('/')}
+      onReview={() => {
+        setReviewIdx(0);
+        setGameState('review');
+      }}
+    />;
+  }
+
+  if (gameState === 'review') {
+    return <ReviewScreen
+      questions={questions}
+      answers={answers}
+      reviewIdx={reviewIdx}
+      onPrev={() => setReviewIdx(i => Math.max(0, i - 1))}
+      onNext={() => setReviewIdx(i => Math.min(questions.length - 1, i + 1))}
+      onBack={() => setGameState('results')}
     />;
   }
 
@@ -767,6 +783,157 @@ function formatMMSS(sec: number): string {
 }
 
 // ============================================================================
+// Shared canvas renderer (used by Playing and Review screens)
+// ============================================================================
+
+function renderQuestionToCanvas(
+  ctx: CanvasRenderingContext2D,
+  width: number, height: number,
+  question: Question,
+  opts: {
+    remainingSec?: number;        // if provided, draw left timer bar
+    totalDurationSec?: number;
+    drawBottomBar?: boolean;      // default true
+    showCorrection?: boolean;     // review mode
+    userAnswer?: number | null;   // user's parsed answer (deg) for correction arc
+  } = {}
+) {
+  const { remainingSec, totalDurationSec, drawBottomBar = true, showCorrection = false, userAnswer = null } = opts;
+
+  // Background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  // Vertical timer bar (left) - only if we have timer info
+  if (remainingSec !== undefined && totalDurationSec !== undefined) {
+    drawTimerBar(ctx, 30, 40, 18, height - 80, remainingSec, totalDurationSec);
+  }
+
+  // Clock (top center)
+  const clockCX = width / 2;
+  const clockCY = 90;
+  drawClock(ctx, clockCX, clockCY, 36, question.clockUpAngle, question.isReversed);
+
+  // Visual zone (centered slightly above middle)
+  const zoneCX = width / 2;
+  const zoneCY = 360;
+
+  if (question.data.level === 1) {
+    drawLevel1(ctx, zoneCX, zoneCY, question.data);
+  } else if (question.data.level === 2) {
+    drawLevel2(ctx, zoneCX, zoneCY, question.data);
+  } else if (question.data.level === 3) {
+    drawLevel3(ctx, zoneCX, zoneCY, question.data);
+  } else if (question.data.level === 4) {
+    drawLevel4(ctx, zoneCX, zoneCY, question.data);
+  }
+
+  // Correction overlays (review mode)
+  if (showCorrection) {
+    drawCorrectionArc(ctx, zoneCX, zoneCY, question, 'correct');
+    if (userAnswer !== null && userAnswer !== question.correctAngle) {
+      drawCorrectionArc(ctx, zoneCX, zoneCY, question, 'user', userAnswer);
+    }
+  }
+
+  // Bottom bar background
+  if (drawBottomBar) {
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, height - 36, width, 36);
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, height - 36);
+    ctx.lineTo(width, height - 36);
+    ctx.stroke();
+  }
+}
+
+/** Draw the arc representing the measured angle, from O-direction to A-direction,
+ *  in the clock's positive direction. Color = green (correct) or red (user answer). */
+function drawCorrectionArc(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  question: Question,
+  kind: 'correct' | 'user',
+  userAngle?: number
+) {
+  // Determine the vertex of the angle and the starting branch direction (O).
+  // We don't need the A direction because the arc sweeps from O by `angleDeg`
+  // in the clock-positive direction.
+  const vertexX = cx, vertexY = cy;
+  let oMathDir = 0;
+  const d = question.data;
+
+  if (d.level === 1) {
+    oMathDir = vectorMathAngle(d.oDx, d.oDy);
+  } else if (d.level === 2) {
+    // Vertex = arrow base = (cx, cy). O direction = from base to isolated point.
+    oMathDir = vectorMathAngle(d.pointDx, d.pointDy);
+  } else if (d.level === 3) {
+    oMathDir = vectorMathAngle(d.oDx, d.oDy);
+  } else if (d.level === 4) {
+    // Vertex = bear center. O direction = current H direction (math angle = 90 - rotation).
+    oMathDir = (90 - d.rotation) % 360;
+  }
+
+  // Pick the angle to draw: either the correct or the user-supplied one.
+  const angleDeg = kind === 'correct' ? question.correctAngle : (userAngle ?? 0);
+  if (angleDeg <= 0 || angleDeg >= 360) return; // nothing to draw
+
+  // Arc radius
+  const radius = kind === 'correct' ? 55 : 70;
+
+  // The arc goes from oMathDir sweeping in the clock-positive direction for `angleDeg` degrees.
+  // Clock-positive: if !isReversed = clockwise on screen = decreasing math angle.
+  const sign = question.isReversed ? +1 : -1;
+  const startMath = oMathDir;
+  const endMath = oMathDir + sign * angleDeg;
+
+  // Convert to canvas arc angles (canvas uses y-down, so math->canvas: angle_canvas = -angle_math)
+  const startCanvas = -startMath * Math.PI / 180;
+  const endCanvas = -endMath * Math.PI / 180;
+
+  ctx.strokeStyle = kind === 'correct' ? '#16a34a' : '#dc2626';
+  ctx.lineWidth = 2;
+  ctx.setLineDash(kind === 'correct' ? [] : [5, 4]);
+  ctx.beginPath();
+  // For canvas arc: anticlockwise param = true when sign is +1 (isReversed=true, math increases = canvas decreases = anticlockwise in canvas)
+  const anticlockwise = sign === +1;
+  ctx.arc(vertexX, vertexY, radius, startCanvas, endCanvas, anticlockwise);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Arrowhead at end of arc
+  const tipMath = endMath * Math.PI / 180;
+  const tipX = vertexX + radius * Math.cos(tipMath);
+  const tipY = vertexY - radius * Math.sin(tipMath);
+  // Tangent direction of the arc at the tip (perpendicular to radius, in the sweep direction)
+  const tangentMath = tipMath + sign * Math.PI / 2;
+  const tangentDx = Math.cos(tangentMath);
+  const tangentDy = -Math.sin(tangentMath);
+  const headLen = 8;
+  const headSpread = 0.5;
+  ctx.fillStyle = kind === 'correct' ? '#16a34a' : '#dc2626';
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(
+    tipX - headLen * (tangentDx * Math.cos(headSpread) - tangentDy * Math.sin(headSpread)),
+    tipY - headLen * (tangentDy * Math.cos(headSpread) + tangentDx * Math.sin(headSpread))
+  );
+  ctx.lineTo(
+    tipX - headLen * (tangentDx * Math.cos(headSpread) + tangentDy * Math.sin(headSpread)),
+    tipY - headLen * (tangentDy * Math.cos(headSpread) - tangentDx * Math.sin(headSpread))
+  );
+  ctx.closePath();
+  ctx.fill();
+}
+
+function vectorMathAngle(dx: number, dy: number): number {
+  return (Math.atan2(-dy, dx) * 180) / Math.PI;
+}
+
+// ============================================================================
 // Playing screen (canvas + input + nav buttons)
 // ============================================================================
 
@@ -789,43 +956,10 @@ function PlayingScreen(props: {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    // Clear
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-
-    // Vertical timer bar (left)
-    drawTimerBar(ctx, 30, 40, 18, height - 80, remainingSec, totalDurationSec);
-
-    // Clock (top center)
-    const clockCX = width / 2;
-    const clockCY = 90;
-    drawClock(ctx, clockCX, clockCY, 36, question.clockUpAngle, question.isReversed);
-
-    // Visual zone (centered slightly above middle)
-    const zoneCX = width / 2;
-    const zoneCY = 360;
-
-    if (question.data.level === 1) {
-      drawLevel1(ctx, zoneCX, zoneCY, question.data);
-    } else if (question.data.level === 2) {
-      drawLevel2(ctx, zoneCX, zoneCY, question.data);
-    } else if (question.data.level === 3) {
-      drawLevel3(ctx, zoneCX, zoneCY, question.data);
-    } else if (question.data.level === 4) {
-      drawLevel4(ctx, zoneCX, zoneCY, question.data);
-    }
-
-    // Bottom bar background (kept slim)
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, height - 36, width, 36);
-    // Top divider line for bottom bar
-    ctx.strokeStyle = '#dc2626';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, height - 36);
-    ctx.lineTo(width, height - 36);
-    ctx.stroke();
+    renderQuestionToCanvas(ctx, width, height, question, {
+      remainingSec,
+      totalDurationSec,
+    });
   }, [canvasRef, width, height, question, remainingSec, totalDurationSec]);
 
   return (
@@ -937,8 +1071,9 @@ function ResultsScreen(props: {
   onReplay: () => void;
   onMenu: () => void;
   onHome: () => void;
+  onReview: () => void;
 }) {
-  const { questions, answers, onReplay, onMenu, onHome } = props;
+  const { questions, answers, onReplay, onMenu, onHome, onReview } = props;
 
   const total = questions.length;
   let correct = 0;
@@ -995,7 +1130,10 @@ function ResultsScreen(props: {
 
           {/* Buttons */}
           <div className="flex flex-col gap-3">
-            <Button size="lg" className="w-full" onClick={onReplay}>
+            <Button size="lg" className="w-full" onClick={onReview}>
+              <Eye className="mr-2 h-5 w-5" /> Revoir les reponses
+            </Button>
+            <Button variant="outline" size="lg" className="w-full" onClick={onReplay}>
               <RotateCcw className="mr-2 h-5 w-5" /> Refaire
             </Button>
             <Button variant="outline" size="lg" className="w-full" onClick={onMenu}>
@@ -1050,6 +1188,167 @@ function Histogram({ stanine }: { stanine: number }) {
             {i === 8 && '100%'}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Review screen — walk through each question with correction arcs
+// ============================================================================
+
+function ReviewScreen(props: {
+  questions: Question[];
+  answers: Record<number, string>;
+  reviewIdx: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const { questions, answers, reviewIdx, onPrev, onNext, onBack } = props;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const width = 1280;
+  const height = 720;
+
+  const q = questions[reviewIdx];
+  const rawAnswer = answers[reviewIdx];
+  const userAnswerParsed = rawAnswer !== undefined ? parseInt(rawAnswer, 10) : NaN;
+  const userAnswerNormalized = !isNaN(userAnswerParsed)
+    ? ((userAnswerParsed % 360) + 360) % 360
+    : null;
+  const isCorrect = userAnswerNormalized !== null && userAnswerNormalized === q.correctAngle;
+  const isAnswered = userAnswerNormalized !== null;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    renderQuestionToCanvas(ctx, width, height, q, {
+      showCorrection: true,
+      userAnswer: userAnswerNormalized,
+    });
+  }, [q, userAnswerNormalized, width, height]);
+
+  const levelName = `Niveau ${q.level}`;
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+      <div className="relative w-full max-w-[1280px]" style={{ aspectRatio: `${width} / ${height}` }}>
+        <canvas
+          ref={canvasRef}
+          width={width}
+          height={height}
+          className="w-full h-full block"
+        />
+
+        {/* Top-left: back to results */}
+        <div className="absolute top-2 left-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm px-3 py-1.5 rounded-sm flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4" /> Resultats
+          </button>
+        </div>
+
+        {/* Top-center: question title and level */}
+        <div
+          className="absolute text-xs text-slate-500 font-medium"
+          style={{ top: 14, left: '50%', transform: 'translateX(-50%)' }}
+        >
+          Question {reviewIdx + 1} / {questions.length} — {levelName}
+        </div>
+
+        {/* Feedback pill (under the visual zone) */}
+        <div
+          className="absolute"
+          style={{
+            left: '50%',
+            top: `${(500 / height) * 100}%`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div
+            className={
+              'border rounded px-3 py-1 text-sm font-medium flex items-center gap-2 ' +
+              (isCorrect
+                ? 'border-green-500 bg-green-50 text-green-700'
+                : isAnswered
+                  ? 'border-red-500 bg-red-50 text-red-700'
+                  : 'border-slate-400 bg-slate-50 text-slate-600')
+            }
+          >
+            {isCorrect ? (
+              <>
+                <Check className="h-4 w-4" />
+                <span>Correct : {q.correctAngle}°</span>
+              </>
+            ) : isAnswered ? (
+              <>
+                <span>Votre reponse : <strong>{userAnswerNormalized}°</strong></span>
+                <span className="text-slate-400">|</span>
+                <span>Bonne reponse : <strong className="text-green-700">{q.correctAngle}°</strong></span>
+              </>
+            ) : (
+              <>
+                <span>Pas de reponse</span>
+                <span className="text-slate-400">|</span>
+                <span>Bonne reponse : <strong className="text-green-700">{q.correctAngle}°</strong></span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Legend (small caption at bottom, above bottom bar) */}
+        <div
+          className="absolute text-[11px] text-slate-600 flex items-center gap-4"
+          style={{ left: '50%', bottom: 44, transform: 'translateX(-50%)' }}
+        >
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-4 h-[2px] bg-green-600" />
+            Arc vert = angle correct
+          </span>
+          {isAnswered && !isCorrect && (
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-4 h-[2px] border-t-2 border-dashed border-red-600" />
+              Arc rouge = votre reponse
+            </span>
+          )}
+        </div>
+
+        {/* Bottom-left: question number */}
+        <div
+          className="absolute flex items-center gap-3 text-sm text-slate-700 px-3"
+          style={{ left: 0, bottom: 0, height: `${(36 / height) * 100}%` }}
+        >
+          <Eye className="h-4 w-4" />
+          <span>{reviewIdx + 1} / {questions.length}</span>
+        </div>
+
+        {/* Bottom-right: Prev / Next / Retour */}
+        <div
+          className="absolute flex items-center gap-2"
+          style={{ right: 8, bottom: 4 }}
+        >
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={reviewIdx === 0}
+            className="bg-sky-500 hover:bg-sky-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm px-3 py-1.5 rounded-sm flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4" /> Precedent
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={reviewIdx === questions.length - 1}
+            className="bg-sky-500 hover:bg-sky-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm px-3 py-1.5 rounded-sm flex items-center gap-1"
+          >
+            Suivant <Check className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
