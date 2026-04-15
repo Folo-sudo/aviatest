@@ -596,6 +596,31 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 10,
     ready: true,
   },
+  {
+    id: 'quadrilogie-angles',
+    slug: 'quadrilogie-angles',
+    title: 'Quadrilogie des Angles',
+    description: 'Determinez l\'angle multiple de 10° sur 4 niveaux de difficulte progressive',
+    longDescription:
+      'Test d\'orientation spatiale en 4 niveaux. Niveau 1: angle entre deux segments. Niveau 2: angle entre un point et une fleche. Niveau 3: angle entre deux points autour d\'une croix. Niveau 4: rotation a appliquer pour redresser un objet. L\'orientation de l\'horloge change a chaque question, definissant l\'origine 0° et le sens positif. 40 questions en 8 minutes.',
+    types: ['spatiale', 'attention'],
+    primaryType: 'spatiale',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'difficile',
+    seoTitle: 'Quadrilogie des Angles - Test Orientation Spatiale Pilote | AviaTest',
+    seoDescription:
+      'Test psychotechnique angles 4 niveaux pour selection pilote. Mesure d\'angles avec horloge variable. Entrainement PSY0, PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'quadrilogie angles',
+      'test angles 4 niveaux',
+      'orientation spatiale pilote',
+      'test psychotechnique angles',
+      'angles psy0 psy1 enac',
+    ],
+    iconName: 'Clock',
+    estimatedDuration: 8,
+    ready: true,
+  },
 ];
 
 // ============================================================================
