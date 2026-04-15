@@ -57,6 +57,36 @@ interface GameSettings {
 }
 
 // ============================================================================
+// Settings persistence (localStorage)
+// ============================================================================
+
+const DEFAULT_SETTINGS: GameSettings = {
+  totalDurationSec: 480,
+  questionsPerLevel: 10,
+};
+
+const SETTINGS_KEY = 'aviatest-quadrilogie-angles-settings';
+
+function loadSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s: GameSettings): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch { /* ignore */ }
+}
+
+// ============================================================================
 // Angle math helpers
 // ============================================================================
 
@@ -225,10 +255,21 @@ export function QuadrilogieAnglesTest() {
   const perfSavedRef = useRef(false);
 
   const [gameState, setGameState] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<GameSettings>({
-    totalDurationSec: 480,
-    questionsPerLevel: 10,
-  });
+  const [settings, setSettingsState] = useState<GameSettings>(DEFAULT_SETTINGS);
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    setSettingsState(loadSettings());
+  }, []);
+
+  // Persist settings whenever they change
+  const setSettings = useCallback((s: GameSettings | ((prev: GameSettings) => GameSettings)) => {
+    setSettingsState(prev => {
+      const next = typeof s === 'function' ? s(prev) : s;
+      saveSettings(next);
+      return next;
+    });
+  }, []);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, string>>({});
