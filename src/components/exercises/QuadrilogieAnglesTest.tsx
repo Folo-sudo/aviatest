@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { savePerformanceResult, loadEntries, scoreToStanine } from '@/lib/core/PerformanceTracker';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1134,6 +1134,26 @@ function PlayingScreen(props: {
 // Results screen — score + 9-class rainbow histogram
 // ============================================================================
 
+// ============================================================================
+// EPLtest class thresholds (expressed as percentages so they scale with any
+// number of questions). Derived from EPLtest's own histogram: the on-screen
+// labels 4, 10, 17, 21, 24, 27, 29, 31 (out of 40) map to:
+//   4/40=10%, 10/40=25%, 17/40=42.5%, 21/40=52.5%, 24/40=60%,
+//   27/40=67.5%, 29/40=72.5%, 31/40=77.5%.
+// ============================================================================
+
+function scoreToClass(percent: number): number {
+  if (percent >= 77.5) return 9;
+  if (percent >= 72.5) return 8;
+  if (percent >= 67.5) return 7;
+  if (percent >= 60) return 6;
+  if (percent >= 52.5) return 5;
+  if (percent >= 42.5) return 4;
+  if (percent >= 25) return 3;
+  if (percent >= 10) return 2;
+  return 1;
+}
+
 const STANINE_COLORS = [
   '#ef4444', // 1 - red
   '#f97316', // 2 - orange
@@ -1175,7 +1195,7 @@ function ResultsScreen(props: {
   });
 
   const percent = total > 0 ? (correct / total) * 100 : 0;
-  const stanine = scoreToStanine(percent);
+  const stanine = scoreToClass(percent);
   const userClass = classLabel(stanine);
   const perfEntries = loadEntries(EXERCISE_ID);
 

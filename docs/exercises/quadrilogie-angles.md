@@ -138,6 +138,29 @@ haut et `3` est a droite, c'est sens horaire ecran (`isReversed = false`).
 - L'utilisateur peut **revenir en arriere** et **modifier ses reponses**
   tant que le test n'est pas termine.
 
+## Attribution des classes (stanines EPLtest)
+
+Les seuils de classes sont exprimes en pourcentage afin de rester
+fideles quelle que soit la configuration du nombre de questions. Ils
+sont derives directement de l'histogramme EPLtest (seuils 4, 10, 17,
+21, 24, 27, 29, 31 sur 40) :
+
+| Classe | Score minimum (%) |
+|--------|-------------------|
+| 1      | 0 %               |
+| 2      | 10 %              |
+| 3      | 25 %              |
+| 4      | 42.5 %            |
+| 5      | 52.5 %            |
+| 6      | 60 %              |
+| 7      | 67.5 %            |
+| 8      | 72.5 %            |
+| 9      | 77.5 %            |
+
+Implementee dans la fonction locale `scoreToClass(percent)` du
+composant (pas la fonction globale `scoreToStanine` de
+`PerformanceTracker.ts` qui a des seuils differents).
+
 ## Ecran de resultats
 
 - Titre `Quadrilogie des Angles` + badge `Classe N` (stanine 1-9).
