@@ -621,6 +621,30 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 8,
     ready: true,
   },
+  {
+    id: 'angles-montres',
+    slug: 'angles-montres',
+    title: 'Angles - Montres',
+    description: 'Cochez les montres qui affichent le bon angle en tenant compte du sens de rotation',
+    longDescription:
+      'Un angle de reference est represente en haut a gauche. 8 montres affichent chacune un angle (positif ou negatif) dans une orientation variable. Cochez toutes les montres dont l\'angle correspond. 30 planches en 6 minutes.',
+    types: ['spatiale', 'attention'],
+    primaryType: 'spatiale',
+    competitions: ['psy0', 'psy1', 'enac-epl'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Angles Montres - Orientation Spatiale Pilote | AviaTest',
+    seoDescription:
+      'Entrainement au test Angles Montres pour selections pilote. Cochez les montres affichant le bon angle. PSY0, PSY1 et ENAC EPL.',
+    seoKeywords: [
+      'test angles montres',
+      'orientation spatiale pilote',
+      'test psychotechnique montres',
+      'angles montres psy0 psy1',
+    ],
+    iconName: 'Clock',
+    estimatedDuration: 6,
+    ready: true,
+  },
 ];
 
 // ============================================================================

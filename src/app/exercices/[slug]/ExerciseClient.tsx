@@ -71,6 +71,10 @@ const QuadrilogieAnglesTest = dynamic(
   () => import('@/components/exercises/QuadrilogieAnglesTest'),
   { ssr: false }
 );
+const AnglesMontresTest = dynamic(
+  () => import('@/components/exercises/AnglesMontresTest'),
+  { ssr: false }
+);
 
 // Map slug to component
 const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = {
@@ -91,6 +95,7 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'glossaire-angles': GlossaireAngleTest,
   'compteurs': CompteurTest,
   'quadrilogie-angles': QuadrilogieAnglesTest,
+  'angles-montres': AnglesMontresTest,
 };
 
 function ExerciseLoader({ slug }: { slug: string }) {
