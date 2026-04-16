@@ -484,8 +484,9 @@ function WatchCard({ watch, checked, onToggle, reviewMode, isUserCorrect }: {
   watch: WatchData; checked: boolean; onToggle?: () => void;
   reviewMode?: boolean; isUserCorrect?: boolean;
 }) {
-  const r = 42;
-  const cx = 50, cy = 50;
+  const r = 36;
+  const svgSize = 130;
+  const cx = svgSize / 2, cy = svgSize / 2;
 
   // Clock number positions
   const sign = watch.isReversed ? +1 : -1;
@@ -512,21 +513,35 @@ function WatchCard({ watch, checked, onToggle, reviewMode, isUserCorrect }: {
       </div>
 
       {/* Clock */}
-      <div className={`border-2 rounded-lg p-1 ${borderColor} ${bgColor}`}>
-        <svg width={100} height={100}>
+      <div className={`border-2 rounded-lg ${borderColor} ${bgColor}`}>
+        <svg width={svgSize} height={svgSize}>
           {/* Circle */}
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="black" strokeWidth={1.2} />
-          {/* Numbers */}
+          {/* Tick marks at 12, 3, 6, 9 positions */}
           {labels.map(({ text, offsetClock }) => {
             const mathAngle = watch.clockUpAngle + sign * offsetClock;
             const rad = (mathAngle * Math.PI) / 180;
-            const dist = r + 11;
-            const x = cx + dist * Math.cos(rad);
-            const y = cy - dist * Math.sin(rad);
-            return <text key={text} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize={11} fontWeight="bold">{text}</text>;
+            // Tick mark
+            const tickInner = r - 4;
+            const tickOuter = r;
+            const tix1 = cx + tickInner * Math.cos(rad);
+            const tiy1 = cy - tickInner * Math.sin(rad);
+            const tix2 = cx + tickOuter * Math.cos(rad);
+            const tiy2 = cy - tickOuter * Math.sin(rad);
+            // Label
+            const labelDist = r + 16;
+            const lx = cx + labelDist * Math.cos(rad);
+            const ly = cy - labelDist * Math.sin(rad);
+            return (
+              <g key={text}>
+                <line x1={tix1} y1={tiy1} x2={tix2} y2={tiy2} stroke="black" strokeWidth={1.5} />
+                <text x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
+                  fontSize={12} fontWeight="bold">{text}</text>
+              </g>
+            );
           })}
           {/* Angle value in center */}
-          <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={13} fontWeight="500">
+          <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={14} fontWeight="500">
             {watch.displayedAngle > 0 ? `${watch.displayedAngle} °` : `\u2013 ${Math.abs(watch.displayedAngle)} °`}
           </text>
         </svg>
