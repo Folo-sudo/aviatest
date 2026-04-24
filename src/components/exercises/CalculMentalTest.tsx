@@ -184,6 +184,23 @@ export default function CalculMentalTest() {
     }, 50);
   }, [clearTimer]);
 
+  const pauseTimer = useCallback(() => {
+    clearTimer();
+  }, [clearTimer]);
+
+  const resumeTimer = useCallback(() => {
+    if (timeLeft <= 0) return;
+    clearTimer();
+    const remaining = timeLeft;
+    timerStartRef.current = Date.now();
+    setTotalTime(remaining);
+    timerRef.current = setInterval(() => {
+      const elapsed = Date.now() - timerStartRef.current;
+      const left = Math.max(0, remaining - elapsed);
+      setTimeLeft(left);
+    }, 50);
+  }, [clearTimer, timeLeft]);
+
   useEffect(() => () => clearTimer(), [clearTimer]);
 
   // Generate all questions at start
@@ -240,8 +257,9 @@ export default function CalculMentalTest() {
       }
     } else {
       setShowCorrection(true);
+      pauseTimer();
     }
-  }, [clearTimer, userInput, questions, currentIdx, scorer]);
+  }, [clearTimer, userInput, questions, currentIdx, scorer, pauseTimer]);
 
   // Next question after correction
   const nextQuestion = useCallback(() => {
@@ -256,7 +274,8 @@ export default function CalculMentalTest() {
     userInputRef.current = '';
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-  }, [currentIdx, questions.length, clearTimer]);
+    resumeTimer();
+  }, [currentIdx, questions.length, clearTimer, resumeTimer]);
 
   // Global timer expiry → go to results
   useEffect(() => {
