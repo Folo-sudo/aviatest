@@ -15,19 +15,22 @@ import { useRouter } from 'next/navigation';
 // ============================================================================
 
 type Phase = 'menu' | 'playing';
+type CalcMode = 'multiplication' | 'plusminus';
 
-interface MulQuestion {
-  a: number; // 2-digit
-  b: number; // 2-digit
+interface CalcQuestion {
+  a: number;
+  b: number;
+  operator: string;  // '×', '+', or '−'
   answer: number;
+  expression: string; // e.g. "45 × 32" or "456 + 789"
 }
 
-interface MulResult {
-  question: MulQuestion;
+interface CalcResult {
+  question: CalcQuestion;
   userAnswer: number | null;
   isCorrect: boolean;
-  revealed: boolean;  // true if user clicked "voir la reponse"
-  timeMs: number;     // time taken for this question
+  revealed: boolean;
+  timeMs: number;
 }
 
 // ============================================================================
@@ -38,10 +41,24 @@ function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function generateQuestion(): MulQuestion {
+function generateMulQuestion(): CalcQuestion {
   const a = randInt(11, 99);
   const b = randInt(11, 99);
-  return { a, b, answer: a * b };
+  return { a, b, operator: '×', answer: a * b, expression: `${a} × ${b}` };
+}
+
+function generatePlusMinusQuestion(): CalcQuestion {
+  const a = randInt(100, 999);
+  const b = randInt(100, 999);
+  const isAdd = Math.random() < 0.5;
+  if (isAdd) {
+    return { a, b, operator: '+', answer: a + b, expression: `${a} + ${b}` };
+  }
+  return { a, b, operator: '−', answer: a - b, expression: `${a} − ${b}` };
+}
+
+function generateQuestion(mode: CalcMode): CalcQuestion {
+  return mode === 'multiplication' ? generateMulQuestion() : generatePlusMinusQuestion();
 }
 
 // ============================================================================
@@ -52,11 +69,12 @@ export default function FicheCalculTest() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('menu');
 
-  const [currentQ, setCurrentQ] = useState<MulQuestion | null>(null);
+  const [calcMode, setCalcMode] = useState<CalcMode>('multiplication');
+  const [currentQ, setCurrentQ] = useState<CalcQuestion | null>(null);
   const [userInput, setUserInput] = useState('');
   const [showCorrection, setShowCorrection] = useState(false);
-  const [lastResult, setLastResult] = useState<MulResult | null>(null);
-  const [results, setResults] = useState<MulResult[]>([]);
+  const [lastResult, setLastResult] = useState<CalcResult | null>(null);
+  const [results, setResults] = useState<CalcResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const sessionSavedRef = useRef(false);
   const questionStartRef = useRef<number>(0);
@@ -68,23 +86,25 @@ export default function FicheCalculTest() {
     }
   }, [phase, currentQ, showCorrection]);
 
-  const startSession = useCallback(() => {
+  const startSession = useCallback((mode?: CalcMode) => {
+    const m = mode ?? calcMode;
+    setCalcMode(m);
     sessionSavedRef.current = false;
-    setCurrentQ(generateQuestion());
+    setCurrentQ(generateQuestion(m));
     setUserInput('');
     setShowCorrection(false);
     setLastResult(null);
     setResults([]);
     questionStartRef.current = Date.now();
     setPhase('playing');
-  }, []);
+  }, [calcMode]);
 
   const submitAnswer = useCallback(() => {
     if (!currentQ) return;
     const parsed = parseInt(userInput, 10);
     if (isNaN(parsed)) return;
     const isCorrect = parsed === currentQ.answer;
-    const result: MulResult = {
+    const result: CalcResult = {
       question: currentQ,
       userAnswer: parsed,
       isCorrect,
@@ -98,7 +118,7 @@ export default function FicheCalculTest() {
 
   const revealAnswer = useCallback(() => {
     if (!currentQ) return;
-    const result: MulResult = {
+    const result: CalcResult = {
       question: currentQ,
       userAnswer: null,
       isCorrect: false,
@@ -111,12 +131,22 @@ export default function FicheCalculTest() {
   }, [currentQ]);
 
   const nextQuestion = useCallback(() => {
-    setCurrentQ(generateQuestion());
+    setCurrentQ(generateQuestion(calcMode));
     setUserInput('');
     setShowCorrection(false);
     setLastResult(null);
     questionStartRef.current = Date.now();
-  }, []);
+  }, [calcMode]);
+
+  const switchMode = useCallback((mode: CalcMode) => {
+    if (mode === calcMode) return;
+    setCalcMode(mode);
+    setCurrentQ(generateQuestion(mode));
+    setUserInput('');
+    setShowCorrection(false);
+    setLastResult(null);
+    questionStartRef.current = Date.now();
+  }, [calcMode]);
 
   // Save session stats when user exits (at least 3 non-revealed answers)
   const exitToMenu = useCallback(() => {
@@ -147,14 +177,15 @@ export default function FicheCalculTest() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Fiche Calcul</CardTitle>
             <CardDescription className="text-base mt-2">
-              Entrainement continu aux multiplications ab &times; cd
+              Entrainement continu : multiplications ou additions/soustractions
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
-              <p>Des multiplications de <strong>2 chiffres par 2 chiffres</strong> s&apos;enchainent sans fin.</p>
-              <p>Correction immediate apres chaque reponse.</p>
-              <p>Bouton <strong>&quot;Voir la reponse&quot;</strong> pour passer plus vite si besoin.</p>
+              <p>Deux modes disponibles (onglets pendant le test) :</p>
+              <p><strong>&times;</strong> Multiplications de 2 chiffres par 2 chiffres</p>
+              <p><strong>+/&minus;</strong> Additions ou soustractions de nombres a 3 chiffres</p>
+              <p>Correction immediate. Navigation libre entre les onglets.</p>
             </div>
 
             {perfEntries.length >= 2 && (
@@ -167,7 +198,7 @@ export default function FicheCalculTest() {
             )}
 
             <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startSession}>
+              <Button size="lg" className="w-full" onClick={() => startSession()}>
                 <Play className="mr-2 h-5 w-5" /> Commencer
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
@@ -210,10 +241,22 @@ export default function FicheCalculTest() {
             </Badge>
           </div>
 
+          {/* Mode tabs (also in correction view so user can switch) */}
+          <div className="flex mb-3 rounded-lg border border-slate-200 overflow-hidden">
+            <button type="button" onClick={() => switchMode('multiplication')}
+              className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'multiplication' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+              &times;
+            </button>
+            <button type="button" onClick={() => switchMode('plusminus')}
+              className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'plusminus' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+              + / &minus;
+            </button>
+          </div>
+
           <Card className="mb-4">
             <CardContent className="py-8 text-center space-y-4">
               <p className="text-3xl sm:text-4xl font-bold text-slate-800 font-mono">
-                {currentQ.a} &times; {currentQ.b}
+                {currentQ.expression}
               </p>
               <div className="space-y-2">
                 {lastResult.revealed ? (
@@ -259,10 +302,22 @@ export default function FicheCalculTest() {
           </Badge>
         </div>
 
+        {/* Mode tabs */}
+        <div className="flex mb-3 rounded-lg border border-slate-200 overflow-hidden">
+          <button type="button" onClick={() => switchMode('multiplication')}
+            className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'multiplication' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+            &times;
+          </button>
+          <button type="button" onClick={() => switchMode('plusminus')}
+            className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'plusminus' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+            + / &minus;
+          </button>
+        </div>
+
         <Card className="mb-4">
           <CardContent className="py-10 text-center">
             <p className="text-4xl sm:text-5xl font-bold text-slate-800 font-mono tracking-wide">
-              {currentQ.a} &times; {currentQ.b}
+              {currentQ.expression}
             </p>
             <p className="text-sm text-slate-400 mt-3">Entrez le resultat</p>
           </CardContent>
