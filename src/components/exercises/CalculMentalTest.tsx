@@ -482,12 +482,15 @@ export default function CalculMentalTest() {
                   <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-slate-500">Q{i + 1}</span>
-                      <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                        {r.isCorrect ? '✓' : '✗'}
-                        {' '}
-                        {r.userAnswer !== null ? r.userAnswer : 'Pas de reponse'}
-                        {!r.isCorrect && <span className="text-green-600 ml-2">({r.question.answer})</span>}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400">{(r.timeUsedMs / 1000).toFixed(1)}s</span>
+                        <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                          {r.isCorrect ? '✓' : '✗'}
+                          {' '}
+                          {r.userAnswer !== null ? r.userAnswer : 'Pas de reponse'}
+                          {!r.isCorrect && <span className="text-green-600 ml-2">({r.question.answer})</span>}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-slate-400 font-mono">{r.question.expression} = {r.question.answer}</p>
                   </div>
