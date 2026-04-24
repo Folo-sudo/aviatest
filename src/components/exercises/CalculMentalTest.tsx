@@ -193,7 +193,6 @@ export default function CalculMentalTest() {
     clearTimer();
     const remaining = timeLeft;
     timerStartRef.current = Date.now();
-    setTotalTime(remaining);
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - timerStartRef.current;
       const left = Math.max(0, remaining - elapsed);
