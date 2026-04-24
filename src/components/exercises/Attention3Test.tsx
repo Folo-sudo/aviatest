@@ -120,7 +120,8 @@ function generateQuestion(settings: GameSettings): QuestionData {
   let pos = 0;
 
   while (pos < total) {
-    const runLen = randInt(2, 8);
+    // Run of X's
+    const runLen = randInt(2, 7);
     const actualRun = Math.min(runLen, total - pos);
     for (let i = 0; i < actualRun; i++) {
       symbols.push('X');
@@ -128,24 +129,35 @@ function generateQuestion(settings: GameSettings): QuestionData {
     }
     if (pos >= total) break;
 
+    // Insert a cluster of / and + symbols (1 to 4 long)
     const r = Math.random();
-    if (r < 0.55) {
-      symbols.push('/');
+    let cluster: SymbolType[];
+    if (r < 0.25) {
+      // Single / or +
+      cluster = [Math.random() < 0.7 ? '/' : '+'];
+    } else if (r < 0.50) {
+      // Double: //, /+, +/, ++
+      const a: SymbolType = Math.random() < 0.6 ? '/' : '+';
+      const b: SymbolType = Math.random() < 0.6 ? '/' : '+';
+      cluster = [a, b];
     } else if (r < 0.75) {
-      symbols.push('+');
+      // Triple: //+, /+/, +//, etc.
+      cluster = Array.from({ length: 3 }, () => (Math.random() < 0.6 ? '/' : '+') as SymbolType);
     } else {
-      symbols.push('/');
-      pos++;
-      if (pos < total && Math.random() < 0.3) {
-        symbols.push('/');
-        pos++;
-      }
+      // Quad: //+/, /++/, etc.
+      cluster = Array.from({ length: 4 }, () => (Math.random() < 0.6 ? '/' : '+') as SymbolType);
     }
-    pos++;
+
+    for (const sym of cluster) {
+      if (pos >= total) break;
+      symbols.push(sym);
+      pos++;
+    }
   }
 
   while (symbols.length > total) symbols.pop();
 
+  // Ensure at least one / and one + exist
   if (!symbols.includes('/') && symbols.length > 5) {
     symbols[randInt(3, Math.min(10, symbols.length - 2))] = '/';
   }
