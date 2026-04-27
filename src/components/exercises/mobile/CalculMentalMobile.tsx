@@ -164,6 +164,22 @@ export default function CalculMentalMobile() {
     }, 50);
   }, [clearTimer]);
 
+  const pauseTimer = useCallback(() => {
+    clearTimer();
+  }, [clearTimer]);
+
+  const resumeTimer = useCallback(() => {
+    if (timeLeft <= 0) return;
+    clearTimer();
+    const remaining = timeLeft;
+    timerStartRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = Date.now() - timerStartRef.current;
+      const left = Math.max(0, remaining - elapsed);
+      setTimeLeft(left);
+    }, 50);
+  }, [clearTimer, timeLeft]);
+
   useEffect(() => () => clearTimer(), [clearTimer]);
 
   const startGame = useCallback(() => {
@@ -206,8 +222,9 @@ export default function CalculMentalMobile() {
       else { setCurrentIdx(currentIdx + 1); setUserInput(''); setShowCorrection(false); }
     } else {
       setShowCorrection(true);
+      pauseTimer();
     }
-  }, [clearTimer, userInput, questions, currentIdx, scorer]);
+  }, [clearTimer, userInput, questions, currentIdx, scorer, pauseTimer]);
 
   const nextQuestion = useCallback(() => {
     if (currentIdx + 1 >= questions.length) { clearTimer(); setGameState('results'); return; }
@@ -215,7 +232,8 @@ export default function CalculMentalMobile() {
     setUserInput('');
     setShowCorrection(false);
     questionStartRef.current = Date.now();
-  }, [currentIdx, questions.length, clearTimer]);
+    resumeTimer();
+  }, [currentIdx, questions.length, clearTimer, resumeTimer]);
 
   useEffect(() => {
     if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') { clearTimer(); setGameState('results'); }
