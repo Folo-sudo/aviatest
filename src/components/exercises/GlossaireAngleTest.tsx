@@ -39,7 +39,7 @@ function AngleVisualizer({
   const labelR = size * 0.46;
   const labelOff = size * 0.05;
 
-  const majorAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+  const majorAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
 
   const normAngle = ((angle % 360) + 360) % 360;
 
@@ -169,12 +169,12 @@ export default function GlossaireAngleTest() {
   }, []);
 
   const randomizeRotation = useCallback(() => {
-    const r = Math.floor(Math.random() * 72) * 5;
+    const r = Math.floor(Math.random() * 36) * 10;
     setRotation(r);
     setRotationInput(String(r));
   }, []);
 
-  const presets = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+  const presets = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -193,18 +193,18 @@ export default function GlossaireAngleTest() {
               type="number"
               min={0}
               max={360}
-              step={5}
+              step={10}
               value={inputValue}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowUp') {
                   e.preventDefault();
-                  const next = Math.min(360, angle + 5);
+                  const next = Math.min(360, angle + 10);
                   setAngle(next);
                   setInputValue(String(next));
                 } else if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  const next = Math.max(0, angle - 5);
+                  const next = Math.max(0, angle - 10);
                   setAngle(next);
                   setInputValue(String(next));
                 }
@@ -220,7 +220,7 @@ export default function GlossaireAngleTest() {
             type="range"
             min={0}
             max={360}
-            step={5}
+            step={10}
             value={((angle % 360) + 360) % 360}
             onChange={handleSliderChange}
             className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -254,8 +254,8 @@ export default function GlossaireAngleTest() {
             <input
               type="range"
               min={0}
-              max={355}
-              step={5}
+              max={350}
+              step={10}
               value={((rotation % 360) + 360) % 360}
               onChange={handleRotationSlider}
               className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-500"
@@ -263,8 +263,8 @@ export default function GlossaireAngleTest() {
             <Input
               type="number"
               min={0}
-              max={355}
-              step={5}
+              max={350}
+              step={10}
               value={rotationInput}
               onChange={(e) => handleRotationChange(e.target.value)}
               className="w-16 text-center text-sm font-mono h-8 px-1"

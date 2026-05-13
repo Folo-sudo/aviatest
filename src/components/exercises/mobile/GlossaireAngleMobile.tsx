@@ -38,7 +38,7 @@ function AngleVisualizer({
   const labelR = size * 0.46;
   const labelOff = size * 0.05;
 
-  const majorAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+  const majorAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
   const normAngle = ((angle % 360) + 360) % 360;
 
   const handADeg = rotation;
@@ -146,12 +146,12 @@ export default function GlossaireAngleMobile() {
   }, []);
 
   const randomizeRotation = useCallback(() => {
-    const r = Math.floor(Math.random() * 72) * 5;
+    const r = Math.floor(Math.random() * 36) * 10;
     setRotation(r);
     setRotationInput(String(r));
   }, []);
 
-  const presets = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+  const presets = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
 
   return (
     <div className="min-h-screen p-3" style={{ backgroundColor: '#fbfaf9' }}>
@@ -172,7 +172,7 @@ export default function GlossaireAngleMobile() {
                 inputMode="numeric"
                 min={0}
                 max={360}
-                step={5}
+                step={10}
                 value={inputValue}
                 onChange={(e) => handleInputChange(e.target.value)}
                 className="text-center text-xl font-mono h-12 flex-1"
@@ -186,7 +186,7 @@ export default function GlossaireAngleMobile() {
               type="range"
               min={0}
               max={360}
-              step={5}
+              step={10}
               value={((angle % 360) + 360) % 360}
               onChange={handleSliderChange}
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -220,8 +220,8 @@ export default function GlossaireAngleMobile() {
               <input
                 type="range"
                 min={0}
-                max={355}
-                step={5}
+                max={350}
+                step={10}
                 value={((rotation % 360) + 360) % 360}
                 onChange={handleRotationSlider}
                 className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-500"
@@ -230,8 +230,8 @@ export default function GlossaireAngleMobile() {
                 type="number"
                 inputMode="numeric"
                 min={0}
-                max={355}
-                step={5}
+                max={350}
+                step={10}
                 value={rotationInput}
                 onChange={(e) => {
                   setRotationInput(e.target.value);

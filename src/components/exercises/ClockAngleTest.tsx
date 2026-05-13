@@ -97,8 +97,8 @@ export function ClockAngleTest() {
     setShowingFeedback(false);
     feedbackTimerRef.current = 0;
 
-    // New target angle (-280 to +280, multiples of 5 only)
-    const newTargetAngle = (Math.floor(Math.random() * 113) - 56) * 5;
+    // New target angle (-280 to +280, multiples of 10 only)
+    const newTargetAngle = (Math.floor(Math.random() * 57) - 28) * 10;
     setTargetAngle(newTargetAngle);
 
     // New clock configuration
@@ -106,7 +106,7 @@ export function ClockAngleTest() {
       x: 700,
       y: 220,
       radius: 120,
-      rotation: Math.random() * 360,
+      rotation: Math.floor(Math.random() * 36) * 10,
       isReversed: Math.random() < 0.5
     };
     setClockRef(newClockRef);
@@ -116,7 +116,7 @@ export function ClockAngleTest() {
 
     // Single angle to display
     setDisplayAngle({
-      originAngle: Math.random() * 360,
+      originAngle: Math.floor(Math.random() * 36) * 10,
       angleValue: effectiveAngle
     });
 
@@ -724,7 +724,8 @@ export function ClockAngleTest() {
             <Input
               ref={inputRef}
               type="number"
-              placeholder="Entrez l'angle (ex: -45)"
+              step={10}
+              placeholder="Entrez l'angle (ex: -40)"
               value={userInput}
               onChange={(e) => !answered && setUserInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}

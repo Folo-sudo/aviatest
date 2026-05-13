@@ -167,7 +167,7 @@ function TrigCircle({
   // Rotation offset: 0 degrees on the trig circle = direction of hand O
   const offset = handO;
 
-  const majorAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+  const majorAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
 
   const ptA = degToPoint(handA, cx, cy, handLen);
   const ptO = degToPoint(handO, cx, cy, handLen);
@@ -490,8 +490,8 @@ export default function FicheAngleMobile() {
             ref={inputRef}
             type="number"
             inputMode="numeric"
-            step={5}
-            placeholder="Angle (ex: 135 ou -45)"
+            step={10}
+            placeholder="Angle (ex: 130 ou -40)"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submitAngle()}
