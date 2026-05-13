@@ -391,7 +391,7 @@ export default function FicheAngleTest() {
                 <p className="text-xs text-slate-500">Angles</p>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">5{'\u00B0'}</p>
+                <p className="text-xl font-bold text-slate-700">10{'\u00B0'}</p>
                 <p className="text-xs text-slate-500">Precision</p>
               </div>
             </div>
