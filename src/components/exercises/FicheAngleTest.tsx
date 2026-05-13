@@ -54,14 +54,14 @@ function angleDiff(a: number, b: number): number {
 function generateAngles(): AngleQuestion[] {
   const questions: AngleQuestion[] = [];
   for (let i = 0; i < TOTAL_ANGLES; i++) {
-    const handA = randInt(0, 71) * 5; // 0-355 step 5
-    const clockRotation = randInt(0, 71) * 5;
+    const handA = randInt(0, 35) * 10; // 0-350 step 10
+    const clockRotation = randInt(0, 35) * 10;
     const clockReversed = Math.random() < 0.5;
 
-    // Generate a signed angle (-280 to +280, step 5, excluding -10..10)
+    // Generate a signed angle (-280 to +280, step 10, excluding -10..10)
     let answer = 0;
     while (Math.abs(answer) < 15) {
-      answer = randInt(-56, 56) * 5; // -280 to +280
+      answer = randInt(-28, 28) * 10; // -280 to +280
     }
 
     // Calculate handO from handA and answer using the clock's positive direction
@@ -345,8 +345,8 @@ export default function FicheAngleTest() {
   const submitAngle = useCallback(() => {
     const parsed = parseInt(userInput, 10);
     if (isNaN(parsed)) return;
-    // Snap to nearest multiple of 5
-    const snapped = Math.round(parsed / 5) * 5;
+    // Snap to nearest multiple of 10
+    const snapped = Math.round(parsed / 10) * 10;
     const q = angles[currentIdx];
     const error = Math.abs(snapped - q.answer);
     setResults(prev => [...prev, { question: q, userAngle: snapped, error }]);

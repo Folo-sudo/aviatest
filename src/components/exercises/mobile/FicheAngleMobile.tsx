@@ -46,14 +46,14 @@ function degToPoint(deg: number, cx: number, cy: number, r: number): { x: number
 function generateAngles(): AngleQuestion[] {
   const questions: AngleQuestion[] = [];
   for (let i = 0; i < TOTAL_ANGLES; i++) {
-    const handA = randInt(0, 71) * 5;
-    const clockRotation = randInt(0, 71) * 5;
+    const handA = randInt(0, 35) * 10;
+    const clockRotation = randInt(0, 35) * 10;
     const clockReversed = Math.random() < 0.5;
 
-    // Signed angle (-280 to +280, step 5, excluding -10..10)
+    // Signed angle (-280 to +280, step 10, excluding -10..10)
     let answer = 0;
     while (Math.abs(answer) < 15) {
-      answer = randInt(-56, 56) * 5;
+      answer = randInt(-28, 28) * 10;
     }
 
     // handO from handA and answer using clock's positive direction
@@ -281,7 +281,7 @@ export default function FicheAngleMobile() {
   const submitAngle = useCallback(() => {
     const parsed = parseInt(userInput, 10);
     if (isNaN(parsed)) return;
-    const snapped = Math.round(parsed / 5) * 5;
+    const snapped = Math.round(parsed / 10) * 10;
     const q = angles[currentIdx];
     const error = Math.abs(snapped - q.answer);
     setResults(prev => [...prev, { question: q, userAngle: snapped, error }]);
