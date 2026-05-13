@@ -28,7 +28,7 @@ interface Question {
   // Reference angle visual (two segments from vertex, like Quadrilogie Level 1)
   refODx: number; refODy: number;  // O endpoint relative to vertex
   refADx: number; refADy: number;  // A endpoint relative to vertex
-  refAngle: number;                // geometric angle value (multiple of 5, 10-355)
+  refAngle: number;                // geometric angle value (multiple of 10, 10-350)
   watches: WatchData[];            // 8 watches
 }
 
@@ -68,10 +68,9 @@ function randomClockConfig(): { clockUpAngle: 0 | 90 | 180 | 270; isReversed: bo
   return { clockUpAngle: positions[Math.floor(Math.random() * 4)], isReversed: Math.random() < 0.5 };
 }
 
-/** Pick a random angle that is a multiple of 5 in [10, 355]. */
-function pickAngle5(): number {
-  // Multiples of 5 from 10 to 355: (355-10)/5 + 1 = 70 values
-  return 10 + Math.floor(Math.random() * 70) * 5;
+/** Pick a random angle that is a multiple of 10 in [10, 350]. */
+function pickAngle10(): number {
+  return 10 + Math.floor(Math.random() * 35) * 10;
 }
 
 /** Compute angle from O-direction to A-direction in a given clock system.
@@ -97,10 +96,10 @@ function angleInClock(
 // ============================================================================
 
 function generateQuestion(): Question {
-  const refAngle = pickAngle5();
+  const refAngle = pickAngle10();
 
   // Generate reference visual: two segments from (0,0)
-  const oClockAngle = Math.floor(Math.random() * 72) * 5;  // 0-355 step 5
+  const oClockAngle = Math.floor(Math.random() * 36) * 10;  // 0-350 step 10
   const aClockAngle = (oClockAngle + refAngle) % 360;
   // Use a "neutral" clock (12 at top, standard) for the visual layout
   const oMath = (90 - oClockAngle) % 360;
@@ -137,7 +136,7 @@ function generateQuestion(): Question {
     let displayedAngle: number;
     if (isCorrect) {
       // Show either theta or theta-360 (negative form)
-      const roundedTheta = Math.round(theta / 5) * 5;
+      const roundedTheta = Math.round(theta / 10) * 10;
       const t = roundedTheta === 0 || roundedTheta === 360 ? refAngle : roundedTheta;
       displayedAngle = Math.random() < 0.5 ? t : t - 360;
       if (displayedAngle === 0) displayedAngle = 360;
@@ -155,24 +154,24 @@ function generateQuestion(): Question {
 function generateWrongAngle(theta: number): number {
   const strategies = [
     () => { // Swap O and A direction (360 - theta)
-      const v = Math.round((360 - theta) / 5) * 5;
+      const v = Math.round((360 - theta) / 10) * 10;
       return v === 0 ? 360 : v;
     },
-    () => { // Random offset ±15 to ±45
-      const offset = (Math.floor(Math.random() * 7) + 3) * 5 * (Math.random() < 0.5 ? 1 : -1);
-      let v = Math.round(theta / 5) * 5 + offset;
+    () => { // Random offset ±20 to ±50
+      const offset = (Math.floor(Math.random() * 4) + 2) * 10 * (Math.random() < 0.5 ? 1 : -1);
+      let v = Math.round(theta / 10) * 10 + offset;
       if (v <= 0) v += 360;
       if (v > 360) v -= 360;
       return v;
     },
-    () => pickAngle5(), // Completely random
+    () => pickAngle10(), // Completely random
     () => { // Negative form of a wrong value
-      const v = pickAngle5();
+      const v = pickAngle10();
       return v - 360;
     },
   ];
 
-  const rounded = Math.round(theta / 5) * 5;
+  const rounded = Math.round(theta / 10) * 10;
   const negForm = rounded === 0 ? -360 : rounded - 360;
 
   let result: number;
@@ -182,7 +181,7 @@ function generateWrongAngle(theta: number): number {
     result = fn();
     attempts++;
   } while (attempts < 20 && (result === rounded || result === negForm ||
-    result === 0 || result === 5 || result === -5));
+    result === 0 || result === 10 || result === -10));
 
   // 50% chance to show as negative
   if (result > 0 && Math.random() < 0.4) result = result - 360;
