@@ -4,31 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**AviaTest** (package: `next_psycho`) — a Next.js 16 / React 19 site offering free psychotechnical practice tests for French pilot selection exams (PSY0, PSY1 Cadets Air France, ENAC EPL). Deployed at `aviatest.fr`. UI and content are in French.
+**AviaTest** (package: `next_psycho`) — a Next.js 16 / React 19 site offering free psychotechnical practice tests for French pilot selection exams (PSY0, PSY1 Cadets Air France, ENAC EPL). This is a **personal fork** owned by `Folo-sudo`, intended for Netlify deploy and future SaaS work. The original upstream is `Duflosth/mach320` (aviatest.fr on Vercel). UI and content are in French.
 
 ## Commands
 
-**Do not run `npm` commands (install, build, dev, start, lint) locally.** The user relies exclusively on Vercel for builds and previews. Validate changes by pushing to `master` and letting Vercel build; do not invoke npm scripts in this environment.
-
-The repo is connected to Vercel with **auto-deploy on every push to `master`** (production). There is no staging branch.
-
-Reference (for reading only, do NOT execute):
 ```
-next dev     # local dev (run by Vercel only)
-next build   # build (run by Vercel only)
-next start   # serve production build
-eslint       # lint
+npm run dev    # local development
+npm run build  # production build
+npm start      # serve production build
+npm run lint   # lint
 ```
 
 No test runner is configured.
 
-## Workflow rules (standing instructions — do not ask again)
+## Workflow rules
 
-- **Never run `npm install`, `npm run ...`, `next ...`, or any build/dev command locally.** Builds happen on Vercel.
-- **Auto-push to `master` after any change.** Whenever code, config, or docs change, commit and `git push origin master` immediately — no confirmation needed. Vercel will pick up the push and deploy.
-- **Full autonomy granted.** The user has authorized acting on their behalf: edit any file, create/delete files, refactor, install deps (by editing `package.json` only — Vercel handles the install), push to `master`. No need to ask permission for routine changes.
-- Commit messages: short, conventional style, in the repo's existing tone. No Claude co-author trailer unless the user asks for it.
-- If a change is risky or destructive (history rewrite, force-push, secret rotation, deleting whole directories), pause and ask first — the blanket authorization above does not cover destructive ops.
+- Prefer committing to `main`. Deploy happens via Netlify when the GitHub repo is connected.
+- Do **not** push to `upstream` (`Duflosth/mach320`) unless explicitly asked.
+- Commit messages: short, conventional style, in the repo's existing tone.
+- If a change is risky or destructive (history rewrite, force-push, secret rotation, deleting whole directories), pause and ask first.
 
 ## Architecture
 
