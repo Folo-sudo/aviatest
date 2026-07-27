@@ -5,8 +5,10 @@ import {
   getAllCompetitions,
   getCompetitionBySlug,
   getExercisesByCompetition,
-  EXERCISE_TYPES,
+  COMPETITION_TYPE_ORDER,
   getDifficultyLabel,
+  groupExercisesByTypes,
+  getExerciseUrl,
 } from '@/lib/data/exercises';
 import {
   generateCompetitionStructuredData,
@@ -67,6 +69,8 @@ export default async function CompetitionPage({ params }: Props) {
   }
 
   const exercises = getExercisesByCompetition(competition.id);
+  const typeOrder = COMPETITION_TYPE_ORDER[competition.id];
+  const exercisesByType = groupExercisesByTypes(exercises, typeOrder);
 
   const structuredData = [
     generateCompetitionStructuredData(competition, exercises),
@@ -76,19 +80,6 @@ export default async function CompetitionPage({ params }: Props) {
       { name: competition.name, url: `${BASE_URL}/concours/${competition.slug}` },
     ]),
   ];
-
-  // Group exercises by primary type
-  const exercisesByType = exercises.reduce(
-    (acc, exercise) => {
-      const type = exercise.primaryType;
-      if (!acc[type]) {
-        acc[type] = [];
-      }
-      acc[type].push(exercise);
-      return acc;
-    },
-    {} as Record<string, typeof exercises>
-  );
 
   return (
     <>
@@ -141,7 +132,7 @@ export default async function CompetitionPage({ params }: Props) {
               </div>
               <div className="text-center">
                 <span className="block text-3xl font-bold text-[#37322f]">
-                  {Object.keys(exercisesByType).length}
+                  {exercisesByType.length}
                 </span>
                 <span className="text-sm text-[#605a57]">Categories</span>
               </div>
@@ -160,71 +151,103 @@ export default async function CompetitionPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Exercises by type */}
-          {Object.entries(exercisesByType).map(([type, typeExercises]) => {
-            const typeConfig = EXERCISE_TYPES[type as keyof typeof EXERCISE_TYPES];
-
-            return (
-              <section key={type} className="mb-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: typeConfig.color }}
-                  />
-                  <h2 className="text-xl font-bold text-[#37322f]">
-                    {typeConfig.label}
+          {/* Aptitude cards (Pilotest-style) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-14">
+            {exercisesByType.map(({ type, config, exercises: typeExercises }) => (
+              <div
+                key={type}
+                className="rounded-xl overflow-hidden bg-white border border-[#e0dedb]"
+              >
+                <div
+                  className="flex items-center justify-between px-5 py-4 border-b border-[#e0dedb]"
+                  style={{ backgroundColor: config.bgColor }}
+                >
+                  <h2 className="text-lg font-semibold" style={{ color: config.color }}>
+                    {config.label}
                   </h2>
-                  <span className="text-sm text-[#605a57]">
-                    ({typeExercises.length} exercice
-                    {typeExercises.length > 1 ? 's' : ''})
+                  <span
+                    className="text-xs font-medium px-2 py-1 rounded-full bg-white"
+                    style={{ color: config.color }}
+                  >
+                    {typeExercises.length}
                   </span>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {typeExercises.map((exercise) => {
-                    // Build exercise URL
-                    let exerciseUrl = `/exercices/${exercise.slug}`;
-                    if (exercise.id === 'm2-back') {
-                      exerciseUrl = '/exercices/m-back?n=2';
-                    } else if (exercise.id === 'm3-back') {
-                      exerciseUrl = '/exercices/m-back?n=3';
-                    }
-
-                    return (
-                      <Link key={exercise.id} href={exerciseUrl} target="_blank">
-                        <article
-                          className="h-full bg-white rounded-xl border border-[#e0dedb] hover:shadow-lg transition-all hover:scale-[1.02] p-6"
-                          style={{ borderLeft: `4px solid ${typeConfig.color}` }}
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <span
-                              className="text-xs font-medium px-2 py-1 rounded"
-                              style={{
-                                backgroundColor: typeConfig.bgColor,
-                                color: typeConfig.color,
-                              }}
-                            >
-                              {getDifficultyLabel(exercise.difficulty)}
-                            </span>
-                            <span className="flex items-center gap-1 text-xs text-[#605a57]">
-                              <Clock className="h-3 w-3" />
-                              {exercise.estimatedDuration} min
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-semibold text-[#37322f] mb-2">
-                            {exercise.title}
-                          </h3>
-                          <p className="text-sm text-[#605a57]">
-                            {exercise.description}
-                          </p>
-                        </article>
+                <ul className="p-4 space-y-1">
+                  {typeExercises.map((exercise) => (
+                    <li key={`${type}-${exercise.id}`}>
+                      <Link
+                        href={getExerciseUrl(exercise)}
+                        target="_blank"
+                        className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm text-[#37322f] hover:opacity-90"
+                        style={{ backgroundColor: 'transparent' }}
+                      >
+                        <span className="font-medium">{exercise.title}</span>
+                        <span className="text-xs text-[#605a57] shrink-0">
+                          {getDifficultyLabel(exercise.difficulty)}
+                        </span>
                       </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Detailed exercise cards */}
+          {exercisesByType.map(({ type, config, exercises: typeExercises }) => (
+            <section key={`detail-${type}`} className="mb-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: config.color }}
+                />
+                <h2 className="text-xl font-bold text-[#37322f]">
+                  {config.label}
+                </h2>
+                <span className="text-sm text-[#605a57]">
+                  ({typeExercises.length} exercice
+                  {typeExercises.length > 1 ? 's' : ''})
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {typeExercises.map((exercise) => {
+                  const exerciseUrl = getExerciseUrl(exercise);
+
+                  return (
+                    <Link key={exercise.id} href={exerciseUrl} target="_blank">
+                      <article
+                        className="h-full bg-white rounded-xl border border-[#e0dedb] hover:shadow-lg transition-all hover:scale-[1.02] p-6"
+                        style={{ borderLeft: `4px solid ${config.color}` }}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span
+                            className="text-xs font-medium px-2 py-1 rounded"
+                            style={{
+                              backgroundColor: config.bgColor,
+                              color: config.color,
+                            }}
+                          >
+                            {getDifficultyLabel(exercise.difficulty)}
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-[#605a57]">
+                            <Clock className="h-3 w-3" />
+                            {exercise.estimatedDuration} min
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-[#37322f] mb-2">
+                          {exercise.title}
+                        </h3>
+                        <p className="text-sm text-[#605a57]">
+                          {exercise.description}
+                        </p>
+                      </article>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </main>
     </>

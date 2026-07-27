@@ -19,6 +19,18 @@ export interface ExerciseTypeConfig {
   description: string;
 }
 
+// Ordre d'affichage type Pilotest (page Psy0 / vue globale)
+export const EXERCISE_TYPE_ORDER: ExerciseType[] = [
+  'attention',
+  'spatiale',
+  'numerique',
+  'verbal',
+  'psychomoteur',
+  'intellectuel',
+  'anglais',
+  'memorisation',
+];
+
 export const EXERCISE_TYPES: Record<ExerciseType, ExerciseTypeConfig> = {
   attention: {
     id: 'attention',
@@ -26,13 +38,6 @@ export const EXERCISE_TYPES: Record<ExerciseType, ExerciseTypeConfig> = {
     color: '#0EA5E9',
     bgColor: '#E0F2FE',
     description: 'Capacite a maintenir la concentration et a traiter plusieurs informations',
-  },
-  psychomoteur: {
-    id: 'psychomoteur',
-    label: 'Psychomoteur',
-    color: '#10B981',
-    bgColor: '#D1FAE5',
-    description: 'Coordination oeil-main et rapidite de reaction',
   },
   spatiale: {
     id: 'spatiale',
@@ -50,17 +55,24 @@ export const EXERCISE_TYPES: Record<ExerciseType, ExerciseTypeConfig> = {
   },
   verbal: {
     id: 'verbal',
-    label: 'Verbal',
+    label: 'Verbale',
     color: '#EC4899',
     bgColor: '#FCE7F3',
     description: 'Comprehension et manipulation du langage',
   },
-  memorisation: {
-    id: 'memorisation',
-    label: 'Memorisation',
-    color: '#F43F5E',
-    bgColor: '#FFE4E6',
-    description: 'Capacite de memorisation et de rappel',
+  psychomoteur: {
+    id: 'psychomoteur',
+    label: 'Psychomoteur',
+    color: '#10B981',
+    bgColor: '#D1FAE5',
+    description: 'Coordination oeil-main et rapidite de reaction',
+  },
+  intellectuel: {
+    id: 'intellectuel',
+    label: 'Intellectuelle',
+    color: '#6366F1',
+    bgColor: '#E0E7FF',
+    description: 'Raisonnement logique et abstrait',
   },
   anglais: {
     id: 'anglais',
@@ -69,12 +81,12 @@ export const EXERCISE_TYPES: Record<ExerciseType, ExerciseTypeConfig> = {
     bgColor: '#CFFAFE',
     description: 'Comprehension et expression en anglais',
   },
-  intellectuel: {
-    id: 'intellectuel',
-    label: 'Intellectuel',
-    color: '#6366F1',
-    bgColor: '#E0E7FF',
-    description: 'Raisonnement logique et abstrait',
+  memorisation: {
+    id: 'memorisation',
+    label: 'Memorisation',
+    color: '#F43F5E',
+    bgColor: '#FFE4E6',
+    description: 'Capacite de memorisation et de rappel',
   },
 };
 
@@ -155,6 +167,38 @@ export const COMPETITIONS: Record<CompetitionId, Competition> = {
   },
 };
 
+// Ordre des categories par concours (calque Pilotest)
+export const COMPETITION_TYPE_ORDER: Record<CompetitionId, ExerciseType[]> = {
+  psy0: [
+    'attention',
+    'spatiale',
+    'numerique',
+    'verbal',
+    'psychomoteur',
+    'intellectuel',
+    'anglais',
+    'memorisation',
+  ],
+  psy1: [
+    'numerique',
+    'spatiale',
+    'intellectuel',
+    'attention',
+    'memorisation',
+    'psychomoteur',
+    'verbal',
+  ],
+  'enac-epl': [
+    'numerique',
+    'attention',
+    'spatiale',
+    'psychomoteur',
+    'intellectuel',
+    'verbal',
+    'memorisation',
+  ],
+};
+
 // ============================================================================
 // Configuration des exercices
 // ============================================================================
@@ -186,7 +230,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Identifiez les angles par rapport a un referentiel horloge randomise',
     longDescription:
       "Ce test evalue votre capacite d'orientation spatiale en utilisant un referentiel horloge. Vous devez identifier l'angle correct parmi plusieurs propositions, en tenant compte de la rotation et de l'inversion potentielle du cadran.",
-    types: ['spatiale', 'attention'],
+    types: ['spatiale', 'numerique', 'attention'],
     primaryType: 'spatiale',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'moyen',
@@ -210,7 +254,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Cliquez alternativement sur les nombres pairs et impairs en ordre croissant',
     longDescription:
       "Ce test mesure votre capacite d'attention divisee et de flexibilite cognitive. Vous devez alterner entre deux regles (pair/impair) tout en maintenant un ordre croissant.",
-    types: ['attention', 'psychomoteur'],
+    types: ['attention', 'spatiale', 'numerique'],
     primaryType: 'attention',
     competitions: ['psy0', 'psy1'],
     difficulty: 'moyen',
@@ -234,7 +278,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description: "Alternez entre deux thematiques en respectant l'ordre alphabetique",
     longDescription:
       "Ce test evalue votre attention divisee et vos capacites verbales. Vous devez selectionner alternativement des mots de deux thematiques differentes tout en respectant l'ordre alphabetique.",
-    types: ['attention', 'verbal'],
+    types: ['attention', 'spatiale', 'verbal'],
     primaryType: 'attention',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'difficile',
@@ -258,8 +302,8 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Classifiez rapidement les formes selon des regles predefinies',
     longDescription:
       'Ce test mesure votre vitesse de traitement et votre capacite a appliquer des regles de classification. Vous devez rapidement categoriser des formes geometriques selon leur couleur et leur type.',
-    types: ['psychomoteur', 'attention'],
-    primaryType: 'psychomoteur',
+    types: ['attention', 'psychomoteur'],
+    primaryType: 'attention',
     competitions: ['psy0', 'psy1'],
     difficulty: 'moyen',
     seoTitle: 'Test Formes et Couleurs - Rapidite Cognitive Pilote | AviaTest',
@@ -282,9 +326,9 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Calculez le nombre de mouvements pour resoudre le puzzle',
     longDescription:
       'Ce test evalue votre raisonnement logique et votre capacite de planification. Vous devez determiner le nombre minimum de mouvements necessaires pour resoudre un puzzle de billes.',
-    types: ['intellectuel', 'numerique'],
+    types: ['spatiale', 'intellectuel'],
     primaryType: 'intellectuel',
-    competitions: ['psy1', 'enac-epl'],
+    competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'difficile',
     seoTitle: 'Test Jeu des Billes - Logique Pilote | AviaTest',
     seoDescription:
@@ -378,8 +422,8 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Double tache : calcul mental et memorisation de lettres en salves successives',
     longDescription:
       'Ce test evalue votre capacite de double tache. Chaque salve alterne calculs mentaux (a*b+c*d ou a*b-c*d) et lettres a memoriser. A la fin de chaque salve, vous devez restituer les lettres dans le bon ordre. 10 salves, 4 a 9 lettres par salve, 10 secondes par element.',
-    types: ['memorisation', 'numerique', 'attention'],
-    primaryType: 'memorisation',
+    types: ['numerique', 'memorisation', 'attention'],
+    primaryType: 'numerique',
     competitions: ['psy1', 'enac-epl'],
     difficulty: 'difficile',
     seoTitle: 'Test Calcul & Memorisation - Double Tache Pilote | AviaTest',
@@ -430,7 +474,7 @@ export const EXERCISES: ExerciseConfig[] = [
       'Ce test evalue votre attention soutenue et votre capacite de suivi. Une sequence de X, / et + est affichee. Les X comptent +1 par defaut. Apres un /, les X comptent -1. Apres un +, les X comptent de nouveau +1. Vous devez calculer le total. 12 sequences, temps limite par sequence.',
     types: ['attention', 'numerique'],
     primaryType: 'attention',
-    competitions: ['psy0', 'psy1', 'enac-epl'],
+    competitions: ['psy1', 'enac-epl'],
     difficulty: 'moyen',
     seoTitle: 'Test Attention 3 - Comptage de Croix Pilote | AviaTest',
     seoDescription:
@@ -603,7 +647,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Determinez l\'angle multiple de 10° sur 4 niveaux de difficulte progressive',
     longDescription:
       'Test d\'orientation spatiale en 4 niveaux. Niveau 1: angle entre deux segments. Niveau 2: angle entre un point et une fleche. Niveau 3: angle entre deux points autour d\'une croix. Niveau 4: rotation a appliquer pour redresser un objet. L\'orientation de l\'horloge change a chaque question, definissant l\'origine 0° et le sens positif. 40 questions en 8 minutes.',
-    types: ['spatiale', 'attention'],
+    types: ['spatiale', 'numerique', 'attention'],
     primaryType: 'spatiale',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'difficile',
@@ -628,7 +672,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description: 'Cochez les montres qui affichent le bon angle en tenant compte du sens de rotation',
     longDescription:
       'Un angle de reference est represente en haut a gauche. 8 montres affichent chacune un angle (positif ou negatif) dans une orientation variable. Cochez toutes les montres dont l\'angle correspond. 30 planches en 6 minutes.',
-    types: ['spatiale', 'attention'],
+    types: ['spatiale', 'numerique', 'attention'],
     primaryType: 'spatiale',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'difficile',
@@ -676,6 +720,26 @@ export function getAllCompetitions(): Competition[] {
 
 export function getAllReadyExercises(): ExerciseConfig[] {
   return EXERCISES.filter((e) => e.ready);
+}
+
+export function getExerciseUrl(exercise: ExerciseConfig): string {
+  if (exercise.id === 'm2-back') return '/exercices/m-back?n=2';
+  if (exercise.id === 'm3-back') return '/exercices/m-back?n=3';
+  return `/exercices/${exercise.slug}`;
+}
+
+/** Groupe les exercices par aptitude (un exo peut apparaitre dans plusieurs categories, comme sur Pilotest). */
+export function groupExercisesByTypes(
+  exercises: ExerciseConfig[],
+  typeOrder: ExerciseType[] = EXERCISE_TYPE_ORDER
+): { type: ExerciseType; config: ExerciseTypeConfig; exercises: ExerciseConfig[] }[] {
+  return typeOrder
+    .map((type) => ({
+      type,
+      config: EXERCISE_TYPES[type],
+      exercises: exercises.filter((e) => e.types.includes(type)),
+    }))
+    .filter((group) => group.exercises.length > 0);
 }
 
 export function getDifficultyLabel(difficulty: DifficultyLevel): string {

@@ -25,8 +25,11 @@ import {
 import {
   EXERCISES,
   EXERCISE_TYPES,
+  EXERCISE_TYPE_ORDER,
   getAllCompetitions,
   getDifficultyLabel,
+  groupExercisesByTypes,
+  getExerciseUrl,
   type ExerciseConfig,
 } from '@/lib/data/exercises';
 import {
@@ -77,14 +80,7 @@ function scrollToExercises() {
 
 function ExerciseCard({ exercise }: { exercise: ExerciseConfig }) {
   const primaryTypeConfig = EXERCISE_TYPES[exercise.primaryType];
-
-  // Build exercise URL - handle m-back special case
-  let exerciseUrl = `/exercices/${exercise.slug}`;
-  if (exercise.id === 'm2-back') {
-    exerciseUrl = '/exercices/m-back?n=2';
-  } else if (exercise.id === 'm3-back') {
-    exerciseUrl = '/exercices/m-back?n=3';
-  }
+  const exerciseUrl = getExerciseUrl(exercise);
 
   return (
     <Link href={exerciseUrl} target="_blank">
@@ -430,6 +426,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const competitions = getAllCompetitions();
   const readyExercises = EXERCISES.filter((e) => e.ready);
+  const exercisesByType = groupExercisesByTypes(readyExercises, EXERCISE_TYPE_ORDER);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only state after hydration
@@ -605,7 +602,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Exercises Grid */}
+      {/* Exercises by aptitude (Pilotest-style) */}
       <section id="exercices" className="container mx-auto px-4 py-16">
         <div className="mb-10">
           <h2
@@ -615,8 +612,82 @@ export default function Home() {
             Tous les exercices
           </h2>
           <p style={{ color: homeStyles.colors.textMuted }}>
-            {readyExercises.length} tests couvrant les competences evaluees lors
-            des selections
+            Classes par aptitude, comme sur les batteries de selection :{' '}
+            {readyExercises.length} tests disponibles
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-16">
+          {exercisesByType.map(({ type, config, exercises }) => (
+            <div
+              key={type}
+              className="rounded-xl overflow-hidden"
+              style={{
+                backgroundColor: homeStyles.colors.cardBg,
+                border: `1px solid ${homeStyles.colors.border}`,
+                boxShadow: homeStyles.shadows.card,
+              }}
+            >
+              <div
+                className="flex items-center justify-between px-5 py-4"
+                style={{
+                  borderBottom: `1px solid ${homeStyles.colors.border}`,
+                  backgroundColor: config.bgColor,
+                }}
+              >
+                <h3
+                  className="text-lg font-semibold"
+                  style={{ color: config.color }}
+                >
+                  {config.label}
+                </h3>
+                <span
+                  className="text-xs font-medium px-2 py-1 rounded-full"
+                  style={{
+                    backgroundColor: homeStyles.colors.cardBg,
+                    color: config.color,
+                  }}
+                >
+                  {exercises.length}
+                </span>
+              </div>
+              <ul className="p-4 space-y-1">
+                {exercises.map((exercise) => (
+                  <li key={`${type}-${exercise.id}`}>
+                    <Link
+                      href={getExerciseUrl(exercise)}
+                      target="_blank"
+                      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:opacity-90"
+                      style={{ color: homeStyles.colors.text }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = config.bgColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <span className="font-medium">{exercise.title}</span>
+                      <ChevronRight
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: homeStyles.colors.textMuted }}
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-6">
+          <h3
+            className="text-xl font-bold mb-2"
+            style={{ color: homeStyles.colors.text }}
+          >
+            Detail des exercices
+          </h3>
+          <p style={{ color: homeStyles.colors.textMuted }}>
+            Fiches completes avec difficulte et duree estimee
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -688,9 +759,9 @@ export default function Home() {
                 Types de tests
               </h4>
               <ul className="space-y-2">
-                {Object.values(EXERCISE_TYPES)
-                  .slice(0, 5)
-                  .map((type) => (
+                {EXERCISE_TYPE_ORDER.map((typeId) => {
+                  const type = EXERCISE_TYPES[typeId];
+                  return (
                     <li
                       key={type.id}
                       className="text-sm"
@@ -698,7 +769,8 @@ export default function Home() {
                     >
                       {type.label}
                     </li>
-                  ))}
+                  );
+                })}
               </ul>
             </div>
           </div>
