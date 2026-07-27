@@ -32,7 +32,7 @@ interface GameSettings {
   durationMin: number;
   moveSpeed: number; // % of arena per second
   shapeIntervalSec: number;
-  calcScrollSpeed: number; // px per second
+  calcStepIntervalSec: number; // seconds between each calc slide
   shapeMatchProb: number; // 0-100
 }
 
@@ -71,13 +71,14 @@ const DEFAULT_SETTINGS: GameSettings = {
   durationMin: 5,
   moveSpeed: 12, // ~Pilotest pace (% / s)
   shapeIntervalSec: 4,
-  calcScrollSpeed: 28,
+  calcStepIntervalSec: 2.5, // one equation step, like Pilotest
   shapeMatchProb: 35,
 };
 
 const DIR_HOLD_MS_MIN = 2800;
 const DIR_HOLD_MS_MAX = 6500;
 const CALC_SLOT_WIDTH = 160;
+const CALC_SLIDE_MS = 1000; // Pilotest numerical_slider transition ~1s
 const BG = '#d4d4d4';
 const BLUE = '#0068C6';
 const ORANGE = '#f59e0b';
@@ -114,7 +115,17 @@ function loadSettings(): GameSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Partial<GameSettings> & {
+      calcScrollSpeed?: number;
+    };
+    // Drop legacy continuous-scroll setting if present
+    const rest = { ...parsed };
+    delete rest.calcScrollSpeed;
+    const migrated: GameSettings = { ...DEFAULT_SETTINGS, ...rest };
+    if (parsed.calcStepIntervalSec == null) {
+      migrated.calcStepIntervalSec = DEFAULT_SETTINGS.calcStepIntervalSec;
+    }
+    return migrated;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -377,7 +388,6 @@ export default function PsychomoteurPsy0Test() {
   const [equations, setEquations] = useState<Equation[]>(() =>
     Array.from({ length: 24 }, () => makeEquation())
   );
-  const [scrollX, setScrollX] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
   const [spaceFlash, setSpaceFlash] = useState<'ok' | 'bad' | null>(null);
   const [fFlash, setFFlash] = useState<'ok' | 'bad' | null>(null);
@@ -406,8 +416,8 @@ export default function PsychomoteurPsy0Test() {
   const moveDirRef = useRef<Direction>('right');
   const posRef = useRef({ x: 50, y: 50 });
   const equationsRef = useRef(equations);
-  const scrollXRef = useRef(0);
   const activeIdxRef = useRef(0);
+  const nextCalcAtRef = useRef(0);
   const circleSymRef = useRef<SymbolId>('crown');
   const boxSymRef = useRef<SymbolId>('infinity');
   const playingRef = useRef(false);
@@ -535,23 +545,22 @@ export default function PsychomoteurPsy0Test() {
         nextShapeAtRef.current = ts + cfg.shapeIntervalSec * 1000;
       }
 
-      scrollXRef.current += (cfg.calcScrollSpeed * dt) / 1000;
-      const idx = Math.floor(scrollXRef.current / CALC_SLOT_WIDTH);
-      if (idx !== activeIdxRef.current) {
+      if (ts >= nextCalcAtRef.current) {
         const prev = equationsRef.current[activeIdxRef.current];
         if (prev && !prev.isCorrect && !calcAnsweredRef.current) {
           statsRef.current.calcMisses += 1;
         }
         calcAnsweredRef.current = false;
+        const idx = activeIdxRef.current + 1;
         activeIdxRef.current = idx;
         setActiveIdx(idx);
+        nextCalcAtRef.current = ts + cfg.calcStepIntervalSec * 1000;
         if (idx + 10 >= equationsRef.current.length) {
           const extra = Array.from({ length: 20 }, () => makeEquation());
           equationsRef.current = [...equationsRef.current, ...extra];
           setEquations(equationsRef.current);
         }
       }
-      setScrollX(scrollXRef.current);
 
       rafRef.current = requestAnimationFrame(tick);
     },
@@ -576,14 +585,12 @@ export default function PsychomoteurPsy0Test() {
     posRef.current = { x: 50, y: 50 };
     moveDirRef.current = pick(DIRECTIONS);
     heldDirRef.current = null;
-    scrollXRef.current = 0;
     activeIdxRef.current = 0;
     equationsRef.current = Array.from({ length: 30 }, () => makeEquation());
     setEquations(equationsRef.current);
     setPos({ x: 50, y: 50 });
     setMoveDir(moveDirRef.current);
     setHeldDir(null);
-    setScrollX(0);
     setActiveIdx(0);
     setElapsedMs(0);
     setSpaceFlash(null);
@@ -597,6 +604,7 @@ export default function PsychomoteurPsy0Test() {
     lastTsRef.current = 0;
     dirUntilRef.current = now + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
     nextShapeAtRef.current = now + settingsRef.current.shapeIntervalSec * 1000;
+    nextCalcAtRef.current = now + settingsRef.current.calcStepIntervalSec * 1000;
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
   }, [spawnShapes, tick]);
@@ -823,16 +831,16 @@ export default function PsychomoteurPsy0Test() {
               </div>
               <div>
                 <Label>
-                  Vitesse des calculs : {settings.calcScrollSpeed} px/s
+                  Intervalle des calculs : {settings.calcStepIntervalSec}s
                 </Label>
                 <Slider
-                  value={[settings.calcScrollSpeed]}
+                  value={[settings.calcStepIntervalSec]}
                   onValueChange={([v]) =>
-                    setSettings((s) => ({ ...s, calcScrollSpeed: v }))
+                    setSettings((s) => ({ ...s, calcStepIntervalSec: v }))
                   }
-                  min={12}
-                  max={60}
-                  step={2}
+                  min={1.5}
+                  max={5}
+                  step={0.25}
                   className="mt-2"
                 />
               </div>
@@ -954,10 +962,6 @@ export default function PsychomoteurPsy0Test() {
   }
 
   // ---- PLAYING ----
-  const offset = -(scrollX % CALC_SLOT_WIDTH);
-  const firstVisible = Math.max(0, Math.floor(scrollX / CALC_SLOT_WIDTH) - 1);
-  const visibleEqs = equations.slice(firstVisible, firstVisible + 8);
-
   return (
     <main
       className="fixed inset-0 flex select-none flex-col"
@@ -1001,13 +1005,29 @@ export default function PsychomoteurPsy0Test() {
           <SymbolGlyph id={boxSymbol} size={36} />
         </div>
         <div className="relative h-full flex-1 overflow-hidden">
+          {/* Fixed highlight frame (Pilotest-style): active equation sits here */}
+          <div
+            className="pointer-events-none absolute inset-y-0 z-10"
+            style={{
+              left: 0,
+              width: CALC_SLOT_WIDTH,
+              border: `1.5px solid ${ORANGE}`,
+              borderRadius: 12,
+              backgroundColor: 'rgba(245,158,11,0.12)',
+              height: '10vmin',
+              top: '50%',
+              transform: 'translateY(-50%)',
+            }}
+          />
           <div
             className="absolute inset-y-0 flex items-center"
-            style={{ left: offset - CALC_SLOT_WIDTH }}
+            style={{
+              transform: `translateX(${-activeIdx * CALC_SLOT_WIDTH}px)`,
+              transition: `transform ${CALC_SLIDE_MS}ms ease`,
+              left: 0,
+            }}
           >
-            {visibleEqs.map((eq, i) => {
-              const globalIdx = firstVisible + i;
-              const isActive = globalIdx === activeIdx;
+            {equations.map((eq) => {
               return (
                 <div
                   key={eq.id}
@@ -1016,13 +1036,6 @@ export default function PsychomoteurPsy0Test() {
                     width: CALC_SLOT_WIDTH,
                     height: '10vmin',
                     fontSize: '2.2vmin',
-                    border: isActive
-                      ? `1.5px solid ${ORANGE}`
-                      : '1.5px solid transparent',
-                    borderRadius: isActive ? 12 : 0,
-                    backgroundColor: isActive
-                      ? 'rgba(245,158,11,0.12)'
-                      : 'transparent',
                     color: '#1f1f1f',
                   }}
                 >
