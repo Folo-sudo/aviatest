@@ -4,12 +4,16 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import {
   ArrowLeft,
   Play,
   RotateCcw,
   Home,
+  Settings,
   ArrowUp,
   ArrowDown,
   ArrowLeft as ArrowLeftIcon,
@@ -21,8 +25,16 @@ import { useRouter } from 'next/navigation';
 // Types
 // ============================================================================
 
-type GameState = 'menu' | 'playing' | 'results';
+type GameState = 'menu' | 'settings' | 'playing' | 'results';
 type Direction = 'up' | 'down' | 'left' | 'right';
+
+interface GameSettings {
+  durationMin: number;
+  moveSpeed: number; // % of arena per second
+  shapeIntervalSec: number;
+  calcScrollSpeed: number; // px per second
+  shapeMatchProb: number; // 0-100
+}
 
 interface Equation {
   id: number;
@@ -47,22 +59,25 @@ interface FinalScore {
   shapePct: number;
   calcPct: number;
   overallPct: number;
-  correct: number;
-  total: number;
 }
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const DURATION_MS = 5 * 60 * 1000;
-const MOVE_SPEED = 0.085; // % of arena per ms (~8.5%/s)
-const DIR_HOLD_MS_MIN = 1800;
-const DIR_HOLD_MS_MAX = 4200;
-const SHAPE_INTERVAL_MS = 2200;
-const SHAPE_MATCH_PROB = 0.35;
-const CALC_SCROLL_PX_PER_SEC = 55;
-const CALC_SLOT_WIDTH = 150;
+const SETTINGS_KEY = 'aviatest-psychomoteur-psy0-settings';
+
+const DEFAULT_SETTINGS: GameSettings = {
+  durationMin: 5,
+  moveSpeed: 12, // ~Pilotest pace (% / s)
+  shapeIntervalSec: 4,
+  calcScrollSpeed: 28,
+  shapeMatchProb: 35,
+};
+
+const DIR_HOLD_MS_MIN = 2800;
+const DIR_HOLD_MS_MAX = 6500;
+const CALC_SLOT_WIDTH = 160;
 const BG = '#d4d4d4';
 const BLUE = '#0068C6';
 const ORANGE = '#f59e0b';
@@ -94,6 +109,25 @@ const KEY_TO_DIR: Record<string, Direction> = {
 // Helpers
 // ============================================================================
 
+function loadSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s: GameSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
+}
+
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -103,8 +137,7 @@ function pick<T>(arr: readonly T[]): T {
 }
 
 function otherDir(current: Direction): Direction {
-  const opts = DIRECTIONS.filter((d) => d !== current);
-  return pick(opts);
+  return pick(DIRECTIONS.filter((d) => d !== current));
 }
 
 function evalSide(tokens: { op?: string; a: number; b?: number }): number {
@@ -154,11 +187,9 @@ function makeSide(preferSimple = false): { op?: string; a: number; b?: number; v
     const b = randInt(2, 14);
     return { op: '×', a, b, value: a * b };
   }
-  // division with integer result
   const b = randInt(2, 12);
   const q = randInt(2, 15);
-  const a = b * q;
-  return { op: '/', a, b, value: q };
+  return { op: '/', a: b * q, b, value: q };
 }
 
 let eqId = 1;
@@ -167,21 +198,17 @@ function makeEquation(forceCorrect?: boolean): Equation {
   const wantCorrect = forceCorrect ?? Math.random() < 0.55;
   let right = makeSide(true);
   if (wantCorrect) {
-    // Build a right side that equals left.value
     const target = Math.round(left.value);
     if (Math.random() < 0.4) {
       right = { a: target, value: target };
     } else if (Math.random() < 0.5) {
       const b = randInt(1, 15);
-      const a = target + b;
-      right = { op: '-', a, b, value: target };
+      right = { op: '-', a: target + b, b, value: target };
     } else {
       const b = randInt(1, 12);
-      const a = target - b;
-      right = { op: '+', a, b, value: target };
+      right = { op: '+', a: target - b, b, value: target };
     }
   } else {
-    // Ensure mismatch
     let guard = 0;
     while (Math.round(right.value) === Math.round(left.value) && guard < 8) {
       right = makeSide();
@@ -192,20 +219,16 @@ function makeEquation(forceCorrect?: boolean): Equation {
       right.value = right.a;
     }
   }
-  const leftStr = formatSide(left);
-  const rightStr = formatSide(right);
-  const isCorrect = Math.round(left.value) === Math.round(right.value);
-  return { id: eqId++, left: leftStr, right: rightStr, isCorrect };
+  return {
+    id: eqId++,
+    left: formatSide(left),
+    right: formatSide(right),
+    isCorrect: Math.round(left.value) === Math.round(right.value),
+  };
 }
 
 function SymbolGlyph({ id, size = 40 }: { id: SymbolId; size?: number }) {
-  const common = {
-    width: size,
-    height: size,
-    viewBox: '0 0 100 100',
-    fill: BLUE,
-  } as const;
-
+  const common = { width: size, height: size, viewBox: '0 0 100 100', fill: BLUE } as const;
   switch (id) {
     case 'crown':
       return (
@@ -233,12 +256,16 @@ function SymbolGlyph({ id, size = 40 }: { id: SymbolId; size?: number }) {
       return (
         <svg {...common} fill="none" stroke={BLUE} strokeWidth="7">
           <polygon points="50,12 82,31 82,69 50,88 18,69 18,31" />
-          <circle cx="50" cy="31" r="5" fill={BLUE} stroke="none" />
-          <circle cx="72" cy="44" r="5" fill={BLUE} stroke="none" />
-          <circle cx="72" cy="66" r="5" fill={BLUE} stroke="none" />
-          <circle cx="50" cy="79" r="5" fill={BLUE} stroke="none" />
-          <circle cx="28" cy="66" r="5" fill={BLUE} stroke="none" />
-          <circle cx="28" cy="44" r="5" fill={BLUE} stroke="none" />
+          {[31, 44, 66, 79, 66, 44].map((cy, i) => (
+            <circle
+              key={i}
+              cx={[50, 72, 72, 50, 28, 28][i]}
+              cy={cy}
+              r="5"
+              fill={BLUE}
+              stroke="none"
+            />
+          ))}
         </svg>
       );
     case 'arrows':
@@ -311,7 +338,6 @@ function DirectionBadge({
       </div>
     );
   }
-  const color = ok ? '#22c55e' : BLUE;
   const Icon =
     direction === 'up'
       ? ArrowUp
@@ -325,7 +351,11 @@ function DirectionBadge({
       className="flex h-8 w-10 items-center justify-center rounded"
       style={{ backgroundColor: ok ? 'transparent' : BLUE }}
     >
-      <Icon className="h-5 w-5" style={{ color: ok ? color : 'white' }} strokeWidth={3} />
+      <Icon
+        className="h-5 w-5"
+        style={{ color: ok ? '#22c55e' : 'white' }}
+        strokeWidth={3}
+      />
     </div>
   );
 }
@@ -337,6 +367,7 @@ function DirectionBadge({
 export default function PsychomoteurPsy0Test() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState>('menu');
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pos, setPos] = useState({ x: 50, y: 50 });
   const [moveDir, setMoveDir] = useState<Direction>('right');
@@ -352,6 +383,7 @@ export default function PsychomoteurPsy0Test() {
   const [fFlash, setFFlash] = useState<'ok' | 'bad' | null>(null);
   const [finalScore, setFinalScore] = useState<FinalScore | null>(null);
 
+  const settingsRef = useRef(settings);
   const statsRef = useRef<LiveStats>({
     trackingMsCorrect: 0,
     trackingMsTotal: 0,
@@ -382,6 +414,15 @@ export default function PsychomoteurPsy0Test() {
   const perfSavedRef = useRef(false);
 
   useEffect(() => {
+    setSettings(loadSettings());
+  }, []);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+    saveSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
     equationsRef.current = equations;
   }, [equations]);
 
@@ -395,34 +436,21 @@ export default function PsychomoteurPsy0Test() {
         : 0;
     const shapeTotal = s.shapeHits + s.shapeMisses + s.shapeFalseAlarms;
     const shapePct =
-      shapeTotal > 0
-        ? Math.round((s.shapeHits / shapeTotal) * 1000) / 10
-        : 100;
+      shapeTotal > 0 ? Math.round((s.shapeHits / shapeTotal) * 1000) / 10 : 100;
     const calcTotal = s.calcHits + s.calcMisses + s.calcFalseAlarms;
     const calcPct =
       calcTotal > 0 ? Math.round((s.calcHits / calcTotal) * 1000) / 10 : 100;
-    const overallPct =
-      Math.round(((trackingPct + shapePct + calcPct) / 3) * 10) / 10;
-    const correct = s.shapeHits + s.calcHits + Math.round(trackingPct);
-    const total = shapeTotal + calcTotal + 100;
-    setFinalScore({
-      trackingPct,
-      shapePct,
-      calcPct,
-      overallPct,
-      correct,
-      total,
-    });
+    const overallPct = Math.round(((trackingPct + shapePct + calcPct) / 3) * 10) / 10;
+    setFinalScore({ trackingPct, shapePct, calcPct, overallPct });
     setGameState('results');
   }, []);
 
   const spawnShapes = useCallback(() => {
-    // Missed previous match window?
     if (pendingShapeMatchRef.current && !shapeAnsweredRef.current) {
       statsRef.current.shapeMisses += 1;
     }
     shapeAnsweredRef.current = false;
-    const match = Math.random() < SHAPE_MATCH_PROB;
+    const match = Math.random() * 100 < settingsRef.current.shapeMatchProb;
     const a = pick(SYMBOL_IDS);
     let b = pick(SYMBOL_IDS);
     if (match) b = a;
@@ -446,15 +474,16 @@ export default function PsychomoteurPsy0Test() {
       if (!lastTsRef.current) lastTsRef.current = ts;
       const dt = Math.min(40, ts - lastTsRef.current);
       lastTsRef.current = ts;
+      const cfg = settingsRef.current;
+      const durationMs = cfg.durationMin * 60 * 1000;
 
       const elapsed = ts - startRef.current;
       setElapsedMs(elapsed);
-      if (elapsed >= DURATION_MS) {
+      if (elapsed >= durationMs) {
         finishGame();
         return;
       }
 
-      // --- Tracking ---
       if (ts >= dirUntilRef.current) {
         const next = otherDir(moveDirRef.current);
         moveDirRef.current = next;
@@ -462,7 +491,8 @@ export default function PsychomoteurPsy0Test() {
         dirUntilRef.current = ts + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
       }
 
-      const speed = MOVE_SPEED * dt;
+      // moveSpeed is %/s → convert to %/ms
+      const speed = (cfg.moveSpeed / 1000) * dt;
       let { x, y } = posRef.current;
       const dir = moveDirRef.current;
       if (dir === 'up') y -= speed;
@@ -470,25 +500,24 @@ export default function PsychomoteurPsy0Test() {
       if (dir === 'left') x -= speed;
       if (dir === 'right') x += speed;
 
-      // Bounce at edges by flipping direction
-      if (x < 8) {
-        x = 8;
+      if (x < 10) {
+        x = 10;
         moveDirRef.current = 'right';
         setMoveDir('right');
         dirUntilRef.current = ts + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
-      } else if (x > 92) {
-        x = 92;
+      } else if (x > 90) {
+        x = 90;
         moveDirRef.current = 'left';
         setMoveDir('left');
         dirUntilRef.current = ts + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
       }
-      if (y < 8) {
-        y = 8;
+      if (y < 12) {
+        y = 12;
         moveDirRef.current = 'down';
         setMoveDir('down');
         dirUntilRef.current = ts + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
-      } else if (y > 92) {
-        y = 92;
+      } else if (y > 88) {
+        y = 88;
         moveDirRef.current = 'up';
         setMoveDir('up');
         dirUntilRef.current = ts + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
@@ -501,17 +530,14 @@ export default function PsychomoteurPsy0Test() {
         statsRef.current.trackingMsCorrect += dt;
       }
 
-      // --- Shapes ---
       if (ts >= nextShapeAtRef.current) {
         spawnShapes();
-        nextShapeAtRef.current = ts + SHAPE_INTERVAL_MS;
+        nextShapeAtRef.current = ts + cfg.shapeIntervalSec * 1000;
       }
 
-      // --- Calculations scroll ---
-      scrollXRef.current += (CALC_SCROLL_PX_PER_SEC * dt) / 1000;
+      scrollXRef.current += (cfg.calcScrollSpeed * dt) / 1000;
       const idx = Math.floor(scrollXRef.current / CALC_SLOT_WIDTH);
       if (idx !== activeIdxRef.current) {
-        // Leaving previous active equation unanswered if it was false
         const prev = equationsRef.current[activeIdxRef.current];
         if (prev && !prev.isCorrect && !calcAnsweredRef.current) {
           statsRef.current.calcMisses += 1;
@@ -519,7 +545,6 @@ export default function PsychomoteurPsy0Test() {
         calcAnsweredRef.current = false;
         activeIdxRef.current = idx;
         setActiveIdx(idx);
-        // Append more equations if needed
         if (idx + 10 >= equationsRef.current.length) {
           const extra = Array.from({ length: 20 }, () => makeEquation());
           equationsRef.current = [...equationsRef.current, ...extra];
@@ -571,7 +596,7 @@ export default function PsychomoteurPsy0Test() {
     startRef.current = now;
     lastTsRef.current = 0;
     dirUntilRef.current = now + randInt(DIR_HOLD_MS_MIN, DIR_HOLD_MS_MAX);
-    nextShapeAtRef.current = now + SHAPE_INTERVAL_MS;
+    nextShapeAtRef.current = now + settingsRef.current.shapeIntervalSec * 1000;
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
   }, [spawnShapes, tick]);
@@ -614,7 +639,6 @@ export default function PsychomoteurPsy0Test() {
 
   useEffect(() => {
     if (gameState !== 'playing') return;
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -648,7 +672,6 @@ export default function PsychomoteurPsy0Test() {
     };
   }, [gameState, handleSpace, handleF]);
 
-  // Persist results once
   useEffect(() => {
     if (gameState !== 'results' || !finalScore || perfSavedRef.current) return;
     perfSavedRef.current = true;
@@ -661,65 +684,193 @@ export default function PsychomoteurPsy0Test() {
 
   const trackingOk =
     heldDir !== null && heldDir === moveDir ? true : heldDir !== null ? false : null;
-  const progress = Math.min(1, elapsedMs / DURATION_MS);
-  const remainingSec = Math.max(0, Math.ceil((DURATION_MS - elapsedMs) / 1000));
-  const mm = String(Math.floor(remainingSec / 60)).padStart(1, '0');
+  const durationMs = settings.durationMin * 60 * 1000;
+  const progress = Math.min(1, elapsedMs / durationMs);
+  const remainingSec = Math.max(0, Math.ceil((durationMs - elapsedMs) / 1000));
+  const mm = String(Math.floor(remainingSec / 60));
   const ss = String(remainingSec % 60).padStart(2, '0');
 
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <main className="min-h-screen bg-[#fbfaf9]">
-        <div className="container mx-auto max-w-3xl px-4 py-10">
-          <button
-            onClick={() => router.push('/')}
-            className="mb-6 inline-flex items-center gap-2 text-sm text-[#605a57] hover:text-[#37322f]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Accueil
-          </button>
-          <h1 className="mb-2 text-3xl font-bold text-[#37322f]">
-            Psychomoteur Psy0 AF Cadet
-          </h1>
-          <p className="mb-6 text-[#605a57]">
-            Test multi-taches de 5 minutes : suivi du cercle, comparaison de
-            formes, detection de calculs faux — en parallele.
-          </p>
-
-          <div className="mb-8 space-y-4 rounded-xl border border-[#e0dedb] bg-white p-6">
-            <h2 className="font-semibold text-[#37322f]">Regles</h2>
-            <ul className="list-disc space-y-2 pl-5 text-sm text-[#605a57]">
-              <li>
-                <strong>Fleches</strong> : maintenez la fleche du clavier dans le
-                sens de deplacement du cercle (chevron vert = correct).
-              </li>
-              <li>
-                <strong>Espace</strong> : appuyez quand la forme dans le cercle
-                est identique a celle de l&apos;encart pointille.
-              </li>
-              <li>
-                <strong>Touche F</strong> : appuyez quand le calcul encadre orange
-                est faux.
-              </li>
-            </ul>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Badge variant="secondary">Attention</Badge>
-              <Badge variant="secondary">Psychomoteur</Badge>
-              <Badge variant="secondary">5 min</Badge>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Psychomoteur Psy0 AF Cadet</CardTitle>
+            <CardDescription>
+              Multi-taches : suivi du cercle, formes et calculs faux
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+              <p>
+                <strong>Fleches</strong> : maintenez la fleche dans le sens du
+                cercle (vert = correct).
+              </p>
+              <p>
+                <strong>Espace</strong> : formes identiques (cercle = encart
+                pointille).
+              </p>
+              <p>
+                <strong>F</strong> : le calcul encadre orange est faux.
+              </p>
             </div>
-          </div>
 
-          <Button
-            size="lg"
-            className="w-full gap-2"
-            onClick={startGame}
-            style={{ backgroundColor: '#37322f' }}
-          >
-            <Play className="h-4 w-4" />
-            Commencer
-          </Button>
-        </div>
-      </main>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xl font-bold text-slate-700">
+                  {settings.durationMin}m
+                </p>
+                <p className="text-xs text-slate-500">Duree</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xl font-bold text-slate-700">
+                  {settings.moveSpeed}
+                </p>
+                <p className="text-xs text-slate-500">Vitesse cercle</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xl font-bold text-slate-700">
+                  {settings.shapeIntervalSec}s
+                </p>
+                <p className="text-xs text-slate-500">Formes</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="w-full" onClick={startGame}>
+                <Play className="mr-2 h-5 w-5" /> Commencer
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() => setGameState('settings')}
+              >
+                <Settings className="mr-2 h-5 w-5" /> Parametres
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full"
+                onClick={() => router.push('/')}
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" /> Retour
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ---- SETTINGS ----
+  if (gameState === 'settings') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle>Parametres</CardTitle>
+            <CardDescription>Ajustez le rythme a votre niveau</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-5">
+              <div>
+                <Label>Duree : {settings.durationMin} min</Label>
+                <Slider
+                  value={[settings.durationMin]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({ ...s, durationMin: v }))
+                  }
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>
+                  Vitesse du cercle : {settings.moveSpeed} %/s
+                </Label>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Defaut 12 (proche Pilotest). Plus bas = plus lent.
+                </p>
+                <Slider
+                  value={[settings.moveSpeed]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({ ...s, moveSpeed: v }))
+                  }
+                  min={5}
+                  max={30}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>
+                  Intervalle des formes : {settings.shapeIntervalSec}s
+                </Label>
+                <Slider
+                  value={[settings.shapeIntervalSec]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({ ...s, shapeIntervalSec: v }))
+                  }
+                  min={2}
+                  max={8}
+                  step={0.5}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>
+                  Vitesse des calculs : {settings.calcScrollSpeed} px/s
+                </Label>
+                <Slider
+                  value={[settings.calcScrollSpeed]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({ ...s, calcScrollSpeed: v }))
+                  }
+                  min={12}
+                  max={60}
+                  step={2}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>
+                  Probabilite de formes identiques : {settings.shapeMatchProb}%
+                </Label>
+                <Slider
+                  value={[settings.shapeMatchProb]}
+                  onValueChange={([v]) =>
+                    setSettings((s) => ({ ...s, shapeMatchProb: v }))
+                  }
+                  min={15}
+                  max={60}
+                  step={5}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setSettings({ ...DEFAULT_SETTINGS })}
+              >
+                Reinitialiser les defauts
+              </Button>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => setGameState('menu')}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -727,59 +878,78 @@ export default function PsychomoteurPsy0Test() {
   if (gameState === 'results' && finalScore) {
     const perfEntries = loadEntries('psychomoteur-psy0');
     return (
-      <main className="min-h-screen bg-[#fbfaf9]">
-        <div className="container mx-auto max-w-2xl px-4 py-10">
-          <h1 className="mb-2 text-3xl font-bold text-[#37322f]">Resultats</h1>
-          <p className="mb-8 text-[#605a57]">Psychomoteur Psy0 AF Cadet</p>
-
-          <div className="mb-6 rounded-xl border border-[#e0dedb] bg-white p-6 text-center">
-            <div className="text-5xl font-bold text-[#37322f]">
-              {finalScore.overallPct}%
-            </div>
-            <p className="mt-2 text-sm text-[#605a57]">Score global</p>
-          </div>
-
-          <div className="mb-8 grid grid-cols-3 gap-3">
-            {[
-              ['Suivi', finalScore.trackingPct],
-              ['Formes', finalScore.shapePct],
-              ['Calculs', finalScore.calcPct],
-            ].map(([label, pct]) => (
-              <div
-                key={label as string}
-                className="rounded-xl border border-[#e0dedb] bg-white p-4 text-center"
-              >
-                <div className="text-2xl font-semibold text-[#37322f]">{pct}%</div>
-                <div className="text-xs text-[#605a57]">{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {perfEntries.length > 0 && (
-            <div className="mb-8 rounded-xl border border-[#e0dedb] bg-white p-4">
-              <MiniPerformanceChart
-                entries={perfEntries}
-                exerciseId="psychomoteur-psy0"
-              />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button className="flex-1 gap-2" onClick={startGame}>
-              <RotateCcw className="h-4 w-4" />
-              Rejouer
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={() => router.push('/')}
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl">Resultats</CardTitle>
+            <Badge
+              variant={
+                finalScore.overallPct >= 75
+                  ? 'default'
+                  : finalScore.overallPct >= 50
+                    ? 'secondary'
+                    : 'destructive'
+              }
+              className="mt-2 px-4 py-1 text-lg"
             >
-              <Home className="h-4 w-4" />
-              Accueil
-            </Button>
-          </div>
-        </div>
-      </main>
+              {finalScore.overallPct}%
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                ['Suivi', finalScore.trackingPct],
+                ['Formes', finalScore.shapePct],
+                ['Calculs', finalScore.calcPct],
+              ].map(([label, pct]) => (
+                <div
+                  key={label as string}
+                  className="rounded-lg bg-slate-50 p-4 text-center"
+                >
+                  <p className="text-2xl font-bold text-slate-700">{pct}%</p>
+                  <p className="text-xs text-slate-500">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="mb-2 text-center text-sm font-medium text-slate-500">
+                  Progression
+                </p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart
+                    entries={perfEntries}
+                    exerciseId="psychomoteur-psy0"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="w-full" onClick={startGame}>
+                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() => setGameState('menu')}
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" /> Menu
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full"
+                onClick={() => router.push('/')}
+              >
+                <Home className="mr-2 h-5 w-5" /> Accueil
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -790,11 +960,10 @@ export default function PsychomoteurPsy0Test() {
 
   return (
     <main
-      className="fixed inset-0 flex flex-col select-none"
+      className="fixed inset-0 flex select-none flex-col"
       style={{ backgroundColor: BG }}
     >
-      {/* Tracking arena */}
-      <div className="relative flex-[50] min-h-0">
+      <div className="relative min-h-0 flex-[50]">
         <div
           className="absolute"
           style={{
@@ -809,7 +978,11 @@ export default function PsychomoteurPsy0Test() {
             <DirectionBadge direction={moveDir} ok={trackingOk} />
             <div
               className="flex flex-1 items-center justify-center rounded-full"
-              style={{ border: `2px solid ${BLUE}`, width: '80%', aspectRatio: '1' }}
+              style={{
+                border: `2px solid ${BLUE}`,
+                width: '80%',
+                aspectRatio: '1',
+              }}
             >
               <SymbolGlyph id={circleSymbol} size={48} />
             </div>
@@ -820,8 +993,7 @@ export default function PsychomoteurPsy0Test() {
         </div>
       </div>
 
-      {/* Symbols + equations */}
-      <div className="flex flex-[20] min-h-0 items-center gap-2 px-2">
+      <div className="flex min-h-0 flex-[20] items-center gap-2 px-2">
         <div
           className="flex h-[10vmin] w-[10vmin] shrink-0 items-center justify-center rounded-lg"
           style={{ border: `1.5px dashed ${BLUE}` }}
@@ -831,10 +1003,7 @@ export default function PsychomoteurPsy0Test() {
         <div className="relative h-full flex-1 overflow-hidden">
           <div
             className="absolute inset-y-0 flex items-center"
-            style={{
-              left: offset - CALC_SLOT_WIDTH,
-              gap: 0,
-            }}
+            style={{ left: offset - CALC_SLOT_WIDTH }}
           >
             {visibleEqs.map((eq, i) => {
               const globalIdx = firstVisible + i;
@@ -847,9 +1016,13 @@ export default function PsychomoteurPsy0Test() {
                     width: CALC_SLOT_WIDTH,
                     height: '10vmin',
                     fontSize: '2.2vmin',
-                    border: isActive ? `1.5px solid ${ORANGE}` : '1.5px solid transparent',
+                    border: isActive
+                      ? `1.5px solid ${ORANGE}`
+                      : '1.5px solid transparent',
                     borderRadius: isActive ? 12 : 0,
-                    backgroundColor: isActive ? 'rgba(245,158,11,0.12)' : 'transparent',
+                    backgroundColor: isActive
+                      ? 'rgba(245,158,11,0.12)'
+                      : 'transparent',
                     color: '#1f1f1f',
                   }}
                 >
@@ -861,8 +1034,7 @@ export default function PsychomoteurPsy0Test() {
         </div>
       </div>
 
-      {/* Keys */}
-      <div className="flex flex-[18] min-h-0 items-center gap-4 px-4">
+      <div className="flex min-h-0 flex-[18] items-center gap-4 px-4">
         <button
           type="button"
           onClick={handleSpace}
@@ -898,15 +1070,11 @@ export default function PsychomoteurPsy0Test() {
         </div>
       </div>
 
-      {/* Chrono bar */}
       <div className="flex flex-[8] items-center px-[10%]">
         <div className="h-3 w-full overflow-hidden rounded-sm bg-[#8a8a8a]">
           <div
             className="h-full"
-            style={{
-              width: `${progress * 100}%`,
-              backgroundColor: '#D60000',
-            }}
+            style={{ width: `${progress * 100}%`, backgroundColor: '#D60000' }}
           />
         </div>
       </div>
