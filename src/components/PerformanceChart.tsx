@@ -28,6 +28,7 @@ const LINE_COLORS: Record<string, string> = {
   'attention-3': '#8B5CF6',
   'fiche-angles': '#10B981',
   'compteurs': '#6366F1',
+  'psychomoteur-psy0': '#10B981',
 };
 
 function getLineColor(exerciseId: string): string {

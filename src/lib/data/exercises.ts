@@ -666,6 +666,32 @@ export const EXERCISES: ExerciseConfig[] = [
     ready: true,
   },
   {
+    id: 'psychomoteur-psy0',
+    slug: 'psychomoteur-psy0',
+    title: 'Psychomoteur Psy0 AF Cadet',
+    description:
+      'Suivez le cercle, comparez les formes et detectez les calculs faux en parallele',
+    longDescription:
+      'Test multi-taches de 5 minutes inspire des psy0 Cadets Air France. Trois taches simultanees : maintenir la fleche du clavier dans le sens de deplacement du cercle, appuyer sur Espace quand la forme du cercle correspond a l\'encart pointille, et appuyer sur F quand le calcul encadre est faux.',
+    types: ['attention', 'psychomoteur'],
+    primaryType: 'psychomoteur',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Psychomoteur Psy0 AF Cadet - Multi-Taches Pilote | AviaTest',
+    seoDescription:
+      'Entrainement au test psychomoteur multi-taches des psy0 Cadets Air France. Suivi, formes et calculs en parallele pendant 5 minutes.',
+    seoKeywords: [
+      'psychomoteur psy0',
+      'test psychomoteur air france',
+      'multi taches pilote',
+      'psy0 cadets air france',
+      'test attention psychomoteur',
+    ],
+    iconName: 'Gamepad2',
+    estimatedDuration: 5,
+    ready: true,
+  },
+  {
     id: 'angles-montres',
     slug: 'angles-montres',
     title: 'Angles - Montres',

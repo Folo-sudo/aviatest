@@ -21,6 +21,7 @@ import {
   Lock,
   BarChart3,
   User,
+  Gamepad2,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -64,6 +65,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Circle: <Circle className="h-6 w-6" />,
   Brain: <Brain className="h-6 w-6" />,
   RotateCcw: <RotateCcw className="h-6 w-6" />,
+  Gamepad2: <Gamepad2 className="h-6 w-6" />,
 };
 
 function getExerciseIcon(iconName: string): React.ReactNode {
