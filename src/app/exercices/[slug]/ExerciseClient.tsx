@@ -79,6 +79,46 @@ const PsychomoteurPsy0Test = dynamic(
   () => import('@/components/exercises/PsychomoteurPsy0Test'),
   { ssr: false }
 );
+const AirwaysTest = dynamic(
+  () => import('@/components/exercises/AirwaysTest'),
+  { ssr: false }
+);
+const EmpilementsTest = dynamic(
+  () => import('@/components/exercises/EmpilementsTest'),
+  { ssr: false }
+);
+const Objets3DTest = dynamic(
+  () => import('@/components/exercises/Objets3DTest'),
+  { ssr: false }
+);
+const FormesGlisseesTest = dynamic(
+  () => import('@/components/exercises/FormesGlisseesTest'),
+  { ssr: false }
+);
+const CubesPsy0Test = dynamic(
+  () => import('@/components/exercises/CubesPsy0Test'),
+  { ssr: false }
+);
+const GrillesCalculsTest = dynamic(
+  () => import('@/components/exercises/GrillesCalculsTest'),
+  { ssr: false }
+);
+const BoitesMotsTest = dynamic(
+  () => import('@/components/exercises/BoitesMotsTest'),
+  { ssr: false }
+);
+const MotsEnEtoileTest = dynamic(
+  () => import('@/components/exercises/MotsEnEtoileTest'),
+  { ssr: false }
+);
+const SeriesLogiquesTest = dynamic(
+  () => import('@/components/exercises/SeriesLogiquesTest'),
+  { ssr: false }
+);
+const AnglaisPsy0Test = dynamic(
+  () => import('@/components/exercises/AnglaisPsy0Test'),
+  { ssr: false }
+);
 
 // Map slug to component
 const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = {
@@ -101,6 +141,16 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'quadrilogie-angles': QuadrilogieAnglesTest,
   'angles-montres': AnglesMontresTest,
   'psychomoteur-psy0': PsychomoteurPsy0Test,
+  airways: AirwaysTest,
+  empilements: EmpilementsTest,
+  'objets-3d': Objets3DTest,
+  'formes-glissees': FormesGlisseesTest,
+  'cubes-psy0': CubesPsy0Test,
+  'grilles-calculs': GrillesCalculsTest,
+  'boites-mots': BoitesMotsTest,
+  'mots-en-etoile': MotsEnEtoileTest,
+  'series-logiques': SeriesLogiquesTest,
+  'anglais-psy0': AnglaisPsy0Test,
 };
 
 function ExerciseLoader({ slug }: { slug: string }) {

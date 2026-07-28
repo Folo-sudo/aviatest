@@ -22,6 +22,14 @@ import {
   BarChart3,
   User,
   Gamepad2,
+  Boxes,
+  Box,
+  LayoutGrid,
+  Cuboid,
+  Calculator,
+  Library,
+  Star,
+  Languages,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -66,6 +74,15 @@ const iconMap: Record<string, React.ReactNode> = {
   Brain: <Brain className="h-6 w-6" />,
   RotateCcw: <RotateCcw className="h-6 w-6" />,
   Gamepad2: <Gamepad2 className="h-6 w-6" />,
+  Plane: <Plane className="h-6 w-6" />,
+  Boxes: <Boxes className="h-6 w-6" />,
+  Box: <Box className="h-6 w-6" />,
+  LayoutGrid: <LayoutGrid className="h-6 w-6" />,
+  Cuboid: <Cuboid className="h-6 w-6" />,
+  Calculator: <Calculator className="h-6 w-6" />,
+  Library: <Library className="h-6 w-6" />,
+  Star: <Star className="h-6 w-6" />,
+  Languages: <Languages className="h-6 w-6" />,
 };
 
 function getExerciseIcon(iconName: string): React.ReactNode {
