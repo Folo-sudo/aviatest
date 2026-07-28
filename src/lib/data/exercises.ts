@@ -715,6 +715,206 @@ export const EXERCISES: ExerciseConfig[] = [
     estimatedDuration: 6,
     ready: true,
   },
+  {
+    id: 'airways',
+    slug: 'airways',
+    title: 'Airways',
+    description:
+      'Deroutez le moins d\'avions possible tout en respectant les criteres de fluidite',
+    longDescription:
+      'Des avions bleus et violets circulent sur des airways. Deroutez-les via les boutons de couleur pour eviter plus de 2 bleus ou 4 avions dans chaque zone grise. 10 series.',
+    types: ['intellectuel', 'attention'],
+    primaryType: 'intellectuel',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Airways - Strategie Trafic Aerien | AviaTest',
+    seoDescription:
+      'Entrainement Airways psy0 Cadets Air France. Attention soutenue et choix strategiques sur le trafic aerien.',
+    seoKeywords: ['airways', 'test airways pilote', 'psy0 air france', 'trafic aerien test'],
+    iconName: 'Plane',
+    estimatedDuration: 12,
+    ready: true,
+  },
+  {
+    id: 'empilements',
+    slug: 'empilements',
+    title: 'Empilements',
+    description:
+      'Trouvez laquelle des 3 structures de cubes a subi une symetrie',
+    longDescription:
+      'Trois empilements de cubes : deux identiques a une rotation pres, le troisieme a subi une symetrie. 20 questions de 10 secondes.',
+    types: ['spatiale'],
+    primaryType: 'spatiale',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Empilements de Cubes - Spatiale Psy0 | AviaTest',
+    seoDescription:
+      'Visualisation spatiale : detectez la structure miroir parmi trois empilements. Entrainement psy0 Cadets Air France.',
+    seoKeywords: ['empilements', 'cubes spatiale', 'psy0 air france', 'symetrie cubes'],
+    iconName: 'Boxes',
+    estimatedDuration: 4,
+    ready: true,
+  },
+  {
+    id: 'objets-3d',
+    slug: 'objets-3d',
+    title: 'Objets 3D',
+    description:
+      'Identifiez le point de vue correspondant a une scene 3D dans le desert',
+    longDescription:
+      'Une scene d\'objets dans le desert est montree. Choisissez parmi 8 points de vue autour du cercle lequel correspond. 20 questions de 10 secondes.',
+    types: ['spatiale'],
+    primaryType: 'spatiale',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Objets 3D - Points de Vue Spatiaux | AviaTest',
+    seoDescription:
+      'Entrainement visualisation 3D psy0 Cadets Air France. Retrouvez le point de vue d\'une scene.',
+    seoKeywords: ['objets 3d', 'point de vue', 'spatiale pilote', 'psy0'],
+    iconName: 'Box',
+    estimatedDuration: 4,
+    ready: true,
+  },
+  {
+    id: 'formes-glissees',
+    slug: 'formes-glissees',
+    title: 'Formes glissees - II',
+    description:
+      'Superposez des formes navy/gris pour reproduire la figure cible',
+    longDescription:
+      'Glissez des formes sur une grille centrale. Regles : navy+navy=navy, navy+gris=gris, gris+gris=navy. 10 grilles, 60 secondes chacune.',
+    types: ['intellectuel', 'spatiale'],
+    primaryType: 'spatiale',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Formes Glissees II - Superposition Spatiale | AviaTest',
+    seoDescription:
+      'Entrainement formes glissees psy0 Cadets Air France. Superposition de damiers navy et gris.',
+    seoKeywords: ['formes glissees', 'superposition', 'psy0 air france'],
+    iconName: 'LayoutGrid',
+    estimatedDuration: 12,
+    ready: true,
+  },
+  {
+    id: 'cubes-psy0',
+    slug: 'cubes-psy0',
+    title: 'Cubes 2D/3D - Psy0 AF',
+    description:
+      'Reconstituez un patron de cube en placant et retournant des faces',
+    longDescription:
+      'Un patron complet est donne a gauche. Completez le patron de droite en glissant les faces manquantes (retournables). 10 questions, 60 secondes.',
+    types: ['spatiale'],
+    primaryType: 'spatiale',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Cubes 2D/3D Psy0 Air France | AviaTest',
+    seoDescription:
+      'Passez du 2D au 3D : reconstituez des patrons de cubes. Entrainement psy0 Cadets Air France.',
+    seoKeywords: ['cubes 2d 3d', 'patron cube', 'psy0 air france'],
+    iconName: 'Cuboid',
+    estimatedDuration: 12,
+    ready: true,
+  },
+  {
+    id: 'grilles-calculs',
+    slug: 'grilles-calculs',
+    title: 'Grilles de calculs',
+    description:
+      'Reperez les calculs faux dans une grille de 9 operations',
+    longDescription:
+      'Chaque grille contient 0 a 4 calculs faux. Cliquez-les puis validez. 10 grilles de 45 secondes. Sans validation, la grille ne compte pas.',
+    types: ['numerique'],
+    primaryType: 'numerique',
+    competitions: ['psy0'],
+    difficulty: 'moyen',
+    seoTitle: 'Test Grilles de Calculs Faux | AviaTest',
+    seoDescription:
+      'Reperez rapidement les calculs incorrects. Entrainement numerique psy0 Cadets Air France.',
+    seoKeywords: ['grilles de calculs', 'calculs faux', 'psy0 numerique'],
+    iconName: 'Calculator',
+    estimatedDuration: 8,
+    ready: true,
+  },
+  {
+    id: 'boites-mots',
+    slug: 'boites-mots',
+    title: 'Boites a mots',
+    description:
+      'Classez des mots qui apparaissent dans des boites par champ lexical',
+    longDescription:
+      'Des mots apparaissent au centre. Assignez-les a des boites par themes lexicaux. 5 series, minimisez les erreurs.',
+    types: ['verbal'],
+    primaryType: 'verbal',
+    competitions: ['psy0'],
+    difficulty: 'moyen',
+    seoTitle: 'Test Boites a Mots - Lexique Verbal | AviaTest',
+    seoDescription:
+      'Classement lexical rapide. Entrainement verbale psy0 Cadets Air France.',
+    seoKeywords: ['boites a mots', 'champ lexical', 'psy0 verbal'],
+    iconName: 'Library',
+    estimatedDuration: 10,
+    ready: true,
+  },
+  {
+    id: 'mots-en-etoile',
+    slug: 'mots-en-etoile',
+    title: 'Mots en etoile',
+    description:
+      'Placez 6 mots de 7 lettres sur une etoile sans conflit de lettres',
+    longDescription:
+      'Parmi 9 mots, choisissez-en 6 et positionnez-les sur les aretes d\'une etoile. Les cases partagees doivent coincider. 10 questions, 50 secondes.',
+    types: ['verbal'],
+    primaryType: 'verbal',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Mots en Etoile - Verbal Spatiale | AviaTest',
+    seoDescription:
+      'Strategie verbale et spatiale : interlocking de mots sur une etoile. Psy0 Cadets Air France.',
+    seoKeywords: ['mots en etoile', 'psy0 verbal', 'etoile mots'],
+    iconName: 'Star',
+    estimatedDuration: 10,
+    ready: true,
+  },
+  {
+    id: 'series-logiques',
+    slug: 'series-logiques',
+    title: 'Series logiques',
+    description:
+      'Completez des series lettres/chiffres en trouvant la logique',
+    longDescription:
+      'Series de 4 ou 5 items a completer parmi 4 choix. +1 point si correct, -1/3 si incorrect. 15 questions de 30 secondes.',
+    types: ['intellectuel'],
+    primaryType: 'intellectuel',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Series Logiques Psy0 AF | AviaTest',
+    seoDescription:
+      'Logique deductive sur series lettres et chiffres. Entrainement psy0 Cadets Air France.',
+    seoKeywords: ['series logiques', 'psy0', 'logique pilote'],
+    iconName: 'Brain',
+    estimatedDuration: 8,
+    ready: true,
+  },
+  {
+    id: 'anglais-psy0',
+    slug: 'anglais-psy0',
+    title: 'Anglais preselection Cadets AF',
+    description:
+      'QCM d\'anglais rapide (grammaire et vocabulaire) pour la preselection',
+    longDescription:
+      '30 questions a choix multiples en 7 min 30. Automatismes grammaire et vocabulaire anglais, style preselection Cadets Air France.',
+    types: ['anglais'],
+    primaryType: 'anglais',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Test Anglais Psy0 Cadets Air France | AviaTest',
+    seoDescription:
+      'Entrainement epreuve d\'anglais preselection pilotes Cadets Air France. 30 QCM chronometres.',
+    seoKeywords: ['anglais cadets air france', 'anglais psy0', 'qcm anglais pilote'],
+    iconName: 'Languages',
+    estimatedDuration: 8,
+    ready: true,
+  },
 ];
 
 // ============================================================================

@@ -29,6 +29,16 @@ const LINE_COLORS: Record<string, string> = {
   'fiche-angles': '#10B981',
   'compteurs': '#6366F1',
   'psychomoteur-psy0': '#10B981',
+  airways: '#683B95',
+  empilements: '#F59E0B',
+  'objets-3d': '#D97706',
+  'formes-glissees': '#6366F1',
+  'cubes-psy0': '#F59E0B',
+  'grilles-calculs': '#3B82F6',
+  'boites-mots': '#EC4899',
+  'mots-en-etoile': '#DB2777',
+  'series-logiques': '#8B5CF6',
+  'anglais-psy0': '#0EA5E9',
 };
 
 function getLineColor(exerciseId: string): string {

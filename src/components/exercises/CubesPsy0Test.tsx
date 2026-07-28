@@ -1,0 +1,912 @@
+'use client';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Home, Play, RotateCcw, Settings } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
+import { MiniPerformanceChart } from '@/components/PerformanceChart';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+type GameState = 'menu' | 'settings' | 'playing' | 'results';
+type PatternId = 'cross' | 'square' | 'octagon' | 'stripes-h' | 'stripes-v' | 'circles';
+type AnswerOutcome = 'correct' | 'incorrect' | 'skipped';
+
+interface GameSettings {
+  totalQuestions: number;
+  timePerQuestionSec: number;
+}
+
+interface FacePiece {
+  id: string;
+  pattern: PatternId;
+  flipped: boolean;
+}
+
+interface QuestionData {
+  referenceFaces: FacePiece[];
+  missingSlots: number[];
+  trayPieces: FacePiece[];
+}
+
+interface QuestionResult {
+  question: QuestionData;
+  outcome: AnswerOutcome;
+  timeUsedMs: number;
+}
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const SETTINGS_KEY = 'aviatest-cubes-psy0-settings';
+const EXERCISE_ID = 'cubes-psy0';
+
+const DEFAULT_SETTINGS: GameSettings = {
+  totalQuestions: 10,
+  timePerQuestionSec: 60,
+};
+
+const BG = '#d4d4d4';
+const FACE_BG = '#ffffff';
+const FACE_BORDER = '#333333';
+const FACE_SIZE = 64;
+
+const PATTERN_IDS: PatternId[] = ['cross', 'square', 'octagon', 'stripes-h', 'stripes-v', 'circles'];
+
+/** Latin-cross net slot indices (6 faces). */
+const NET_LAYOUT: { slot: number; row: number; col: number }[] = [
+  { slot: 0, row: 0, col: 1 },
+  { slot: 1, row: 1, col: 0 },
+  { slot: 2, row: 1, col: 1 },
+  { slot: 3, row: 1, col: 2 },
+  { slot: 4, row: 1, col: 3 },
+  { slot: 5, row: 2, col: 1 },
+];
+
+const NET_COLS = 4;
+const NET_ROWS = 3;
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function loadSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s: GameSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
+}
+
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function facesMatch(a: FacePiece, b: FacePiece): boolean {
+  return a.pattern === b.pattern && a.flipped === b.flipped;
+}
+
+function generateQuestion(): QuestionData {
+  const patterns = shuffle([...PATTERN_IDS]);
+  const referenceFaces: FacePiece[] = patterns.map((pattern, i) => ({
+    id: `ref-${i}`,
+    pattern,
+    flipped: Math.random() < 0.35,
+  }));
+
+  const numMissing = randInt(2, 3);
+  const missingSlots = shuffle([0, 1, 2, 3, 4, 5]).slice(0, numMissing);
+
+  const neededPieces: FacePiece[] = missingSlots.map((slot) => ({
+    id: `need-${slot}-${Math.random().toString(36).slice(2, 7)}`,
+    pattern: referenceFaces[slot].pattern,
+    flipped: referenceFaces[slot].flipped,
+  }));
+
+  const decoyCount = randInt(1, 2);
+  const decoys: FacePiece[] = [];
+  let guard = 0;
+  while (decoys.length < decoyCount && guard < 20) {
+    guard++;
+    const pattern = pick(PATTERN_IDS);
+    const flipped = Math.random() < 0.5;
+    const duplicate = [...neededPieces, ...decoys].some(
+      (p) => p.pattern === pattern && p.flipped === flipped,
+    );
+    if (duplicate) continue;
+    decoys.push({
+      id: `decoy-${decoys.length}-${Math.random().toString(36).slice(2, 7)}`,
+      pattern,
+      flipped,
+    });
+  }
+
+  return {
+    referenceFaces,
+    missingSlots,
+    trayPieces: shuffle([...neededPieces, ...decoys]),
+  };
+}
+
+function generateQuestions(count: number): QuestionData[] {
+  return Array.from({ length: count }, () => generateQuestion());
+}
+
+function isQuestionCorrect(question: QuestionData, placements: (FacePiece | null)[]): boolean {
+  return question.missingSlots.every((slot) => {
+    const placed = placements[slot];
+    const expected = question.referenceFaces[slot];
+    return placed !== null && facesMatch(placed, expected);
+  });
+}
+
+// ============================================================================
+// Face pattern SVG
+// ============================================================================
+
+function FacePatternSvg({
+  pattern,
+  flipped,
+  size = FACE_SIZE,
+}: {
+  pattern: PatternId;
+  flipped: boolean;
+  size?: number;
+}) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const rot = flipped ? `rotate(180 ${cx} ${cy})` : undefined;
+  const stroke = '#1a1a1a';
+  const sw = 2;
+
+  const content = (() => {
+    switch (pattern) {
+      case 'cross':
+        return (
+          <>
+            <line x1={cx} y1={size * 0.2} x2={cx} y2={size * 0.8} stroke={stroke} strokeWidth={sw} />
+            <line x1={size * 0.2} y1={cy} x2={size * 0.8} y2={cy} stroke={stroke} strokeWidth={sw} />
+          </>
+        );
+      case 'square':
+        return (
+          <rect
+            x={size * 0.28}
+            y={size * 0.28}
+            width={size * 0.44}
+            height={size * 0.44}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={sw}
+          />
+        );
+      case 'octagon': {
+        const r = size * 0.28;
+        const pts = Array.from({ length: 8 }, (_, i) => {
+          const a = (Math.PI / 4) * i - Math.PI / 8;
+          return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+        }).join(' ');
+        return <polygon points={pts} fill="none" stroke={stroke} strokeWidth={sw} />;
+      }
+      case 'stripes-h':
+        return (
+          <>
+            {[0.32, 0.5, 0.68].map((y) => (
+              <line
+                key={y}
+                x1={size * 0.22}
+                y1={size * y}
+                x2={size * 0.78}
+                y2={size * y}
+                stroke={stroke}
+                strokeWidth={sw}
+              />
+            ))}
+          </>
+        );
+      case 'stripes-v':
+        return (
+          <>
+            {[0.32, 0.5, 0.68].map((x) => (
+              <line
+                key={x}
+                x1={size * x}
+                y1={size * 0.22}
+                x2={size * x}
+                y2={size * 0.78}
+                stroke={stroke}
+                strokeWidth={sw}
+              />
+            ))}
+          </>
+        );
+      case 'circles':
+        return (
+          <>
+            <circle cx={cx - size * 0.16} cy={cy - size * 0.14} r={size * 0.1} fill="none" stroke={stroke} strokeWidth={sw} />
+            <circle cx={cx + size * 0.16} cy={cy - size * 0.14} r={size * 0.1} fill="none" stroke={stroke} strokeWidth={sw} />
+            <circle cx={cx} cy={cy + size * 0.16} r={size * 0.1} fill="none" stroke={stroke} strokeWidth={sw} />
+          </>
+        );
+      default:
+        return null;
+    }
+  })();
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block">
+      <g transform={rot}>{content}</g>
+    </svg>
+  );
+}
+
+function FaceCell({
+  face,
+  size = FACE_SIZE,
+  empty = false,
+  highlight = false,
+  selected = false,
+  onClick,
+  onDoubleClick,
+  onDragOver,
+  onDrop,
+  draggable = false,
+  onDragStart,
+  className = '',
+}: {
+  face: FacePiece | null;
+  size?: number;
+  empty?: boolean;
+  highlight?: boolean;
+  selected?: boolean;
+  onClick?: () => void;
+  onDoubleClick?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  className?: string;
+}) {
+  const borderColor = selected ? '#0068C6' : highlight ? '#f59e0b' : FACE_BORDER;
+  const bg = empty ? '#e8e8e8' : FACE_BG;
+
+  return (
+    <button
+      type="button"
+      draggable={draggable && !!face}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      className={`flex items-center justify-center border-2 transition-shadow ${className}`}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: bg,
+        borderColor,
+        borderStyle: empty ? 'dashed' : 'solid',
+        boxShadow: selected ? '0 0 0 3px rgba(0,104,198,0.35)' : undefined,
+        cursor: onClick || draggable ? 'pointer' : 'default',
+      }}
+    >
+      {face ? <FacePatternSvg pattern={face.pattern} flipped={face.flipped} size={size - 8} /> : null}
+    </button>
+  );
+}
+
+function CubeNet({
+  faces,
+  missingSlots = [],
+  placements,
+  mode,
+  selectedPieceId,
+  selectedSlot,
+  onSlotClick,
+  onSlotDoubleClick,
+  onSlotDrop,
+  size = FACE_SIZE,
+}: {
+  faces: FacePiece[];
+  missingSlots?: number[];
+  placements?: (FacePiece | null)[];
+  mode: 'reference' | 'play';
+  selectedPieceId?: string | null;
+  selectedSlot?: number | null;
+  onSlotClick?: (slot: number) => void;
+  onSlotDoubleClick?: (slot: number) => void;
+  onSlotDrop?: (slot: number, pieceId: string) => void;
+  size?: number;
+}) {
+  const gap = 3;
+  const gridW = NET_COLS * size + (NET_COLS - 1) * gap;
+  const gridH = NET_ROWS * size + (NET_ROWS - 1) * gap;
+
+  return (
+    <div className="relative" style={{ width: gridW, height: gridH }}>
+      {NET_LAYOUT.map(({ slot, row, col }) => {
+        const isMissing = missingSlots.includes(slot);
+        let face: FacePiece | null = faces[slot];
+
+        if (mode === 'play') {
+          if (isMissing) {
+            face = placements?.[slot] ?? null;
+          }
+        }
+
+        const x = col * (size + gap);
+        const y = row * (size + gap);
+        const interactive = mode === 'play' && isMissing;
+        const isSelected = selectedSlot === slot;
+
+        return (
+          <div key={slot} className="absolute" style={{ left: x, top: y }}>
+            <FaceCell
+              face={face}
+              size={size}
+              empty={mode === 'play' && isMissing && !face}
+              selected={isSelected}
+              highlight={!!selectedPieceId && interactive && !face}
+              draggable={false}
+              onClick={interactive ? () => onSlotClick?.(slot) : undefined}
+              onDoubleClick={interactive && face ? () => onSlotDoubleClick?.(slot) : undefined}
+              onDragOver={
+                interactive
+                  ? (e) => {
+                      e.preventDefault();
+                    }
+                  : undefined
+              }
+              onDrop={
+                interactive
+                  ? (e) => {
+                      e.preventDefault();
+                      const pieceId = e.dataTransfer.getData('text/piece-id');
+                      if (pieceId) onSlotDrop?.(slot, pieceId);
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export default function CubesPsy0Test() {
+  const router = useRouter();
+  const [gameState, setGameState] = useState<GameState>('menu');
+  const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
+  useEffect(() => {
+    setSettings(loadSettings());
+    setSettingsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (settingsLoaded) saveSettings(settings);
+  }, [settings, settingsLoaded]);
+
+  const [questions, setQuestions] = useState<QuestionData[]>([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [results, setResults] = useState<QuestionResult[]>([]);
+  const [locked, setLocked] = useState(false);
+
+  const [placements, setPlacements] = useState<(FacePiece | null)[]>(Array(6).fill(null));
+  const [trayPieces, setTrayPieces] = useState<FacePiece[]>([]);
+  const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const questionStartRef = useRef(0);
+  const perfSavedRef = useRef(false);
+  const lockedRef = useRef(false);
+  const currentIdxRef = useRef(0);
+  const questionsRef = useRef<QuestionData[]>([]);
+  const placementsRef = useRef<(FacePiece | null)[]>(Array(6).fill(null));
+
+  currentIdxRef.current = currentIdx;
+  questionsRef.current = questions;
+  lockedRef.current = locked;
+  placementsRef.current = placements;
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const startTimer = useCallback(
+    (durationMs: number) => {
+      clearTimer();
+      questionStartRef.current = Date.now();
+      setTotalTime(durationMs);
+      setTimeLeft(durationMs);
+      timerRef.current = setInterval(() => {
+        const elapsed = Date.now() - questionStartRef.current;
+        setTimeLeft(Math.max(0, durationMs - elapsed));
+      }, 50);
+    },
+    [clearTimer],
+  );
+
+  useEffect(() => () => clearTimer(), [clearTimer]);
+
+  const resetQuestionState = useCallback((q: QuestionData) => {
+    setPlacements(Array(6).fill(null));
+    placementsRef.current = Array(6).fill(null);
+    setTrayPieces(q.trayPieces.map((p) => ({ ...p })));
+    setSelectedPieceId(null);
+    setSelectedSlot(null);
+  }, []);
+
+  const finishOrNext = useCallback(
+    (result: QuestionResult) => {
+      const idx = currentIdxRef.current;
+      const qs = questionsRef.current;
+      setResults((prev) => [...prev, result]);
+
+      if (idx + 1 >= qs.length) {
+        clearTimer();
+        setLocked(false);
+        lockedRef.current = false;
+        setGameState('results');
+        return;
+      }
+
+      const nextIdx = idx + 1;
+      currentIdxRef.current = nextIdx;
+      setCurrentIdx(nextIdx);
+      resetQuestionState(qs[nextIdx]);
+      setLocked(false);
+      lockedRef.current = false;
+      startTimer(settingsRef.current.timePerQuestionSec * 1000);
+    },
+    [clearTimer, resetQuestionState, startTimer],
+  );
+
+  const recordOutcome = useCallback(
+    (outcome: AnswerOutcome) => {
+      if (lockedRef.current) return;
+      lockedRef.current = true;
+      setLocked(true);
+      clearTimer();
+
+      const timeUsed = Date.now() - questionStartRef.current;
+      const q = questionsRef.current[currentIdxRef.current];
+      finishOrNext({ question: q, outcome, timeUsedMs: timeUsed });
+    },
+    [clearTimer, finishOrNext],
+  );
+
+  const handleValidate = useCallback(() => {
+    if (lockedRef.current) return;
+    const q = questionsRef.current[currentIdxRef.current];
+    const correct = isQuestionCorrect(q, placementsRef.current);
+    recordOutcome(correct ? 'correct' : 'incorrect');
+  }, [recordOutcome]);
+
+  const placePiece = useCallback((slot: number, pieceId: string) => {
+    const q = questionsRef.current[currentIdxRef.current];
+    if (!q.missingSlots.includes(slot)) return;
+
+    setTrayPieces((tray) => {
+      const piece = tray.find((p) => p.id === pieceId);
+      if (!piece) return tray;
+
+      const existing = placementsRef.current[slot];
+      const nextPlacements = [...placementsRef.current];
+      nextPlacements[slot] = { ...piece };
+      placementsRef.current = nextPlacements;
+      setPlacements(nextPlacements);
+
+      let next = tray.filter((p) => p.id !== pieceId);
+      if (existing) next = [...next, existing];
+      return next;
+    });
+
+    setSelectedPieceId(null);
+    setSelectedSlot(null);
+  }, []);
+
+  const handleSlotClick = useCallback(
+    (slot: number) => {
+      const q = questionsRef.current[currentIdxRef.current];
+      if (!q.missingSlots.includes(slot)) return;
+
+      const placed = placementsRef.current[slot];
+
+      if (placed) {
+        setPlacements((prev) => {
+          const next = [...prev];
+          next[slot] = { ...placed, flipped: !placed.flipped };
+          placementsRef.current = next;
+          return next;
+        });
+        setSelectedSlot(slot);
+        return;
+      }
+
+      if (selectedPieceId) {
+        placePiece(slot, selectedPieceId);
+        return;
+      }
+
+      setSelectedSlot(slot);
+    },
+    [placePiece, selectedPieceId],
+  );
+
+  const handleSlotDoubleClick = useCallback((slot: number) => {
+    const q = questionsRef.current[currentIdxRef.current];
+    if (!q.missingSlots.includes(slot)) return;
+
+    const placed = placementsRef.current[slot];
+    if (!placed) return;
+
+    setPlacements((prev) => {
+      const next = [...prev];
+      next[slot] = null;
+      placementsRef.current = next;
+      return next;
+    });
+    setTrayPieces((tray) => [...tray, placed]);
+    setSelectedSlot(null);
+  }, []);
+
+  const handleTrayClick = useCallback((piece: FacePiece) => {
+    setSelectedPieceId((cur) => (cur === piece.id ? null : piece.id));
+    setSelectedSlot(null);
+  }, []);
+
+  const handleTrayDoubleClick = useCallback((pieceId: string) => {
+    setTrayPieces((tray) =>
+      tray.map((p) => (p.id === pieceId ? { ...p, flipped: !p.flipped } : p)),
+    );
+  }, []);
+
+  const startGame = useCallback(() => {
+    perfSavedRef.current = false;
+    const qs = generateQuestions(settingsRef.current.totalQuestions);
+    setQuestions(qs);
+    questionsRef.current = qs;
+    setCurrentIdx(0);
+    currentIdxRef.current = 0;
+    setResults([]);
+    setLocked(false);
+    lockedRef.current = false;
+    resetQuestionState(qs[0]);
+    setGameState('playing');
+    startTimer(settingsRef.current.timePerQuestionSec * 1000);
+  }, [resetQuestionState, startTimer]);
+
+  useEffect(() => {
+    if (gameState !== 'playing' || locked) return;
+    if (totalTime > 0 && timeLeft <= 0) {
+      recordOutcome('skipped');
+    }
+  }, [timeLeft, totalTime, gameState, locked, recordOutcome]);
+
+  const currentQuestion = questions[currentIdx];
+  const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
+  const allFilled =
+    currentQuestion?.missingSlots.every((s) => placements[s] !== null) ?? false;
+
+  // =========================================================================
+  // MENU
+  // =========================================================================
+  if (gameState === 'menu') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold">Cubes 2D/3D</CardTitle>
+            <CardDescription className="mt-2 text-base">
+              Reconstituez le developpe de cube a partir du modele
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+              <p>
+                A gauche : le <strong>modele complet</strong>. A droite : le meme developpe avec des
+                faces manquantes.
+              </p>
+              <p>
+                Placez les pieces du bas (clic ou glisser-deposer). <strong>Cliquez une face</strong>{' '}
+                pour la retourner.
+              </p>
+              <p>
+                <strong>{settings.totalQuestions} questions</strong>,{' '}
+                <strong>{settings.timePerQuestionSec}s</strong> chacune.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
+                <p className="text-xs text-slate-500">Questions</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
+                <p className="text-xs text-slate-500">Par question</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="w-full" onClick={startGame}>
+                <Play className="mr-2 h-5 w-5" /> Commencer
+              </Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
+                <Settings className="mr-2 h-5 w-5" /> Parametres
+              </Button>
+              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
+                <ArrowLeft className="mr-2 h-5 w-5" /> Retour
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // SETTINGS
+  // =========================================================================
+  if (gameState === 'settings') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle>Parametres</CardTitle>
+            <CardDescription>Ajustez le test a votre niveau</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-5">
+              <div>
+                <Label>Nombre de questions : {settings.totalQuestions}</Label>
+                <Slider
+                  value={[settings.totalQuestions]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, totalQuestions: v }))}
+                  min={5}
+                  max={20}
+                  step={1}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>Temps par question : {settings.timePerQuestionSec}s</Label>
+                <Slider
+                  value={[settings.timePerQuestionSec]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, timePerQuestionSec: v }))}
+                  min={30}
+                  max={90}
+                  step={5}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+            <Button size="lg" className="w-full" onClick={() => setGameState('menu')}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // RESULTS
+  // =========================================================================
+  if (gameState === 'results') {
+    const correct = results.filter((r) => r.outcome === 'correct').length;
+    const total = results.length;
+    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const grade =
+      pct >= 75 ? 'Excellent' : pct >= 50 ? 'Bien' : pct >= 25 ? 'Passable' : 'A revoir';
+
+    if (!perfSavedRef.current) {
+      perfSavedRef.current = true;
+      savePerformanceResult(EXERCISE_ID, correct, total);
+    }
+
+    const perfEntries = loadEntries(EXERCISE_ID);
+
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl">Resultats</CardTitle>
+            <Badge
+              variant={pct >= 75 ? 'default' : pct >= 50 ? 'secondary' : 'destructive'}
+              className="mt-2 px-4 py-1 text-lg"
+            >
+              {grade}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center">
+              <p className="text-5xl font-bold text-slate-700">{pct}%</p>
+              <p className="mt-1 text-slate-500">
+                {correct}/{total} reponses correctes
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-green-50 p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">{correct}</p>
+                <p className="text-xs text-green-700">Correct</p>
+              </div>
+              <div className="rounded-lg bg-red-50 p-3 text-center">
+                <p className="text-2xl font-bold text-red-600">
+                  {results.filter((r) => r.outcome === 'incorrect').length}
+                </p>
+                <p className="text-xs text-red-700">Incorrect</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-600">
+                  {results.filter((r) => r.outcome === 'skipped').length}
+                </p>
+                <p className="text-xs text-slate-500">Passe</p>
+              </div>
+            </div>
+
+            {perfEntries.length >= 2 && (
+              <div className="border-t pt-4">
+                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <div className="flex justify-center">
+                  <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="w-full" onClick={startGame}>
+                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+              </Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('menu')}>
+                <ArrowLeft className="mr-2 h-5 w-5" /> Menu
+              </Button>
+              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
+                <Home className="mr-2 h-5 w-5" /> Accueil
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // PLAYING
+  // =========================================================================
+  if (!currentQuestion) return null;
+
+  return (
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: BG }}>
+      <div className="border-b border-slate-400 bg-[#c8c8c8] px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between text-sm font-medium text-slate-700">
+          <span>
+            Question {currentIdx + 1}/{questions.length}
+          </span>
+          <span>{Math.ceil(timeLeft / 1000)}s</span>
+          <span>
+            Score : {results.filter((r) => r.outcome === 'correct').length}/{results.length}
+          </span>
+        </div>
+        <div className="mx-auto mt-2 h-2 max-w-5xl overflow-hidden rounded-full bg-slate-300">
+          <div
+            className="h-full transition-all duration-100"
+            style={{
+              width: `${timerPct}%`,
+              backgroundColor: timerPct < 20 ? '#dc2626' : '#0068C6',
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 md:p-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="flex flex-col items-center rounded-lg border border-slate-400 bg-[#e0e0e0] p-4">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">Modele</p>
+            <CubeNet faces={currentQuestion.referenceFaces} mode="reference" />
+          </div>
+
+          <div className="flex flex-col items-center rounded-lg border border-slate-400 bg-[#e0e0e0] p-4">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">
+              A completer
+            </p>
+            <CubeNet
+              faces={currentQuestion.referenceFaces}
+              missingSlots={currentQuestion.missingSlots}
+              placements={placements}
+              mode="play"
+              selectedPieceId={selectedPieceId}
+              selectedSlot={selectedSlot}
+              onSlotClick={handleSlotClick}
+              onSlotDoubleClick={handleSlotDoubleClick}
+              onSlotDrop={placePiece}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-400 bg-[#e0e0e0] p-4">
+          <p className="mb-3 text-center text-sm font-semibold uppercase tracking-wide text-slate-600">
+            Pieces disponibles
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {trayPieces.map((piece) => (
+              <FaceCell
+                key={piece.id}
+                face={piece}
+                selected={selectedPieceId === piece.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/piece-id', piece.id);
+                  setSelectedPieceId(piece.id);
+                }}
+                onClick={() => handleTrayClick(piece)}
+                onDoubleClick={() => handleTrayDoubleClick(piece.id)}
+              />
+            ))}
+          </div>
+          <p className="mt-3 text-center text-xs text-slate-500">
+            Clic pour selectionner · double-clic pour retourner · double-clic sur une face placee pour la
+            retirer
+          </p>
+        </div>
+
+        <div className="flex justify-center gap-3">
+          <Button variant="outline" onClick={() => recordOutcome('skipped')} disabled={locked}>
+            Passer
+          </Button>
+          <Button onClick={handleValidate} disabled={locked || !allFilled}>
+            Valider
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
