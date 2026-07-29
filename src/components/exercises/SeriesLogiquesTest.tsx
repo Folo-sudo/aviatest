@@ -29,6 +29,8 @@ interface QuestionData {
   seriesItems: string[];
   choices: string[];
   correctIndex: number;
+  /** Human-readable rule shown during correction */
+  logic: string;
 }
 
 interface QuestionResult {
@@ -156,7 +158,11 @@ function genLetterStep(): QuestionData {
     indexToLetter(start + (step + 1) * len),
     indexToLetter(start + (step - 1) * len),
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  const logic =
+    step > 0
+      ? `Chaque lettre avance de ${step} cran${step > 1 ? 's' : ''} dans l'alphabet.`
+      : `Chaque lettre recule de ${Math.abs(step)} cran${Math.abs(step) > 1 ? 's' : ''} dans l'alphabet.`;
+  return { seriesItems: series, choices, correctIndex, logic };
 }
 
 function genNumberAdd(): QuestionData {
@@ -175,7 +181,11 @@ function genNumberAdd(): QuestionData {
     String(n + step),
     String(n - step),
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  const logic =
+    step > 0
+      ? `Suite arithmetique : on ajoute ${step} a chaque terme.`
+      : `Suite arithmetique : on soustrait ${Math.abs(step)} a chaque terme.`;
+  return { seriesItems: series, choices, correctIndex, logic };
 }
 
 function genNumberMul(): QuestionData {
@@ -196,7 +206,12 @@ function genNumberMul(): QuestionData {
     String(n * factor),
     String(Math.round(n / factor)),
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  return {
+    seriesItems: series,
+    choices,
+    correctIndex,
+    logic: `Chaque terme est multiplie par ${factor}.`,
+  };
 }
 
 function genAlternatingAdd(): QuestionData {
@@ -217,7 +232,12 @@ function genAlternatingAdd(): QuestionData {
     String(val + a),
     String(val + b),
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  return {
+    seriesItems: series,
+    choices,
+    correctIndex,
+    logic: `Alternance des ecarts : +${a} puis +${b}, et ainsi de suite.`,
+  };
 }
 
 function genLetterNumber(): QuestionData {
@@ -237,7 +257,12 @@ function genLetterNumber(): QuestionData {
     `${indexToLetter(letterStart + letterStep * len)}${numStart + numStep * len + 1}`,
     `${indexToLetter(letterStart + letterStep * len + 1)}${numStart + numStep * len}`,
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  return {
+    seriesItems: series,
+    choices,
+    correctIndex,
+    logic: `La lettre avance de ${letterStep}, le chiffre avance de ${numStep}.`,
+  };
 }
 
 function genNumberLetter(): QuestionData {
@@ -256,7 +281,12 @@ function genNumberLetter(): QuestionData {
     `${numStart + numStep * (len - 1)}${indexToLetter(letterStart + len)}`,
     `${numStart + numStep * len}${indexToLetter(letterStart + len - 1)}`,
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  return {
+    seriesItems: series,
+    choices,
+    correctIndex,
+    logic: `Le nombre avance de ${numStep}, la lettre avance de 1.`,
+  };
 }
 
 function genMixedAlt(): QuestionData {
@@ -277,7 +307,12 @@ function genMixedAlt(): QuestionData {
     `${num - numStep}${indexToLetter(letter)}`,
     `${num}${indexToLetter(letter - 1)}`,
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  return {
+    seriesItems: series,
+    choices,
+    correctIndex,
+    logic: `Le chiffre avance de ${numStep} et la lettre de 1 a chaque etape.`,
+  };
 }
 
 function genArithmetic(): QuestionData {
@@ -296,7 +331,12 @@ function genArithmetic(): QuestionData {
     String(n + 1),
     String(n - 1),
   ]);
-  return { seriesItems: series, choices, correctIndex };
+  return {
+    seriesItems: series,
+    choices,
+    correctIndex,
+    logic: `Suite arithmetique de raison +${diff}.`,
+  };
 }
 
 function pick<T>(arr: readonly T[]): T {
@@ -367,6 +407,8 @@ export default function SeriesLogiquesTest() {
   const [locked, setLocked] = useState(false);
   const [flashIdx, setFlashIdx] = useState<number | null>(null);
   const [flashCorrect, setFlashCorrect] = useState<boolean | null>(null);
+  const [showCorrection, setShowCorrection] = useState(false);
+  const [lastOutcome, setLastOutcome] = useState<AnswerOutcome | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
@@ -415,6 +457,8 @@ export default function SeriesLogiquesTest() {
       lockedRef.current = false;
       setFlashIdx(null);
       setFlashCorrect(null);
+      setShowCorrection(false);
+      setLastOutcome(null);
       setGameState('results');
       return;
     }
@@ -426,6 +470,8 @@ export default function SeriesLogiquesTest() {
     lockedRef.current = false;
     setFlashIdx(null);
     setFlashCorrect(null);
+    setShowCorrection(false);
+    setLastOutcome(null);
     startTimer(settingsRef.current.timePerQuestionSec * 1000);
   }, [clearTimer, startTimer]);
 
@@ -445,6 +491,7 @@ export default function SeriesLogiquesTest() {
         timeUsedMs: timeUsed,
       };
       setResults((prev) => [...prev, result]);
+      setLastOutcome(outcome);
 
       if (settingsRef.current.examMode) {
         goToNextQuestion();
@@ -453,8 +500,7 @@ export default function SeriesLogiquesTest() {
           setFlashIdx(selectedIndex);
           setFlashCorrect(outcome === 'correct');
         }
-        const delay = outcome === 'correct' ? 280 : outcome === 'incorrect' ? 650 : 400;
-        window.setTimeout(goToNextQuestion, delay);
+        setShowCorrection(true);
       }
     },
     [clearTimer, goToNextQuestion],
@@ -483,6 +529,10 @@ export default function SeriesLogiquesTest() {
     setResults([]);
     setLocked(false);
     lockedRef.current = false;
+    setFlashIdx(null);
+    setFlashCorrect(null);
+    setShowCorrection(false);
+    setLastOutcome(null);
     setGameState('playing');
     startTimer(settingsRef.current.timePerQuestionSec * 1000);
   }, [startTimer]);
@@ -702,6 +752,7 @@ export default function SeriesLogiquesTest() {
                         </span>
                       </div>
                       <p className="font-mono text-xs text-slate-400">{formatSeries(r.question.seriesItems)}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{r.question.logic}</p>
                     </div>
                   );
                 })}
@@ -778,12 +829,15 @@ export default function SeriesLogiquesTest() {
         <div className="mx-auto mb-4 grid w-full max-w-lg grid-cols-2 gap-3 pr-8">
           {currentQ?.choices.map((choice, i) => {
             const isFlash = flashIdx === i;
+            const isCorrectChoice = showCorrection && i === currentQ.correctIndex;
             const flashStyle =
-              isFlash && flashCorrect === true
+              isCorrectChoice
                 ? { backgroundColor: '#dcfce7', color: '#166534', border: '2px solid #22c55e' }
                 : isFlash && flashCorrect === false
                   ? { backgroundColor: '#fee2e2', color: '#991b1b', border: '2px solid #ef4444' }
-                  : { backgroundColor: '#ffffff', color: NAVY, border: '2px solid transparent' };
+                  : isFlash && flashCorrect === true
+                    ? { backgroundColor: '#dcfce7', color: '#166534', border: '2px solid #22c55e' }
+                    : { backgroundColor: '#ffffff', color: NAVY, border: '2px solid transparent' };
             return (
               <button
                 key={i}
@@ -802,16 +856,45 @@ export default function SeriesLogiquesTest() {
           })}
         </div>
 
+        {showCorrection && currentQ && (
+          <div className="mx-auto mb-4 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-4 shadow-sm pr-8">
+            <p
+              className={`mb-1 text-center text-base font-semibold ${
+                lastOutcome === 'correct'
+                  ? 'text-green-600'
+                  : lastOutcome === 'incorrect'
+                    ? 'text-red-600'
+                    : 'text-slate-600'
+              }`}
+            >
+              {lastOutcome === 'correct'
+                ? 'Correct'
+                : lastOutcome === 'incorrect'
+                  ? `Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`
+                  : `Reponse : ${currentQ.choices[currentQ.correctIndex]}`}
+            </p>
+            <p className="text-center text-base text-slate-700">
+              <span className="font-medium text-slate-500">Logique : </span>
+              {currentQ.logic}
+            </p>
+            <Button size="lg" className="mt-4 w-full" onClick={goToNextQuestion}>
+              Suivant
+            </Button>
+          </div>
+        )}
+
         {/* Skip */}
-        <button
-          type="button"
-          disabled={locked}
-          onClick={handleSkip}
-          className="mb-6 pr-8 text-center text-base italic transition-opacity hover:opacity-80 disabled:opacity-50"
-          style={{ color: NAVY }}
-        >
-          Je ne sais pas...
-        </button>
+        {!showCorrection && (
+          <button
+            type="button"
+            disabled={locked}
+            onClick={handleSkip}
+            className="mb-6 pr-8 text-center text-base italic transition-opacity hover:opacity-80 disabled:opacity-50"
+            style={{ color: NAVY }}
+          >
+            Je ne sais pas...
+          </button>
+        )}
 
         {/* Progress footer */}
         <div
