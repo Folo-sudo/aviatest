@@ -460,6 +460,7 @@ export default function PsychomoteurPsy0Test() {
       statsRef.current.shapeMisses += 1;
     }
     shapeAnsweredRef.current = false;
+    setSpaceFlash(null);
     const match = Math.random() * 100 < settingsRef.current.shapeMatchProb;
     const a = pick(SYMBOL_IDS);
     let b = pick(SYMBOL_IDS);
@@ -551,6 +552,7 @@ export default function PsychomoteurPsy0Test() {
           statsRef.current.calcMisses += 1;
         }
         calcAnsweredRef.current = false;
+        setFFlash(null);
         const idx = activeIdxRef.current + 1;
         activeIdxRef.current = idx;
         setActiveIdx(idx);
@@ -627,7 +629,7 @@ export default function PsychomoteurPsy0Test() {
       statsRef.current.shapeFalseAlarms += 1;
       setSpaceFlash('bad');
     }
-    window.setTimeout(() => setSpaceFlash(null), 350);
+    // Keep flash until next symbol change (cleared in spawnShapes)
   }, []);
 
   const handleF = useCallback(() => {
@@ -642,7 +644,7 @@ export default function PsychomoteurPsy0Test() {
       statsRef.current.calcFalseAlarms += 1;
       setFFlash('bad');
     }
-    window.setTimeout(() => setFFlash(null), 350);
+    // Keep flash until next calc step (cleared when activeIdx advances)
   }, []);
 
   useEffect(() => {

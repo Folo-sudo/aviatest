@@ -1,0 +1,47 @@
+---
+description: Erreurs déjà rencontrées sur AviaTest — à revérifier systématiquement
+alwaysApply: true
+---
+
+# Pièges AviaTest (ne pas recommencer)
+
+Checklist à appliquer après chaque changement visible (deploy, merge, “ça ne marche pas”, “rien n’a changé”) :
+
+## 1. Branche vs prod Netlify
+- Netlify déploie **`main`** uniquement.
+- Un commit seulement sur une feature branch (`cursor/...`) **n’apparaît pas** en prod.
+- Avant de dire “c’est live” : vérifier que le commit est sur `origin/main` (merge/push faits).
+
+## 2. URL Netlify figée
+- **Prod** : `https://gleeful-creponne-71552a.netlify.app/`
+- **Interdit pour vérifier un update** : `https://HASH--gleeful-creponne-71552a.netlify.app/` (deploy preview figé).
+- Si l’utilisateur “ne voit rien” : contrôler l’URL ouverte en premier.
+
+## 3. Cache navigateur
+- Après un deploy : hard refresh (`Cmd+Shift+R`) sur l’URL prod ci-dessus.
+- Attendre la fin du build Netlify (souvent 1–2 min) avant de conclure à un échec.
+
+## 4. `savePerformanceResult`
+- Signature réelle : `savePerformanceResult(exerciseId, correct, total, avgTimeMs?)`.
+- **Pas** un pourcentage seul en 2ᵉ argument (sauf si `total === 100` est voulu explicitement).
+
+## 5. Psychomoteur Psy0 — calculs / feedback
+- Les calculs doivent **avancer d’un cran à intervalle régulier** (slide ~1s), **pas** un scroll continu en px/s.
+- Setting : `calcStepIntervalSec` (pas `calcScrollSpeed`).
+- Feedback Espace/F : garder vert/rouge jusqu’au prochain symbole / prochain calcul (pas un flash 350ms).
+
+## 6. Mode examen / correction
+- Si `examMode` est **off** (défaut entraînement) : montrer la correction **immédiatement** après chaque question (flash ou écran ✓/✗).
+- Si `examMode` est **on** : pas de correction entre les questions.
+
+## 7. Après ajout d’un exercice
+Vérifier les 4 branchements :
+1. composant dans `src/components/exercises/`
+2. entrée dans `src/lib/data/exercises.ts` (`id`/`slug`/`ready: true`)
+3. dynamic import + map dans `ExerciseClient.tsx`
+4. couleur dans `PerformanceChart.tsx` (+ icône `page.tsx` si besoin)
+
+## Réponse type si “rien n’a changé”
+1. URL = prod sans hash ?
+2. Commit sur `origin/main` ?
+3. Deploy Netlify terminé + hard refresh ?

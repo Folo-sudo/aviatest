@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, RotateCcw, Home, Settings, Trash2 } from 'lucide-react';
 
@@ -48,6 +49,8 @@ interface Puzzle {
 interface GameSettings {
   numQuestions: number;
   timePerQuestionSec: number;
+  numShapes: number;
+  examMode: boolean;
 }
 
 interface QuestionResult {
@@ -61,6 +64,8 @@ const SETTINGS_KEY = 'aviatest-formes-glissees-settings';
 const DEFAULT_SETTINGS: GameSettings = {
   numQuestions: 10,
   timePerQuestionSec: 60,
+  numShapes: 3,
+  examMode: false,
 };
 
 const BG = '#d4d4d4';
@@ -68,7 +73,7 @@ const NAVY = '#1a2b4a';
 const GREY = '#a8a8a8';
 const CELL_BORDER = '#888';
 const GHOST_ALPHA = 0.45;
-const CELL_PX = 30;
+const CELL_PX = 36;
 
 // ============================================================================
 // Settings persistence
@@ -209,9 +214,9 @@ function fitsInGrid(piece: ShapePiece, offsetX: number, offsetY: number, size: n
   return true;
 }
 
-function generatePuzzle(): Puzzle {
+function generatePuzzle(numShapes: number): Puzzle {
   const gridSize = randInt(5, 7);
-  const numSolutionPieces = randInt(2, 4);
+  const numSolutionPieces = numShapes;
   const solutionPlacements: { piece: ShapePiece; offsetX: number; offsetY: number }[] = [];
 
   for (let i = 0; i < numSolutionPieces; i++) {
@@ -238,7 +243,7 @@ function generatePuzzle(): Puzzle {
 
   const hasNavy = target.some((row) => row.some((c) => c === 'navy'));
   if (!hasNavy) {
-    return generatePuzzle();
+    return generatePuzzle(numShapes);
   }
 
   const pieces: ShapePiece[] = solutionPlacements.map((p) => p.piece);
@@ -271,8 +276,8 @@ function generatePuzzle(): Puzzle {
   };
 }
 
-function generateQuestions(count: number): Puzzle[] {
-  return Array.from({ length: count }, () => generatePuzzle());
+function generateQuestions(count: number, numShapes: number): Puzzle[] {
+  return Array.from({ length: count }, () => generatePuzzle(numShapes));
 }
 
 function gridsMatch(a: CellColor[][], b: CellColor[][]): boolean {
@@ -338,7 +343,7 @@ function PatternGrid({
   return (
     <div className="flex flex-col items-center gap-2">
       {label && (
-        <p className="text-center text-sm font-semibold" style={{ color: NAVY }}>
+        <p className="text-center text-base font-semibold" style={{ color: NAVY }}>
           {label}
         </p>
       )}
@@ -407,7 +412,7 @@ function PiecePreview({
   selected,
   placed,
   onSelect,
-  cellSize = 18,
+  cellSize = 22,
 }: {
   piece: ShapePiece;
   selected: boolean;
@@ -448,6 +453,16 @@ function PiecePreview({
   );
 }
 
+function ColorSwatch({ color, size = 'md' }: { color: CellColor; size?: 'md' | 'lg' }) {
+  const dim = size === 'lg' ? 'h-8 w-8' : 'h-7 w-7';
+  return (
+    <span
+      className={`inline-block ${dim} rounded-md border shadow-sm`}
+      style={{ backgroundColor: cellFill(color), borderColor: CELL_BORDER }}
+    />
+  );
+}
+
 function SuperpositionLegend() {
   const rules: [CellColor, CellColor, CellColor][] = [
     ['navy', 'navy', 'navy'],
@@ -456,28 +471,19 @@ function SuperpositionLegend() {
   ];
 
   return (
-    <div
-      className="rounded-lg border bg-white/80 px-3 py-2 text-xs"
-      style={{ borderColor: '#bbb', color: NAVY }}
-    >
-      <p className="mb-1.5 text-center font-semibold">Superposition</p>
-      <div className="flex flex-wrap justify-center gap-3">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="mb-3 text-center text-base font-semibold text-slate-800">Superposition</p>
+      <div className="flex flex-col gap-2.5">
         {rules.map(([a, b, r], i) => (
-          <div key={i} className="flex items-center gap-1">
-            <span
-              className="inline-block h-4 w-4 rounded-sm border"
-              style={{ backgroundColor: cellFill(a), borderColor: CELL_BORDER }}
-            />
-            <span>+</span>
-            <span
-              className="inline-block h-4 w-4 rounded-sm border"
-              style={{ backgroundColor: cellFill(b), borderColor: CELL_BORDER }}
-            />
-            <span>=</span>
-            <span
-              className="inline-block h-4 w-4 rounded-sm border"
-              style={{ backgroundColor: cellFill(r), borderColor: CELL_BORDER }}
-            />
+          <div
+            key={i}
+            className="flex items-center justify-center gap-3 rounded-full border border-slate-100 bg-slate-50 px-5 py-2.5"
+          >
+            <ColorSwatch color={a} size="lg" />
+            <span className="text-base font-medium text-slate-500">+</span>
+            <ColorSwatch color={b} size="lg" />
+            <span className="text-base font-medium text-slate-500">=</span>
+            <ColorSwatch color={r} size="lg" />
           </div>
         ))}
       </div>
@@ -512,6 +518,7 @@ export default function FormesGlisseesTest() {
   const [totalTime, setTotalTime] = useState(DEFAULT_SETTINGS.timePerQuestionSec);
   const [locked, setLocked] = useState(false);
   const [successFlash, setSuccessFlash] = useState(false);
+  const [wrongFlash, setWrongFlash] = useState(false);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -559,6 +566,7 @@ export default function FormesGlisseesTest() {
     setSelectedPieceId(null);
     setGhostPos(null);
     setSuccessFlash(false);
+    setWrongFlash(false);
     advancingRef.current = false;
     lockedRef.current = false;
     setLocked(false);
@@ -583,12 +591,25 @@ export default function FormesGlisseesTest() {
         return;
       }
 
+      const examMode = settingsRef.current.examMode;
+      if (!examMode && outcome === 'correct') {
+        setSuccessFlash(true);
+      } else if (!examMode && outcome !== 'correct') {
+        setWrongFlash(true);
+      }
+
+      const delay = examMode
+        ? 80
+        : outcome === 'correct'
+          ? 800
+          : 650;
+
       setTimeout(() => {
         currentIdxRef.current = nextIdx;
         setCurrentIdx(nextIdx);
         resetQuestionState();
         startTimer(settingsRef.current.timePerQuestionSec * 1000);
-      }, outcome === 'correct' ? 450 : 0);
+      }, delay);
     },
     [clearTimer, resetQuestionState, startTimer],
   );
@@ -599,7 +620,9 @@ export default function FormesGlisseesTest() {
       if (!puzzle) return;
       const playerGrid = computePlayerGrid(puzzle.gridSize, puzzle.pieces, newPlacements);
       if (gridsMatch(playerGrid, puzzle.target)) {
-        setSuccessFlash(true);
+        if (!settingsRef.current.examMode) {
+          setSuccessFlash(true);
+        }
         finishOrNext('correct');
       }
     },
@@ -655,7 +678,10 @@ export default function FormesGlisseesTest() {
 
   const startGame = useCallback(() => {
     perfSavedRef.current = false;
-    const qs = generateQuestions(settingsRef.current.numQuestions);
+    const qs = generateQuestions(
+      settingsRef.current.numQuestions,
+      settingsRef.current.numShapes,
+    );
     setQuestions(qs);
     questionsRef.current = qs;
     setCurrentIdx(0);
@@ -724,6 +750,11 @@ export default function FormesGlisseesTest() {
                 <p className="text-xs text-slate-500">Par question</p>
               </div>
             </div>
+            {settings.examMode && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
+                Mode examen — pas de correction entre les questions
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>
                 <Play className="mr-2 h-5 w-5" /> Commencer
@@ -773,6 +804,27 @@ export default function FormesGlisseesTest() {
                 max={90}
                 step={5}
                 className="mt-2"
+              />
+            </div>
+            <div>
+              <Label>Nombre de formes : {settings.numShapes}</Label>
+              <Slider
+                value={[settings.numShapes]}
+                onValueChange={([v]) => setSettings((s) => ({ ...s, numShapes: v }))}
+                min={2}
+                max={4}
+                step={1}
+                className="mt-2"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Mode examen</Label>
+                <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+              </div>
+              <Switch
+                checked={settings.examMode}
+                onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))}
               />
             </div>
             <Button size="lg" className="w-full" onClick={() => setGameState('menu')}>
@@ -907,10 +959,6 @@ export default function FormesGlisseesTest() {
             successFlash ? 'opacity-60' : ''
           }`}
         >
-          <PatternGrid
-            grid={currentPuzzle.target}
-            label="Figures a reproduire"
-          />
           <div className="flex flex-col items-center gap-2">
             <PatternGrid
               grid={playerGrid.length ? playerGrid : emptyGrid}
@@ -935,10 +983,17 @@ export default function FormesGlisseesTest() {
               </Button>
             </div>
           </div>
+          <PatternGrid
+            grid={currentPuzzle.target}
+            label="Figures a reproduire"
+          />
         </div>
 
         {successFlash && (
-          <p className="mt-3 text-center text-lg font-bold text-green-700">Correct !</p>
+          <p className="mt-3 text-center text-xl font-bold text-green-700">Correct !</p>
+        )}
+        {wrongFlash && (
+          <p className="mt-3 text-center text-xl font-bold text-red-700">Passe — solution non affichee</p>
         )}
 
         {/* Pieces tray */}
@@ -960,8 +1015,8 @@ export default function FormesGlisseesTest() {
             ))}
           </div>
           {selectedPieceId && (
-            <p className="mt-2 text-center text-xs text-slate-600">
-              Cliquez sur la grille centrale pour placer le coin haut-gauche de la forme
+            <p className="mt-2 text-center text-sm text-slate-600">
+              Cliquez sur votre grille pour placer le coin haut-gauche de la forme
             </p>
           )}
         </div>
@@ -976,7 +1031,7 @@ export default function FormesGlisseesTest() {
           >
             Passer cette question...
           </button>
-          <p className="text-sm font-medium">
+          <p className="text-base font-medium">
             {currentIdx + 1} / {questions.length}
           </p>
         </div>

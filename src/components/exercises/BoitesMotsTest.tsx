@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
@@ -18,6 +19,7 @@ type GameState = 'menu' | 'settings' | 'playing' | 'results';
 interface GameSettings {
   numSeries: number;
   flashDuration: number;
+  examMode: boolean;
 }
 
 interface WordItem {
@@ -40,7 +42,7 @@ interface SeriesState {
 
 const SETTINGS_KEY = 'aviatest-boites-mots-settings';
 const EXERCISE_ID = 'boites-mots';
-const DEFAULT_SETTINGS: GameSettings = { numSeries: 5, flashDuration: 1.5 };
+const DEFAULT_SETTINGS: GameSettings = { numSeries: 5, flashDuration: 1.5, examMode: false };
 
 const THEME_PACKS: Record<string, string[]> = {
   'Races de chiens': [
@@ -156,6 +158,7 @@ export default function BoitesMotsTest() {
   const [series, setSeries] = useState<SeriesState | null>(null);
   const [totalErrors, setTotalErrors] = useState(0);
   const [errorFlash, setErrorFlash] = useState(false);
+  const [successFlash, setSuccessFlash] = useState(false);
   const [selectedBox, setSelectedBox] = useState<number | null>(null);
   const [wordAppearTime, setWordAppearTime] = useState(0);
   const [tick, setTick] = useState(0);
@@ -204,8 +207,10 @@ export default function BoitesMotsTest() {
     const box = series.boxes[boxIndex];
     const slotIndex = getNextEmptySlot(box);
     if (slotIndex === -1) {
-      setErrorFlash(true);
-      setTimeout(() => setErrorFlash(false), 250);
+      if (!settings.examMode) {
+        setErrorFlash(true);
+        setTimeout(() => setErrorFlash(false), 250);
+      }
       return;
     }
 
@@ -224,9 +229,16 @@ export default function BoitesMotsTest() {
 
     if (!isCorrect) {
       setTotalErrors(e => e + 1);
-      setErrorFlash(true);
-      setTimeout(() => setErrorFlash(false), 250);
+      if (!settings.examMode) {
+        setErrorFlash(true);
+        setTimeout(() => setErrorFlash(false), 250);
+      }
       return;
+    }
+
+    if (!settings.examMode) {
+      setSuccessFlash(true);
+      setTimeout(() => setSuccessFlash(false), 280);
     }
 
     const newBoxes = series.boxes.map((b, i) => {
@@ -241,15 +253,35 @@ export default function BoitesMotsTest() {
     });
 
     const newMapping = { ...series.themeMapping };
-    if (newMapping[current.themeId] === undefined) {
+    const firstLock = newMapping[current.themeId] === undefined;
+    if (firstLock) {
       newMapping[current.themeId] = boxIndex;
     }
 
+    // When a theme is first locked to a box, drop excess upcoming words for
+    // that theme so they fit remaining capacity (avoids stranded words).
+    let newQueue = series.wordQueue;
+    if (firstLock) {
+      const remainingSlots =
+        newBoxes[boxIndex].slots.filter((s) => s === null).length;
+      let keptForTheme = 0;
+      newQueue = series.wordQueue.filter((item, idx) => {
+        if (idx <= series.currentWordIndex) return true;
+        if (item.themeId !== current.themeId) return true;
+        if (keptForTheme < remainingSlots) {
+          keptForTheme += 1;
+          return true;
+        }
+        return false;
+      });
+    }
+
     const nextWordIndex = series.currentWordIndex + 1;
-    if (nextWordIndex >= series.wordQueue.length) {
+    if (nextWordIndex >= newQueue.length) {
       setSeries({
         ...series,
         boxes: newBoxes,
+        wordQueue: newQueue,
         themeMapping: newMapping,
         currentWordIndex: nextWordIndex,
       });
@@ -258,13 +290,14 @@ export default function BoitesMotsTest() {
       setSeries({
         ...series,
         boxes: newBoxes,
+        wordQueue: newQueue,
         themeMapping: newMapping,
         currentWordIndex: nextWordIndex,
       });
       setSelectedBox(null);
       setWordAppearTime(performance.now());
     }
-  }, [series, scorer, completeSeries]);
+  }, [series, scorer, completeSeries, settings.examMode]);
 
   const handleBoxClick = useCallback((boxIndex: number) => {
     setSelectedBox(boxIndex);
@@ -307,6 +340,11 @@ export default function BoitesMotsTest() {
             <p className="text-center text-sm text-slate-500">
               Le premier mot d&apos;un theme fixe la boite correspondante. Minimisez les erreurs.
             </p>
+            {settings.examMode && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
+                Mode examen — pas de retour visuel sur les placements
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startPlaying}>
                 <Play className="mr-2 h-5 w-5" /> Jouer
@@ -354,6 +392,16 @@ export default function BoitesMotsTest() {
                   max={1.8}
                   step={0.1}
                   className="mt-2"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Mode examen</Label>
+                  <p className="mt-0.5 text-xs text-slate-500">Pas de retour visuel sur les placements</p>
+                </div>
+                <Switch
+                  checked={settings.examMode}
+                  onCheckedChange={(v) => persistSettings({ ...settings, examMode: v })}
                 />
               </div>
             </div>
@@ -435,11 +483,11 @@ export default function BoitesMotsTest() {
   return (
     <div
       className={`flex min-h-screen flex-col items-center justify-center p-4 transition-colors duration-200 ${
-        errorFlash ? 'bg-red-100' : 'bg-[#e8e8e8]'
+        errorFlash ? 'bg-red-100' : successFlash ? 'bg-green-100' : 'bg-[#e8e8e8]'
       }`}
     >
       <div className="w-full max-w-5xl rounded-xl border border-slate-300 bg-[#f0f0f0] p-6 shadow-lg">
-        <div className="mb-6 flex items-center justify-between text-sm font-medium text-slate-600">
+        <div className="mb-6 flex items-center justify-between text-base font-medium text-slate-600">
           <span>Serie {seriesIndex + 1}/{settings.numSeries}</span>
           <span>Mot {Math.min(wordsDone + 1, wordsTotal)}/{wordsTotal}</span>
           <span className={totalErrors > 0 ? 'text-red-600' : ''}>Erreurs : {totalErrors}</span>

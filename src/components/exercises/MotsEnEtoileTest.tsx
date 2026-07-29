@@ -46,7 +46,9 @@ interface QuestionResult {
 
 const EXERCISE_ID = 'mots-en-etoile';
 const SETTINGS_KEY = 'aviatest-mots-en-etoile-settings';
-const BG = '#d4d4d4';
+const CELL_HALF = 17;
+const CELL_SIZE = CELL_HALF * 2;
+const CHEVRON_SIZE = 40;
 const NUM_EDGES = 6;
 const WORD_LEN = 7;
 
@@ -142,14 +144,29 @@ function chevronPos(edgeIndex: number): { x: number; y: number; angle: number } 
   const [startV, endV] = EDGE_VERTICES[edgeIndex];
   const s = vertexPos(startV);
   const e = vertexPos(endV);
-  const mx = (s.x + e.x) / 2;
-  const my = (s.y + e.y) / 2;
-  const angle = (Math.atan2(e.y - s.y, e.x - s.x) * 180) / Math.PI;
-  const nx = -(e.y - s.y);
-  const ny = e.x - s.x;
-  const len = Math.hypot(nx, ny) || 1;
-  const offset = 28;
-  return { x: mx + (nx / len) * offset, y: my + (ny / len) * offset, angle };
+
+  const distS = Math.hypot(s.x - CX, s.y - CY);
+  const distE = Math.hypot(e.x - CX, e.y - CY);
+  const outerVertex = distS >= distE ? s : e;
+  const innerVertex = distS < distE ? s : e;
+  const outerIsEnd = distS < distE;
+
+  const letterPos = outerIsEnd ? WORD_LEN - 1 : 0;
+  const cellCenter = edgeCellPos(edgeIndex, letterPos);
+
+  const angle =
+    (Math.atan2(outerVertex.y - innerVertex.y, outerVertex.x - innerVertex.x) * 180) / Math.PI;
+
+  const outwardDx = outerVertex.x - CX;
+  const outwardDy = outerVertex.y - CY;
+  const outwardLen = Math.hypot(outwardDx, outwardDy) || 1;
+  const outwardOffset = 28;
+
+  return {
+    x: cellCenter.x + (outwardDx / outwardLen) * outwardOffset,
+    y: cellCenter.y + (outwardDy / outwardLen) * outwardOffset,
+    angle,
+  };
 }
 
 // ============================================================================
@@ -333,10 +350,10 @@ function StarGrid({
             return (
               <g key={pos}>
                 <rect
-                  x={x - 15}
-                  y={y - 15}
-                  width={30}
-                  height={30}
+                  x={x - CELL_HALF}
+                  y={y - CELL_HALF}
+                  width={CELL_SIZE}
+                  height={CELL_SIZE}
                   rx={4}
                   fill={letter ? '#ffffff' : '#f8fafc'}
                   stroke={pos === 0 || pos === WORD_LEN - 1 ? '#fbbf24' : '#cbd5e1'}
@@ -344,9 +361,9 @@ function StarGrid({
                 />
                 <text
                   x={x}
-                  y={y + 5}
+                  y={y + 6}
                   textAnchor="middle"
-                  className="fill-slate-800 text-[13px] font-bold"
+                  className="fill-slate-800 text-[16px] font-bold"
                   style={{ fontFamily: 'ui-monospace, monospace' }}
                 >
                   {letter ?? '·'}
@@ -356,24 +373,24 @@ function StarGrid({
           })}
 
           <foreignObject
-            x={chevron.x - 18}
-            y={chevron.y - 18}
-            width={36}
-            height={36}
+            x={chevron.x - CHEVRON_SIZE / 2}
+            y={chevron.y - CHEVRON_SIZE / 2}
+            width={CHEVRON_SIZE}
+            height={CHEVRON_SIZE}
           >
             <button
               type="button"
               title="Placer le mot selectionne"
               disabled={disabled || !canPlace}
               onClick={() => onPlace(edgeIndex)}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
                 canPlace
                   ? 'cursor-pointer border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200'
                   : 'cursor-default border-slate-200 bg-slate-50 text-slate-300'
               }`}
               style={{ transform: `rotate(${chevron.angle}deg)` }}
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-6 w-6" />
             </button>
           </foreignObject>
 
@@ -626,10 +643,7 @@ export default function MotsEnEtoileTest() {
 
   if (gameState === 'menu') {
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center p-4"
-        style={{ backgroundColor: BG }}
-      >
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Mots en etoile</CardTitle>
@@ -690,10 +704,7 @@ export default function MotsEnEtoileTest() {
 
   if (gameState === 'settings') {
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center p-4"
-        style={{ backgroundColor: BG }}
-      >
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -773,10 +784,7 @@ export default function MotsEnEtoileTest() {
     else if (percent >= 40) grade = 'Passable';
 
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center p-4"
-        style={{ backgroundColor: BG }}
-      >
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Resultats</CardTitle>
@@ -857,7 +865,7 @@ export default function MotsEnEtoileTest() {
   if (!puzzle) return null;
 
   return (
-    <div className="flex min-h-screen flex-col p-4" style={{ backgroundColor: BG }}>
+    <div className="flex min-h-screen flex-col bg-[#d4d4d4] p-4">
       <div className="mx-auto w-full max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <Badge variant="outline" className="px-3 py-1 text-base">
