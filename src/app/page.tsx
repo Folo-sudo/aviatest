@@ -30,6 +30,8 @@ import {
   Library,
   Star,
   Languages,
+  Car,
+  Route,
 } from 'lucide-react';
 import {
   EXERCISES,
@@ -83,6 +85,8 @@ const iconMap: Record<string, React.ReactNode> = {
   Library: <Library className="h-6 w-6" />,
   Star: <Star className="h-6 w-6" />,
   Languages: <Languages className="h-6 w-6" />,
+  Car: <Car className="h-6 w-6" />,
+  Route: <Route className="h-6 w-6" />,
 };
 
 function getExerciseIcon(iconName: string): React.ReactNode {
