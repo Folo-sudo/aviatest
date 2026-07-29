@@ -246,16 +246,92 @@ function SceneView({
 }
 
 // ============================================================================
+// Top-down map (vue de haut) inside the numbered circle
+// ============================================================================
+
+const TOPDOWN_HALF_EXTENT = 6.2;
+
+function TopDownMap({
+  scene,
+  size,
+}: {
+  scene: THREE.Scene;
+  size: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (!rendererRef.current) {
+      rendererRef.current = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false,
+      });
+    }
+    const renderer = rendererRef.current;
+    renderer.setSize(size, size, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const cam = new THREE.OrthographicCamera(
+      -TOPDOWN_HALF_EXTENT,
+      TOPDOWN_HALF_EXTENT,
+      TOPDOWN_HALF_EXTENT,
+      -TOPDOWN_HALF_EXTENT,
+      0.1,
+      80,
+    );
+    // Align with viewpoint ring: #1 at top ⇒ world -Z points "up" on screen
+    cam.position.set(0, 28, 0);
+    cam.up.set(0, 0, -1);
+    cam.lookAt(0, 0, 0);
+
+    const prevFog = scene.fog;
+    const prevBg = scene.background;
+    scene.fog = null;
+    scene.background = new THREE.Color(0xc9a96e);
+    renderer.render(scene, cam);
+    scene.fog = prevFog;
+    scene.background = prevBg;
+  }, [scene, size]);
+
+  useEffect(() => {
+    return () => {
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        rendererRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      className="rounded-full border border-slate-400 block"
+      style={{ width: size, height: size }}
+      aria-label="Plan des formes vu de haut"
+    />
+  );
+}
+
+// ============================================================================
 // Viewpoint selector
 // ============================================================================
 
 function ViewpointSelector({
+  scene,
   selected,
   correct,
   showFeedback,
   disabled,
   onSelect,
 }: {
+  scene: THREE.Scene;
   selected: number | null;
   correct: number | null;
   showFeedback: boolean;
@@ -264,9 +340,10 @@ function ViewpointSelector({
 }) {
   const btnSize = 44;
   const halfBtn = btnSize / 2;
-  const size = 280;
+  const size = 320;
   const center = size / 2;
-  const radius = 104;
+  const radius = 138;
+  const mapSize = 212;
 
   return (
     <div className="relative mx-auto" style={{ width: size, height: size }}>
@@ -280,14 +357,16 @@ function ViewpointSelector({
         }}
       />
       <div
-        className="absolute rounded-full bg-slate-300/40 border border-slate-400"
+        className="absolute overflow-hidden rounded-full shadow-sm"
         style={{
-          left: center - 18,
-          top: center - 18,
-          width: 36,
-          height: 36,
+          left: center - mapSize / 2,
+          top: center - mapSize / 2,
+          width: mapSize,
+          height: mapSize,
         }}
-      />
+      >
+        <TopDownMap scene={scene} size={mapSize} />
+      </div>
       {Array.from({ length: VIEWPOINT_COUNT }, (_, i) => {
         const num = i + 1;
         const angle = (i / VIEWPOINT_COUNT) * Math.PI * 2 - Math.PI / 2;
@@ -309,7 +388,7 @@ function ViewpointSelector({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(num)}
-            className={`absolute rounded-full border-2 font-bold text-base transition-all shadow-sm ${ringClass} disabled:cursor-default`}
+            className={`absolute z-10 rounded-full border-2 font-bold text-base transition-all shadow-sm ${ringClass} disabled:cursor-default`}
             style={{ left: x, top: y, width: btnSize, height: btnSize, minWidth: btnSize, minHeight: btnSize }}
           >
             {num}
@@ -649,6 +728,20 @@ export default function Objets3DTest() {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 gap-6 max-w-5xl mx-auto w-full">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-base text-slate-600 text-center font-medium">
+            Plan vu de haut — cliquez le numero du point de vue
+          </p>
+          <ViewpointSelector
+            scene={q.scene}
+            selected={feedback?.selected ?? null}
+            correct={feedback && !settings.examMode ? q.correctViewpoint : null}
+            showFeedback={!!feedback && !settings.examMode}
+            disabled={!!feedback || advancingRef.current}
+            onSelect={handleAnswer}
+          />
+        </div>
+
         <div className="flex flex-col items-center gap-3 w-full lg:w-auto">
           <p className="text-center text-slate-800 font-semibold text-lg">
             Quel point de vue correspond a cette scene ?
@@ -658,19 +751,6 @@ export default function Objets3DTest() {
             viewpoint={q.correctViewpoint}
             width={sceneWidth}
             height={sceneHeight}
-          />
-        </div>
-
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-base text-slate-600 text-center font-medium">
-            Cliquez le numero du point de vue
-          </p>
-          <ViewpointSelector
-            selected={feedback?.selected ?? null}
-            correct={feedback && !settings.examMode ? q.correctViewpoint : null}
-            showFeedback={!!feedback && !settings.examMode}
-            disabled={!!feedback || advancingRef.current}
-            onSelect={handleAnswer}
           />
         </div>
       </div>
