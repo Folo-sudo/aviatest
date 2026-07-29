@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, Settings, RotateCcw, Home, Eye, Check } from 'lucide-react';
+import { ArrowLeft, Play, Settings, RotateCcw, Home, Eye, Check, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -43,13 +44,14 @@ interface GridResult {
 interface GameSettings {
   numGrids: number;
   timePerGridSec: number;
+  examMode: boolean;
 }
 
 // ============================================================================
 // Constants & settings persistence
 // ============================================================================
 
-const DEFAULT_SETTINGS: GameSettings = { numGrids: 10, timePerGridSec: 45 };
+const DEFAULT_SETTINGS: GameSettings = { numGrids: 10, timePerGridSec: 45, examMode: false };
 const SETTINGS_KEY = 'aviatest-grilles-calculs-settings';
 const EXERCISE_ID = 'grilles-calculs';
 const GRID_SIZE = 9;
@@ -216,12 +218,15 @@ export default function GrillesCalculsTest() {
   const [settingsState, setSettingsState] = useState<GameSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    setSettingsState(loadSettings());
+    const loaded = loadSettings();
+    setSettingsState(loaded);
+    settingsRef.current = loaded;
   }, []);
 
   const setSettings = useCallback((s: GameSettings | ((p: GameSettings) => GameSettings)) => {
     setSettingsState((prev) => {
       const next = typeof s === 'function' ? s(prev) : s;
+      settingsRef.current = next;
       saveSettingsLocal(next);
       return next;
     });
@@ -233,7 +238,11 @@ export default function GrillesCalculsTest() {
   const [gridResults, setGridResults] = useState<GridResult[]>([]);
   const [remainingSec, setRemainingSec] = useState(DEFAULT_SETTINGS.timePerGridSec);
   const [reviewIdx, setReviewIdx] = useState(0);
+  const [showCorrection, setShowCorrection] = useState(false);
+  const [correctionGridIdx, setCorrectionGridIdx] = useState(0);
   const timerExpiredRef = useRef(false);
+  const correctionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settingsRef = useRef<GameSettings>(DEFAULT_SETTINGS);
 
   const totalGrids = grids.length;
   const timePerGrid = settingsState.timePerGridSec;
@@ -261,22 +270,46 @@ export default function GrillesCalculsTest() {
     [grids, selected],
   );
 
-  const advanceOrFinish = useCallback(
-    (gridIdx: number, validated: boolean) => {
-      recordGridResult(gridIdx, validated);
+  const doAdvance = useCallback(
+    (gridIdx: number) => {
+      if (correctionTimeoutRef.current) {
+        clearTimeout(correctionTimeoutRef.current);
+        correctionTimeoutRef.current = null;
+      }
+      setShowCorrection(false);
       if (gridIdx < totalGrids - 1) {
         setCurrentIdx(gridIdx + 1);
         setRemainingSec(timePerGrid);
+        timerExpiredRef.current = false;
       } else {
         setGameState('results');
       }
     },
-    [recordGridResult, totalGrids, timePerGrid],
+    [totalGrids, timePerGrid],
+  );
+
+  const advanceOrFinish = useCallback(
+    (gridIdx: number, validated: boolean) => {
+      recordGridResult(gridIdx, validated);
+      if (settingsRef.current.examMode) {
+        doAdvance(gridIdx);
+      } else {
+        setCorrectionGridIdx(gridIdx);
+        setShowCorrection(true);
+        correctionTimeoutRef.current = setTimeout(() => doAdvance(gridIdx), 1000);
+      }
+    },
+    [recordGridResult, doAdvance],
   );
 
   const startPlaying = useCallback(() => {
     perfSavedRef.current = false;
     timerExpiredRef.current = false;
+    setShowCorrection(false);
+    if (correctionTimeoutRef.current) {
+      clearTimeout(correctionTimeoutRef.current);
+      correctionTimeoutRef.current = null;
+    }
     const gs = generateAllGrids(settingsState.numGrids);
     setGrids(gs);
     setSelected({});
@@ -297,33 +330,41 @@ export default function GrillesCalculsTest() {
     });
   }, []);
 
+  const handleCorrectionNext = useCallback(() => {
+    doAdvance(correctionGridIdx);
+  }, [doAdvance, correctionGridIdx]);
+
+  useEffect(() => () => {
+    if (correctionTimeoutRef.current) clearTimeout(correctionTimeoutRef.current);
+  }, []);
+
   const validateAndNext = useCallback(() => {
-    if (timerExpiredRef.current) return;
+    if (timerExpiredRef.current || showCorrection) return;
     timerExpiredRef.current = true;
     advanceOrFinish(currentIdx, true);
-  }, [advanceOrFinish, currentIdx]);
+  }, [advanceOrFinish, currentIdx, showCorrection]);
 
   // Reset per-grid timer when grid changes
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || showCorrection) return;
     timerExpiredRef.current = false;
     setRemainingSec(timePerGrid);
-  }, [gameState, currentIdx, timePerGrid]);
+  }, [gameState, currentIdx, timePerGrid, showCorrection]);
 
   // Per-grid timer — expires without validate => score 0
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || showCorrection) return;
     const iv = setInterval(() => {
       setRemainingSec((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
     return () => clearInterval(iv);
-  }, [gameState, currentIdx]);
+  }, [gameState, currentIdx, showCorrection]);
 
   useEffect(() => {
-    if (gameState !== 'playing' || remainingSec > 0 || timerExpiredRef.current) return;
+    if (gameState !== 'playing' || showCorrection || remainingSec > 0 || timerExpiredRef.current) return;
     timerExpiredRef.current = true;
     advanceOrFinish(currentIdx, false);
-  }, [gameState, remainingSec, currentIdx, advanceOrFinish]);
+  }, [gameState, remainingSec, currentIdx, advanceOrFinish, showCorrection]);
 
   const computeScore = useCallback(() => {
     if (gridResults.length === 0 && grids.length > 0) {
@@ -412,8 +453,10 @@ export default function GrillesCalculsTest() {
       totalDurationSec={timePerGrid}
       userSelected={userSelected}
       gridResults={gridResults}
+      showCorrection={showCorrection}
       onToggle={(cellIdx) => toggleCell(currentIdx, cellIdx)}
       onValidate={validateAndNext}
+      onCorrectionNext={handleCorrectionNext}
     />
   );
 }
@@ -457,6 +500,11 @@ function MenuScreen({
             <p>Grille 3&times;3 de calculs simples (+, &minus;, &times;, &divide;).</p>
             <p>0 a 4 calculs faux par grille. Validez obligatoirement avant expiration.</p>
           </div>
+          {settings.examMode && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
+              Mode examen — pas de correction entre les grilles
+            </div>
+          )}
           <div className="flex flex-col gap-3">
             <Button size="lg" className="w-full" onClick={onPlay}>
               <Play className="mr-2 h-5 w-5" /> Jouer
@@ -513,6 +561,16 @@ function SettingsScreen({
                 className="mt-2"
               />
             </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Mode examen</Label>
+                <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les grilles</p>
+              </div>
+              <Switch
+                checked={settings.examMode}
+                onCheckedChange={(v) => onChange({ ...settings, examMode: v })}
+              />
+            </div>
           </div>
           <Button variant="outline" className="w-full" onClick={onBack}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Retour
@@ -535,8 +593,10 @@ function PlayingScreen({
   totalDurationSec,
   userSelected,
   gridResults,
+  showCorrection,
   onToggle,
   onValidate,
+  onCorrectionNext,
 }: {
   grid: CalcGrid;
   gridIdx: number;
@@ -545,8 +605,10 @@ function PlayingScreen({
   totalDurationSec: number;
   userSelected: Set<number>;
   gridResults: GridResult[];
+  showCorrection: boolean;
   onToggle: (cellIdx: number) => void;
   onValidate: () => void;
+  onCorrectionNext: () => void;
 }) {
   const progress = Math.max(0, Math.min(1, remainingSec / totalDurationSec));
   const timerColor = progress > 0.5 ? 'bg-green-500' : progress > 0.2 ? 'bg-amber-500' : 'bg-red-500';
@@ -562,8 +624,12 @@ function PlayingScreen({
       </div>
 
       <div className="flex-1 flex flex-col p-4 min-h-screen">
-        <p className="text-sm text-slate-600 mb-4">
-          Cliquez sur les calculs <strong>faux</strong>
+        <p className="text-base text-slate-600 mb-4">
+          {showCorrection ? (
+            'Correction — vert = bon choix, rouge = erreur'
+          ) : (
+            <>Cliquez sur les calculs <strong>faux</strong></>
+          )}
         </p>
 
         {/* 3×3 grid */}
@@ -574,7 +640,8 @@ function PlayingScreen({
                 key={i}
                 cell={cell}
                 selected={userSelected.has(i)}
-                onToggle={() => onToggle(i)}
+                reviewMode={showCorrection}
+                onToggle={showCorrection ? undefined : () => onToggle(i)}
               />
             ))}
           </div>
@@ -584,12 +651,14 @@ function PlayingScreen({
         <div className="border-t border-slate-400 pt-3 mt-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
+              <span className="text-base font-medium text-slate-700 whitespace-nowrap">
                 {gridIdx + 1} / {totalGrids}
               </span>
-              <span className="text-sm text-slate-600 font-mono tabular-nums">
-                {formatMMSS(remainingSec)}
-              </span>
+              {!showCorrection && (
+                <span className="text-base text-slate-600 font-mono tabular-nums">
+                  {formatMMSS(remainingSec)}
+                </span>
+              )}
               <div className="flex gap-1 items-center">
                 {Array.from({ length: totalGrids }, (_, i) => {
                   const done = gridResults[i] != null;
@@ -609,14 +678,25 @@ function PlayingScreen({
                 })}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onValidate}
-              className="bg-sky-500 hover:bg-sky-600 text-white text-base sm:text-lg font-semibold px-8 py-3 rounded-lg flex items-center gap-2 shadow-md shrink-0"
-            >
-              <Check className="h-5 w-5" />
-              Valider
-            </button>
+            {showCorrection ? (
+              <button
+                type="button"
+                onClick={onCorrectionNext}
+                className="bg-sky-500 hover:bg-sky-600 text-white text-base sm:text-lg font-semibold px-8 py-4 rounded-lg flex items-center gap-2 shadow-md shrink-0"
+              >
+                Suivant
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onValidate}
+                className="bg-sky-500 hover:bg-sky-600 text-white text-base sm:text-lg font-semibold px-8 py-4 rounded-lg flex items-center gap-2 shadow-md shrink-0"
+              >
+                <Check className="h-5 w-5" />
+                Valider
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -659,7 +739,7 @@ function CalcCellButton({
         reviewMode ? '' : 'cursor-pointer hover:border-amber-400 active:scale-[0.98]'
       }`}
     >
-      <span className="text-lg sm:text-xl font-semibold text-slate-800 font-mono">
+      <span className="text-xl sm:text-2xl font-semibold text-slate-800 font-mono">
         {cell.expression} = {cell.displayedResult}
       </span>
     </button>

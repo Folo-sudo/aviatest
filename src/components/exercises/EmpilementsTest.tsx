@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
+import { CATALOG_COLORS } from '@/lib/3d/shapeCatalog';
 
 // ============================================================================
 // Types & constants
@@ -41,6 +43,7 @@ interface Question {
 interface GameSettings {
   numQuestions: number;
   timePerQuestionSec: number;
+  examMode: boolean;
 }
 
 interface AnswerRecord {
@@ -55,17 +58,13 @@ const SETTINGS_KEY = 'aviatest-empilements-settings';
 const DEFAULT_SETTINGS: GameSettings = {
   numQuestions: 20,
   timePerQuestionSec: 10,
+  examMode: false,
 };
 
-const CUBE_COLORS = [
-  '#e74c3c',
-  '#3498db',
-  '#2ecc71',
-  '#f39c12',
-  '#9b59b6',
-  '#1abc9c',
-  '#e67e22',
-];
+const FEEDBACK_MS_TRAINING = 1800;
+const FEEDBACK_MS_EXAM = 400;
+
+const CUBE_COLORS = CATALOG_COLORS;
 
 const NEIGHBORS: Vec3[] = [
   { x: 1, y: 0, z: 0 },
@@ -288,13 +287,13 @@ function structureBounds(structure: Structure, cubeW: number, cubeH: number) {
 
 function IsoStructure({
   structure,
-  size = 140,
+  size = 220,
 }: {
   structure: Structure;
   size?: number;
 }) {
-  const cubeW = 16;
-  const cubeH = 10;
+  const cubeW = 24;
+  const cubeH = 15;
   const bounds = structureBounds(structure, cubeW, cubeH);
   const contentW = bounds.maxX - bounds.minX;
   const contentH = bounds.maxY - bounds.minY;
@@ -370,6 +369,7 @@ export default function EmpilementsTest() {
   const perfSavedRef = useRef(false);
   const questionStartRef = useRef(0);
   const advancingRef = useRef(false);
+  const settingsRef = useRef<GameSettings>(DEFAULT_SETTINGS);
 
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettingsState] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -383,13 +383,16 @@ export default function EmpilementsTest() {
   } | null>(null);
 
   useEffect(() => {
-    setSettingsState(loadSettings());
+    const loaded = loadSettings();
+    setSettingsState(loaded);
+    settingsRef.current = loaded;
   }, []);
 
   const setSettings = useCallback(
     (s: GameSettings | ((prev: GameSettings) => GameSettings)) => {
       setSettingsState((prev) => {
         const next = typeof s === 'function' ? s(prev) : s;
+        settingsRef.current = next;
         saveSettingsLocal(next);
         return next;
       });
@@ -408,11 +411,17 @@ export default function EmpilementsTest() {
       advancingRef.current = true;
 
       setAnswers((prev) => [...prev, record]);
-      setFeedback(
-        record.selected !== null
-          ? { selected: record.selected, correct: record.correct }
-          : null,
-      );
+
+      const examMode = settingsRef.current.examMode;
+      if (!examMode) {
+        setFeedback(
+          record.selected !== null
+            ? { selected: record.selected, correct: record.correct }
+            : { selected: -1, correct: false },
+        );
+      }
+
+      const delay = examMode ? FEEDBACK_MS_EXAM : FEEDBACK_MS_TRAINING;
 
       window.setTimeout(() => {
         setFeedback(null);
@@ -422,12 +431,12 @@ export default function EmpilementsTest() {
           setGameState('results');
         } else {
           setCurrentIdx((i) => i + 1);
-          setTimeLeft(settings.timePerQuestionSec);
+          setTimeLeft(settingsRef.current.timePerQuestionSec);
           questionStartRef.current = performance.now();
         }
-      }, 550);
+      }, delay);
     },
-    [currentIdx, questions.length, settings.timePerQuestionSec],
+    [currentIdx, questions.length],
   );
 
   const startPlaying = useCallback(() => {
@@ -590,9 +599,9 @@ export default function EmpilementsTest() {
   const timerRatio = timeLeft / settings.timePerQuestionSec;
 
   return (
-    <div className="min-h-screen bg-[#e8e8e8] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-sm font-medium text-slate-600">
+        <p className="text-base font-medium text-slate-600">
           Question {currentIdx + 1} / {questions.length}
         </p>
         <p className="text-sm text-slate-500">
@@ -623,7 +632,7 @@ export default function EmpilementsTest() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
-        <p className="text-center text-slate-700 font-medium max-w-xl">
+        <p className="text-center text-slate-700 font-medium text-lg max-w-xl">
           Parmi ces trois empilements, lequel est different des deux autres ?
         </p>
 
@@ -631,8 +640,8 @@ export default function EmpilementsTest() {
           {([1, 2, 3] as const).map((num) => {
             const structure = q.structures[num - 1];
             const isSelected = feedback?.selected === num;
-            const showCorrect = feedback && num === q.answer;
-            const showWrong = feedback && isSelected && !feedback.correct;
+            const showCorrect = feedback && !settings.examMode && num === q.answer;
+            const showWrong = feedback && !settings.examMode && isSelected && !feedback.correct;
 
             let ringClass = 'ring-slate-300 hover:ring-slate-400';
             if (showCorrect) ringClass = 'ring-emerald-500 bg-emerald-50';
@@ -648,7 +657,7 @@ export default function EmpilementsTest() {
                 className={`flex flex-col items-center rounded-xl bg-white shadow-sm ring-2 transition-all p-3 ${ringClass} disabled:cursor-default`}
               >
                 <span className="text-lg font-bold text-slate-700 mb-2">{num}</span>
-                <IsoStructure structure={structure} size={160} />
+                <IsoStructure structure={structure} size={200} />
               </button>
             );
           })}
@@ -706,6 +715,11 @@ function MenuScreen({
             Deux structures sont identiques a une rotation pres. La troisieme a subi une
             symetrie : cliquez sur celle qui differe.
           </p>
+          {settings.examMode && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
+              Mode examen — pas de correction entre les questions
+            </div>
+          )}
           <div className="flex flex-col gap-3">
             <Button size="lg" className="w-full" onClick={onPlay}>
               <Play className="mr-2 h-5 w-5" /> Jouer
@@ -765,6 +779,16 @@ function SettingsScreen({
                 max={30}
                 step={1}
                 className="mt-2"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Mode examen</Label>
+                <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+              </div>
+              <Switch
+                checked={settings.examMode}
+                onCheckedChange={(v) => onChange((s) => ({ ...s, examMode: v }))}
               />
             </div>
           </div>

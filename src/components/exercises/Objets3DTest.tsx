@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
+import { createShapeMesh } from '@/lib/3d/shapeCatalog';
 
 // ============================================================================
 // Types & constants
@@ -21,6 +23,7 @@ type GameState = 'menu' | 'settings' | 'playing' | 'results';
 interface GameSettings {
   numQuestions: number;
   timePerQuestionSec: number;
+  examMode: boolean;
 }
 
 interface AnswerRecord {
@@ -44,7 +47,24 @@ const LOOK_AT = new THREE.Vector3(0, 1.2, 0);
 const DEFAULT_SETTINGS: GameSettings = {
   numQuestions: 20,
   timePerQuestionSec: 10,
+  examMode: false,
 };
+
+const FEEDBACK_MS_TRAINING = 1800;
+const FEEDBACK_MS_EXAM = 400;
+
+const DESERT_LANDMARK_IDS = [
+  'tower',
+  'cactus',
+  'rock',
+  'barrel',
+  'cone_marker',
+  'pyramid',
+  'crate',
+  'antenna',
+  'L_polycube',
+  'T_polycube',
+] as const;
 
 // ============================================================================
 // Settings persistence
@@ -111,69 +131,33 @@ function createDesertScene(): THREE.Scene {
   fill.position.set(-6, 4, -8);
   scene.add(fill);
 
-  // Tower / relay — tall orange structure with white top
-  const towerX = randRange(-3, 3);
-  const towerZ = randRange(-3, 3);
-  const towerGroup = new THREE.Group();
-  const towerMat = new THREE.MeshPhongMaterial({ color: 0xe07030 });
-  const towerBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 2.2, 8), towerMat);
-  towerBase.position.y = 1.1;
-  const towerTop = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 0.6, 0.5),
-    new THREE.MeshPhongMaterial({ color: 0xf0f0f0 }),
-  );
-  towerTop.position.y = 2.5;
-  const antenna = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.04, 1.2, 6),
-    new THREE.MeshPhongMaterial({ color: 0x888888 }),
-  );
-  antenna.position.y = 3.4;
-  towerGroup.add(towerBase, towerTop, antenna);
-  towerGroup.position.set(towerX, 0, towerZ);
-  scene.add(towerGroup);
+  const placeLandmark = (id: (typeof DESERT_LANDMARK_IDS)[number]) => {
+    const mesh = createShapeMesh(THREE, id);
+    mesh.position.set(randRange(-4, 4), 0, randRange(-4, 4));
+    mesh.rotation.y = randRange(0, Math.PI * 2);
+    if (id === 'rock') {
+      mesh.scale.multiplyScalar(randRange(0.85, 1.35));
+    } else if (id === 'crate' || id === 'barrel') {
+      mesh.scale.multiplyScalar(randRange(0.9, 1.15));
+    }
+    scene.add(mesh);
+  };
 
-  // Rocks — gray irregular blobs
+  placeLandmark('tower');
+  placeLandmark('cone_marker');
+  placeLandmark('barrel');
+
   const rockCount = 2 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < rockCount; i++) {
-    const rock = new THREE.Mesh(
-      new THREE.SphereGeometry(randRange(0.35, 0.65), 8, 6),
-      new THREE.MeshPhongMaterial({ color: 0x7a7a7a }),
-    );
-    rock.scale.set(randRange(0.8, 1.4), randRange(0.5, 0.9), randRange(0.8, 1.3));
-    rock.position.set(randRange(-4, 4), rock.scale.y * 0.35, randRange(-4, 4));
-    scene.add(rock);
-  }
+  for (let i = 0; i < rockCount; i++) placeLandmark('rock');
 
-  // Cactus-like cones — green stacked
   const cactusCount = 1 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < cactusCount; i++) {
-    const cactusGroup = new THREE.Group();
-    const cactusMat = new THREE.MeshPhongMaterial({ color: 0x3a8a4a });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 1.6, 8), cactusMat);
-    body.position.y = 0.8;
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.8, 8), cactusMat);
-    arm.position.set(0.35, 1.1, 0);
-    arm.rotation.z = -Math.PI / 3;
-    cactusGroup.add(body, arm);
-    cactusGroup.position.set(randRange(-4, 4), 0, randRange(-4, 4));
-    scene.add(cactusGroup);
+  for (let i = 0; i < cactusCount; i++) placeLandmark('cactus');
+
+  const extras = ['pyramid', 'crate', 'antenna', 'L_polycube', 'T_polycube'] as const;
+  const extraCount = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < extraCount; i++) {
+    placeLandmark(extras[Math.floor(Math.random() * extras.length)]);
   }
-
-  // Small red marker cone for extra landmark
-  const marker = new THREE.Mesh(
-    new THREE.ConeGeometry(0.3, 0.7, 6),
-    new THREE.MeshPhongMaterial({ color: 0xd03030 }),
-  );
-  marker.position.set(randRange(-3.5, 3.5), 0.35, randRange(-3.5, 3.5));
-  scene.add(marker);
-
-  // Blue barrel / tank
-  const barrel = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.4, 0.4, 0.9, 12),
-    new THREE.MeshPhongMaterial({ color: 0x3060b0 }),
-  );
-  barrel.position.set(randRange(-3, 3), 0.45, randRange(-3, 3));
-  scene.add(barrel);
 
   return scene;
 }
@@ -278,9 +262,11 @@ function ViewpointSelector({
   disabled: boolean;
   onSelect: (n: number) => void;
 }) {
-  const size = 240;
+  const btnSize = 44;
+  const halfBtn = btnSize / 2;
+  const size = 280;
   const center = size / 2;
-  const radius = 88;
+  const radius = 104;
 
   return (
     <div className="relative mx-auto" style={{ width: size, height: size }}>
@@ -305,8 +291,8 @@ function ViewpointSelector({
       {Array.from({ length: VIEWPOINT_COUNT }, (_, i) => {
         const num = i + 1;
         const angle = (i / VIEWPOINT_COUNT) * Math.PI * 2 - Math.PI / 2;
-        const x = center + Math.cos(angle) * radius - 20;
-        const y = center + Math.sin(angle) * radius - 20;
+        const x = center + Math.cos(angle) * radius - halfBtn;
+        const y = center + Math.sin(angle) * radius - halfBtn;
 
         let ringClass = 'bg-white border-slate-400 hover:border-slate-600 hover:bg-slate-50';
         if (showFeedback && correct === num) {
@@ -323,8 +309,8 @@ function ViewpointSelector({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(num)}
-            className={`absolute w-10 h-10 rounded-full border-2 font-bold text-sm transition-all shadow-sm ${ringClass} disabled:cursor-default`}
-            style={{ left: x, top: y }}
+            className={`absolute rounded-full border-2 font-bold text-base transition-all shadow-sm ${ringClass} disabled:cursor-default`}
+            style={{ left: x, top: y, width: btnSize, height: btnSize, minWidth: btnSize, minHeight: btnSize }}
           >
             {num}
           </button>
@@ -352,12 +338,16 @@ export default function Objets3DTest() {
   const advancingRef = useRef(false);
   const questionStartRef = useRef(0);
   const scenesRef = useRef<THREE.Scene[]>([]);
+  const settingsRef = useRef<GameSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    setSettings(loadSettings());
+    const loaded = loadSettings();
+    setSettings(loaded);
+    settingsRef.current = loaded;
   }, []);
 
   useEffect(() => {
+    settingsRef.current = settings;
     saveSettingsLocal(settings);
   }, [settings]);
 
@@ -377,11 +367,17 @@ export default function Objets3DTest() {
       advancingRef.current = true;
 
       setAnswers((prev) => [...prev, record]);
-      setFeedback(
-        record.selected !== null
-          ? { selected: record.selected, correct: record.correct }
-          : null,
-      );
+
+      const examMode = settingsRef.current.examMode;
+      if (!examMode) {
+        setFeedback(
+          record.selected !== null
+            ? { selected: record.selected, correct: record.correct }
+            : { selected: -1, correct: false },
+        );
+      }
+
+      const delay = examMode ? FEEDBACK_MS_EXAM : FEEDBACK_MS_TRAINING;
 
       window.setTimeout(() => {
         setFeedback(null);
@@ -391,12 +387,12 @@ export default function Objets3DTest() {
           setGameState('results');
         } else {
           setCurrentIdx((i) => i + 1);
-          setTimeLeft(settings.timePerQuestionSec);
+          setTimeLeft(settingsRef.current.timePerQuestionSec);
           questionStartRef.current = performance.now();
         }
-      }, 600);
+      }, delay);
     },
-    [currentIdx, questions.length, settings.timePerQuestionSec],
+    [currentIdx, questions.length],
   );
 
   const startPlaying = useCallback(() => {
@@ -466,7 +462,7 @@ export default function Objets3DTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#e8e8e8] p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Objets 3D</CardTitle>
@@ -491,6 +487,11 @@ export default function Objets3DTest() {
               Observez la scene desertique et indiquez quel numero de point de vue (1 a 8)
               correspond a la photo affichee.
             </p>
+            {settings.examMode && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
+                Mode examen — pas de correction entre les questions
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startPlaying}>
                 <Play className="mr-2 h-5 w-5" /> Jouer
@@ -510,7 +511,7 @@ export default function Objets3DTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#e8e8e8] p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -540,6 +541,18 @@ export default function Objets3DTest() {
                   className="mt-2"
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Mode examen</Label>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Pas de correction prolongee entre les questions
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.examMode}
+                  onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))}
+                />
+              </div>
             </div>
             <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Retour
@@ -557,7 +570,7 @@ export default function Objets3DTest() {
     const perfEntries = loadEntries(EXERCISE_ID);
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#e8e8e8] p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Resultats</CardTitle>
@@ -609,7 +622,7 @@ export default function Objets3DTest() {
   return (
     <div className="min-h-screen bg-[#e8e8e8] flex flex-col">
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-sm font-medium text-slate-600">
+        <p className="text-base font-medium text-slate-600">
           Question {currentIdx + 1} / {questions.length}
         </p>
         <p className="text-sm text-slate-500">
@@ -637,7 +650,7 @@ export default function Objets3DTest() {
 
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 gap-6 max-w-5xl mx-auto w-full">
         <div className="flex flex-col items-center gap-3 w-full lg:w-auto">
-          <p className="text-center text-slate-700 font-medium">
+          <p className="text-center text-slate-800 font-semibold text-lg">
             Quel point de vue correspond a cette scene ?
           </p>
           <SceneView
@@ -649,13 +662,13 @@ export default function Objets3DTest() {
         </div>
 
         <div className="flex flex-col items-center gap-3">
-          <p className="text-sm text-slate-500 text-center">
+          <p className="text-base text-slate-600 text-center font-medium">
             Cliquez le numero du point de vue
           </p>
           <ViewpointSelector
             selected={feedback?.selected ?? null}
-            correct={feedback ? q.correctViewpoint : null}
-            showFeedback={!!feedback}
+            correct={feedback && !settings.examMode ? q.correctViewpoint : null}
+            showFeedback={!!feedback && !settings.examMode}
             disabled={!!feedback || advancingRef.current}
             onSelect={handleAnswer}
           />

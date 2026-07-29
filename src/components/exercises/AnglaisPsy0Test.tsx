@@ -48,7 +48,7 @@ const EXERCISE_ID = 'anglais-psy0';
 const DEFAULT_SETTINGS: GameSettings = {
   totalQuestions: 30,
   timeLimitSec: 450,
-  examMode: true,
+  examMode: false,
 };
 
 const BG = '#d4d4d4';

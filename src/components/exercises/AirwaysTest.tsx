@@ -57,8 +57,7 @@ const SERIES_STEPS = 48;
 
 const LINES = 12;
 const COLS = 27;
-const GREY_START = 10;
-const GREY_END = 16; // exclusive
+const GREY_WIDTH = 6;
 const MAX_BLUE_GREY = 2;
 const MAX_TOTAL_GREY = 4;
 
@@ -66,6 +65,9 @@ const DEFAULT_SETTINGS: GameSettings = {
   numSeries: 10,
   stepMs: 700,
 };
+
+/** Inclusive grey band [lo, hi] — Pilotest grey_range style */
+type GreyRange = [number, number];
 
 function loadSettings(): GameSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
@@ -87,12 +89,17 @@ function saveSettings(s: GameSettings): void {
 }
 
 function lineColor(line: number): 'blue' | 'purple' {
-  // Alternate: even = blue (←), odd = purple (→) — matches Pilotest b_line / p_line mix
   return line % 2 === 0 ? 'blue' : 'purple';
 }
 
-function inGrey(col: number): boolean {
-  return col >= GREY_START && col < GREY_END;
+function randomGreyRange(): GreyRange {
+  const maxLo = COLS - GREY_WIDTH - 2;
+  const lo = 2 + Math.floor(Math.random() * Math.max(1, maxLo - 1));
+  return [lo, lo + GREY_WIDTH - 1];
+}
+
+function inGrey(col: number, range: GreyRange): boolean {
+  return col >= range[0] && col <= range[1];
 }
 
 function areaOf(line: number): 0 | 1 {
@@ -112,6 +119,8 @@ export default function AirwaysTest() {
   const [diverted, setDiverted] = useState(0);
   const [accident, setAccident] = useState(false);
   const [seriesStats, setSeriesStats] = useState<SeriesStats[]>([]);
+  const [greyTop, setGreyTop] = useState<GreyRange>([10, 15]);
+  const [greyBot, setGreyBot] = useState<GreyRange>([10, 15]);
   const planesRef = useRef<Plane[]>([]);
   const divertedRef = useRef(0);
   const accidentRef = useRef(false);
@@ -123,6 +132,8 @@ export default function AirwaysTest() {
   const seriesDivertedStartRef = useRef(0);
   const stepsRef = useRef(0);
   const seriesStatsRef = useRef<SeriesStats[]>([]);
+  const greyTopRef = useRef<GreyRange>([10, 15]);
+  const greyBotRef = useRef<GreyRange>([10, 15]);
   const perfSavedRef = useRef(false);
 
   useEffect(() => {
@@ -142,11 +153,12 @@ export default function AirwaysTest() {
   }, []);
 
   const countGrey = useCallback((list: Plane[], area: 0 | 1) => {
+    const range = area === 0 ? greyTopRef.current : greyBotRef.current;
     let blue = 0;
     let total = 0;
     for (const p of list) {
       if (areaOf(p.line) !== area) continue;
-      if (!inGrey(p.col)) continue;
+      if (!inGrey(p.col, range)) continue;
       total += 1;
       if (p.color === 'blue') blue += 1;
     }
@@ -160,7 +172,6 @@ export default function AirwaysTest() {
       setGameState('results');
       if (!perfSavedRef.current) {
         perfSavedRef.current = true;
-        // Score: series without accident, penalize heavy diverting lightly
         const survived = stats.filter((s) => s.survived).length;
         savePerformanceResult(EXERCISE_ID, survived, stats.length);
       }
@@ -182,6 +193,13 @@ export default function AirwaysTest() {
       setPlanes([]);
       seriesDivertedStartRef.current = divertedRef.current;
       stepsRef.current = 0;
+      // Move grey zones each series (AviaTest upgrade over fixed Pilotest patterns)
+      const top = randomGreyRange();
+      const bot = randomGreyRange();
+      greyTopRef.current = top;
+      greyBotRef.current = bot;
+      setGreyTop(top);
+      setGreyBot(bot);
       setGameState('playing');
       playingRef.current = true;
     },
@@ -336,7 +354,7 @@ export default function AirwaysTest() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: BG }}>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Airways</CardTitle>
@@ -473,6 +491,14 @@ export default function AirwaysTest() {
 
   // ---- PLAYING ----
   const cellW = `${100 / COLS}%`;
+  const topCriteriaStyle = {
+    marginLeft: `${(100 * greyTop[0]) / COLS}%`,
+    marginRight: `${100 * (1 - (greyTop[1] + 1) / COLS)}%`,
+  };
+  const botCriteriaStyle = {
+    marginLeft: `${(100 * greyBot[0]) / COLS}%`,
+    marginRight: `${100 * (1 - (greyBot[1] + 1) / COLS)}%`,
+  };
 
   return (
     <main
@@ -480,30 +506,34 @@ export default function AirwaysTest() {
       style={{ backgroundColor: BG }}
     >
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-2">
-        {/* Top criteria (area 0) */}
+        {/* Top criteria aligned over grey zone */}
         <div
-          className="mb-1 flex w-[min(96vw,1100px)] justify-center gap-0"
-          style={{ height: '4.5vmin' }}
+          className="relative mb-1 w-[min(96vw,1100px)]"
+          style={{ height: '5vmin' }}
         >
           <div
-            className="flex flex-1 items-center justify-center rounded-t-xl border-2 border-b-0 border-gray-500 bg-white text-sm font-semibold shadow"
-            style={{ color: BLUE }}
+            className="absolute inset-y-0 flex"
+            style={topCriteriaStyle}
           >
-            {criteria.top.blue}/{MAX_BLUE_GREY}{' '}
-            <span className="ml-1 inline-block" style={{ transform: 'scaleX(-1)' }}>
-              ▶
-            </span>
-          </div>
-          <div
-            className="flex flex-1 items-center justify-center rounded-t-xl border-2 border-b-0 border-l-0 border-gray-500 bg-white text-sm font-semibold shadow"
-            style={{ color: PURPLE }}
-          >
-            {criteria.top.total}/{MAX_TOTAL_GREY} ▶
+            <div
+              className="flex flex-1 items-center justify-center rounded-t-xl border-2 border-b-0 border-gray-500 bg-white text-base font-semibold shadow"
+              style={{ color: BLUE }}
+            >
+              {criteria.top.blue}/{MAX_BLUE_GREY}{' '}
+              <span className="ml-1 inline-block" style={{ transform: 'scaleX(-1)' }}>
+                ▶
+              </span>
+            </div>
+            <div
+              className="flex flex-1 items-center justify-center rounded-t-xl border-2 border-b-0 border-l-0 border-gray-500 bg-white text-base font-semibold shadow"
+              style={{ color: PURPLE }}
+            >
+              {criteria.top.total}/{MAX_TOTAL_GREY} ▶
+            </div>
           </div>
         </div>
 
         <div className="flex w-[min(96vw,1100px)] items-stretch" style={{ height: '70vmin' }}>
-          {/* Big purple divert (all purple) */}
           <button
             type="button"
             disabled={accident}
@@ -515,20 +545,19 @@ export default function AirwaysTest() {
             <span className="text-2xl text-white">✕</span>
           </button>
 
-          {/* Grid */}
           <div className="mx-[1%] flex min-w-0 flex-1 flex-col justify-around rounded-md bg-white p-1 shadow">
             {[0, 1].map((area) => (
               <div key={area} className="flex flex-[1] flex-col justify-around py-0.5">
                 {Array.from({ length: 6 }, (_, i) => {
                   const line = area * 6 + i;
                   const color = lineColor(line);
+                  const range = area === 0 ? greyTop : greyBot;
                   return (
                     <div
                       key={line}
-                      className="relative flex flex-1 border border-gray-400"
+                      className="relative flex flex-1 border border-solid border-gray-400"
                       style={{ minHeight: 0 }}
                     >
-                      {/* small divert btn */}
                       {color === 'purple' ? (
                         <button
                           type="button"
@@ -547,11 +576,16 @@ export default function AirwaysTest() {
                         />
                       )}
                       {Array.from({ length: COLS }, (_, col) => {
-                        const grey = inGrey(col);
+                        const grey = inGrey(col, range);
                         const plane = planes.find(
                           (p) => p.line === line && p.col === col
                         );
-                        const bg = accident && grey ? ACCIDENT : grey ? GREY_ZONE : 'transparent';
+                        const bg =
+                          accident && grey
+                            ? ACCIDENT
+                            : grey
+                              ? GREY_ZONE
+                              : 'transparent';
                         return (
                           <div
                             key={col}
@@ -559,6 +593,8 @@ export default function AirwaysTest() {
                             style={{
                               width: cellW,
                               backgroundColor: bg,
+                              borderLeft:
+                                col === 0 ? undefined : '1px dashed #9ca3af',
                             }}
                           >
                             {plane && (
@@ -585,7 +621,6 @@ export default function AirwaysTest() {
             ))}
           </div>
 
-          {/* Big blue divert */}
           <button
             type="button"
             disabled={accident}
@@ -598,29 +633,30 @@ export default function AirwaysTest() {
           </button>
         </div>
 
-        {/* Bottom criteria (area 1) */}
         <div
-          className="mt-1 flex w-[min(96vw,1100px)] justify-center gap-0"
-          style={{ height: '4.5vmin' }}
+          className="relative mt-1 w-[min(96vw,1100px)]"
+          style={{ height: '5vmin' }}
         >
-          <div
-            className="flex flex-1 items-center justify-center rounded-b-xl border-2 border-t-0 border-gray-500 bg-white text-sm font-semibold shadow"
-            style={{ color: BLUE }}
-          >
-            {criteria.bot.blue}/{MAX_BLUE_GREY}{' '}
-            <span className="ml-1 inline-block" style={{ transform: 'scaleX(-1)' }}>
-              ▶
-            </span>
-          </div>
-          <div
-            className="flex flex-1 items-center justify-center rounded-b-xl border-2 border-t-0 border-l-0 border-gray-500 bg-white text-sm font-semibold shadow"
-            style={{ color: PURPLE }}
-          >
-            {criteria.bot.total}/{MAX_TOTAL_GREY} ▶
+          <div className="absolute inset-y-0 flex" style={botCriteriaStyle}>
+            <div
+              className="flex flex-1 items-center justify-center rounded-b-xl border-2 border-t-0 border-gray-500 bg-white text-base font-semibold shadow"
+              style={{ color: BLUE }}
+            >
+              {criteria.bot.blue}/{MAX_BLUE_GREY}{' '}
+              <span className="ml-1 inline-block" style={{ transform: 'scaleX(-1)' }}>
+                ▶
+              </span>
+            </div>
+            <div
+              className="flex flex-1 items-center justify-center rounded-b-xl border-2 border-t-0 border-l-0 border-gray-500 bg-white text-base font-semibold shadow"
+              style={{ color: PURPLE }}
+            >
+              {criteria.bot.total}/{MAX_TOTAL_GREY} ▶
+            </div>
           </div>
         </div>
 
-        <div className="mt-2 flex w-[min(96vw,1100px)] items-center justify-between text-sm text-[#37322f]">
+        <div className="mt-2 flex w-[min(96vw,1100px)] items-center justify-between text-base text-[#37322f]">
           <span>
             {seriesIndex} / {diverted} → {settings.numSeries}
           </span>

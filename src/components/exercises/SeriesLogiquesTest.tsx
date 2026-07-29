@@ -55,7 +55,7 @@ const SETTINGS_KEY = 'aviatest-series-logiques-settings';
 const DEFAULT_SETTINGS: GameSettings = {
   totalQuestions: 15,
   timePerQuestionSec: 30,
-  examMode: true,
+  examMode: false,
 };
 
 const BG = '#d4d4d4';
@@ -365,6 +365,8 @@ export default function SeriesLogiquesTest() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [locked, setLocked] = useState(false);
+  const [flashIdx, setFlashIdx] = useState<number | null>(null);
+  const [flashCorrect, setFlashCorrect] = useState<boolean | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
@@ -403,29 +405,29 @@ export default function SeriesLogiquesTest() {
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 
-  const finishOrNext = useCallback(
-    (result: QuestionResult) => {
-      const idx = currentIdxRef.current;
-      const qs = questionsRef.current;
-      setResults((prev) => [...prev, result]);
+  const goToNextQuestion = useCallback(() => {
+    const idx = currentIdxRef.current;
+    const qs = questionsRef.current;
 
-      if (idx + 1 >= qs.length) {
-        clearTimer();
-        setLocked(false);
-        lockedRef.current = false;
-        setGameState('results');
-        return;
-      }
-
-      const nextIdx = idx + 1;
-      currentIdxRef.current = nextIdx;
-      setCurrentIdx(nextIdx);
+    if (idx + 1 >= qs.length) {
+      clearTimer();
       setLocked(false);
       lockedRef.current = false;
-      startTimer(settingsRef.current.timePerQuestionSec * 1000);
-    },
-    [clearTimer, startTimer],
-  );
+      setFlashIdx(null);
+      setFlashCorrect(null);
+      setGameState('results');
+      return;
+    }
+
+    const nextIdx = idx + 1;
+    currentIdxRef.current = nextIdx;
+    setCurrentIdx(nextIdx);
+    setLocked(false);
+    lockedRef.current = false;
+    setFlashIdx(null);
+    setFlashCorrect(null);
+    startTimer(settingsRef.current.timePerQuestionSec * 1000);
+  }, [clearTimer, startTimer]);
 
   const recordAnswer = useCallback(
     (selectedIndex: number | null, outcome: AnswerOutcome) => {
@@ -436,14 +438,26 @@ export default function SeriesLogiquesTest() {
 
       const timeUsed = Date.now() - questionStartRef.current;
       const q = questionsRef.current[currentIdxRef.current];
-      finishOrNext({
+      const result: QuestionResult = {
         question: q,
         selectedIndex,
         outcome,
         timeUsedMs: timeUsed,
-      });
+      };
+      setResults((prev) => [...prev, result]);
+
+      if (settingsRef.current.examMode) {
+        goToNextQuestion();
+      } else {
+        if (selectedIndex !== null) {
+          setFlashIdx(selectedIndex);
+          setFlashCorrect(outcome === 'correct');
+        }
+        const delay = outcome === 'correct' ? 280 : outcome === 'incorrect' ? 650 : 400;
+        window.setTimeout(goToNextQuestion, delay);
+      }
     },
-    [clearTimer, finishOrNext],
+    [clearTimer, goToNextQuestion],
   );
 
   const handleChoice = useCallback(
@@ -762,22 +776,30 @@ export default function SeriesLogiquesTest() {
 
         {/* Answers 2x2 */}
         <div className="mx-auto mb-4 grid w-full max-w-lg grid-cols-2 gap-3 pr-8">
-          {currentQ?.choices.map((choice, i) => (
-            <button
-              key={i}
-              type="button"
-              disabled={locked}
-              onClick={() => handleChoice(i)}
-              className="rounded-full px-4 py-4 text-lg font-semibold shadow-md transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
-              style={{
-                backgroundColor: '#ffffff',
-                color: NAVY,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-              }}
-            >
-              {choice}
-            </button>
-          ))}
+          {currentQ?.choices.map((choice, i) => {
+            const isFlash = flashIdx === i;
+            const flashStyle =
+              isFlash && flashCorrect === true
+                ? { backgroundColor: '#dcfce7', color: '#166534', border: '2px solid #22c55e' }
+                : isFlash && flashCorrect === false
+                  ? { backgroundColor: '#fee2e2', color: '#991b1b', border: '2px solid #ef4444' }
+                  : { backgroundColor: '#ffffff', color: NAVY, border: '2px solid transparent' };
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={locked}
+                onClick={() => handleChoice(i)}
+                className="rounded-full px-4 py-4 text-lg font-semibold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+                style={{
+                  ...flashStyle,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                }}
+              >
+                {choice}
+              </button>
+            );
+          })}
         </div>
 
         {/* Skip */}
@@ -793,10 +815,10 @@ export default function SeriesLogiquesTest() {
 
         {/* Progress footer */}
         <div
-          className="border-t py-3 pr-8 text-center text-lg font-medium"
+          className="border-t py-3 pr-8 text-center text-base font-medium"
           style={{ borderColor: 'rgba(26,43,74,0.2)', color: NAVY }}
         >
-          {displayIdx} &rarr; {settings.totalQuestions}
+          {displayIdx + 1} &rarr; {settings.totalQuestions}
         </div>
       </div>
     </div>
