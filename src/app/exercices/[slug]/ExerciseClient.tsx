@@ -119,6 +119,56 @@ const AnglaisPsy0Test = dynamic(
   () => import('@/components/exercises/AnglaisPsy0Test'),
   { ssr: false }
 );
+const CalculMental4Test = dynamic(
+  () => import('@/components/exercises/CalculMental4Test'),
+  { ssr: false }
+);
+const Attention1Test = dynamic(
+  () => import('@/components/exercises/Attention1Test'),
+  { ssr: false }
+);
+const Attention2Test = dynamic(
+  () => import('@/components/exercises/Attention2Test'),
+  { ssr: false }
+);
+const MathematiquesTest = dynamic(
+  () => import('@/components/exercises/MathematiquesTest'),
+  { ssr: false }
+);
+const EfgTest = dynamic(() => import('@/components/exercises/EfgTest'), {
+  ssr: false,
+});
+const TangramTest = dynamic(() => import('@/components/exercises/TangramTest'), {
+  ssr: false,
+});
+const SpatialOrientationTest = dynamic(
+  () => import('@/components/exercises/SpatialOrientationTest'),
+  { ssr: false }
+);
+const CubesPsy1Test = dynamic(
+  () => import('@/components/exercises/CubesPsy1Test'),
+  { ssr: false }
+);
+const VoituresBasicTest = dynamic(
+  () => import('@/components/exercises/VoituresBasicTest'),
+  { ssr: false }
+);
+const VoituresSeqTest = dynamic(
+  () => import('@/components/exercises/VoituresSeqTest'),
+  { ssr: false }
+);
+const MatricesRavenTest = dynamic(
+  () => import('@/components/exercises/MatricesRavenTest'),
+  { ssr: false }
+);
+const LectureTextesTest = dynamic(
+  () => import('@/components/exercises/LectureTextesTest'),
+  { ssr: false }
+);
+const PsychomoteurEnacTest = dynamic(
+  () => import('@/components/exercises/PsychomoteurEnacTest'),
+  { ssr: false }
+);
 
 // Map slug to component
 const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = {
@@ -151,6 +201,19 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'mots-en-etoile': MotsEnEtoileTest,
   'series-logiques': SeriesLogiquesTest,
   'anglais-psy0': AnglaisPsy0Test,
+  'calcul-mental-4': CalculMental4Test,
+  'attention-1': Attention1Test,
+  'attention-2': Attention2Test,
+  mathematiques: MathematiquesTest,
+  efg: EfgTest,
+  tangram: TangramTest,
+  'spatial-orientation': SpatialOrientationTest,
+  'cubes-psy1': CubesPsy1Test,
+  'voitures-basic': VoituresBasicTest,
+  'voitures-sequentiel': VoituresSeqTest,
+  'matrices-raven': MatricesRavenTest,
+  'lecture-textes': LectureTextesTest,
+  'psychomoteur-enac': PsychomoteurEnacTest,
 };
 
 function ExerciseLoader({ slug }: { slug: string }) {

@@ -39,6 +39,21 @@ const LINE_COLORS: Record<string, string> = {
   'mots-en-etoile': '#DB2777',
   'series-logiques': '#8B5CF6',
   'anglais-psy0': '#0EA5E9',
+  'm4-back': '#0284C7',
+  'm5-back': '#0369A1',
+  'calcul-mental-4': '#2563EB',
+  'attention-1': '#7C3AED',
+  'attention-2': '#A855F7',
+  mathematiques: '#1D4ED8',
+  efg: '#4F46E5',
+  tangram: '#EA580C',
+  'spatial-orientation': '#C2410C',
+  'cubes-psy1': '#D97706',
+  'voitures-basic': '#0F766E',
+  'voitures-sequentiel': '#115E59',
+  'matrices-raven': '#6D28D9',
+  'lecture-textes': '#BE185D',
+  'psychomoteur-enac': '#059669',
 };
 
 function getLineColor(exerciseId: string): string {
