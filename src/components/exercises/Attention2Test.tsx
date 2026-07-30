@@ -19,6 +19,9 @@ import { useRouter } from 'next/navigation';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 type Rotation = 0 | 90 | 180 | 270;
+type SymbolFamily = 'formes' | 'appareils' | 'mixte';
+type BoardFamily = Exclude<SymbolFamily, 'mixte'>;
+type DeviceId = 'tv' | 'radio' | 'camera' | 'camcorder' | 'monitor' | 'telephone';
 
 interface Orientation {
   rot: Rotation;
@@ -29,11 +32,13 @@ interface GameSettings {
   numBoards: number;
   totalTimeSec: number;
   examMode: boolean;
+  symbolFamily: SymbolFamily;
 }
 
 interface BoardData {
-  reference: Orientation;
-  cells: Orientation[];
+  family: BoardFamily;
+  reference: Orientation | DeviceId;
+  cells: Array<Orientation | DeviceId>;
   rows: number;
   cols: number;
   answer: number;
@@ -56,6 +61,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   numBoards: 10,
   totalTimeSec: 180,
   examMode: false,
+  symbolFamily: 'appareils',
 };
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
@@ -102,7 +108,7 @@ function orientationTransform(o: Orientation): string {
   return `scaleX(${o.mirror ? -1 : 1}) rotate(${o.rot}deg)`;
 }
 
-function generateBoard(): BoardData {
+function generateFormBoard(): BoardData {
   const total = ROWS * COLS;
   const reference = randomOrientation();
   let cells: Orientation[] = [];
@@ -126,11 +132,42 @@ function generateBoard(): BoardData {
     attempts++;
   } while ((answer < 6 || answer > 20) && attempts < 15);
 
-  return { reference, cells, rows: ROWS, cols: COLS, answer };
+  return { family: 'formes', reference, cells, rows: ROWS, cols: COLS, answer };
 }
 
-function generateBoards(count: number): BoardData[] {
-  return Array.from({ length: count }, () => generateBoard());
+const DEVICE_IDS: DeviceId[] = ['tv', 'radio', 'camera', 'camcorder', 'monitor', 'telephone'];
+
+function generateDeviceBoard(): BoardData {
+  const total = ROWS * COLS;
+  const reference = DEVICE_IDS[randInt(0, DEVICE_IDS.length - 1)];
+  let cells: DeviceId[] = [];
+  let answer = 0;
+  let attempts = 0;
+
+  do {
+    cells = [];
+    answer = 0;
+    const matchProbability = 0.16 + Math.random() * 0.08;
+    for (let i = 0; i < total; i++) {
+      if (Math.random() < matchProbability) {
+        cells.push(reference);
+        answer++;
+      } else {
+        const distractors = DEVICE_IDS.filter((device) => device !== reference);
+        cells.push(distractors[randInt(0, distractors.length - 1)]);
+      }
+    }
+    attempts++;
+  } while ((answer < 6 || answer > 20) && attempts < 15);
+
+  return { family: 'appareils', reference, cells, rows: ROWS, cols: COLS, answer };
+}
+
+function generateBoards(count: number, symbolFamily: SymbolFamily): BoardData[] {
+  return Array.from({ length: count }, (_, index) => {
+    const family: BoardFamily = symbolFamily === 'mixte' ? (index % 2 === 0 ? 'appareils' : 'formes') : symbolFamily;
+    return family === 'appareils' ? generateDeviceBoard() : generateFormBoard();
+  });
 }
 
 // ============================================================================
@@ -150,6 +187,83 @@ function FlagIcon({ orientation, size = 22, color = '#1a2b4a' }: { orientation: 
       />
     </svg>
   );
+}
+
+function DeviceIcon({ device, size = 22, color = '#1f2937' }: { device: DeviceId; size?: number; color?: string }) {
+  const common = {
+    fill: 'none',
+    stroke: color,
+    strokeWidth: 1.7,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" shapeRendering="geometricPrecision">
+      {device === 'tv' && (
+        <>
+          <path {...common} d="M9 8 13 4M23 8 19 4M6 9h20v15H6zM12 28h8M16 24v4" />
+          <text x="16" y="19" fill={color} fontSize="5.3" fontFamily="Arial, sans-serif" textAnchor="middle">OFF</text>
+        </>
+      )}
+      {device === 'radio' && (
+        <>
+          <path {...common} d="M7 10h18v15H7zM10 7l5-3M10 15h7M10 18h5" />
+          <circle {...common} cx="20.5" cy="17.5" r="3.3" />
+          <path {...common} d="M9 25v2M23 25v2" />
+        </>
+      )}
+      {device === 'camera' && (
+        <>
+          <path {...common} d="M5 11h6l2-3h6l2 3h6v14H5zM12 11h8" />
+          <circle {...common} cx="16" cy="18" r="4.4" />
+          <path {...common} d="M22 14h2" />
+        </>
+      )}
+      {device === 'camcorder' && (
+        <>
+          <path {...common} d="M5 12h14v12H5zM19 15l7-4v14l-7-4zM8 9h7M9 24v3M16 24v3" />
+          <circle {...common} cx="12" cy="18" r="2.3" />
+        </>
+      )}
+      {device === 'monitor' && (
+        <>
+          <path {...common} d="M5 7h22v15H5zM13 26h6M16 22v4" />
+          <path {...common} d="M8 10h16" opacity="0.35" />
+        </>
+      )}
+      {device === 'telephone' && (
+        <>
+          <path {...common} d="M9 6h14v20H9zM12 9h8M14 23h4" />
+          <path {...common} d="M12 13h2M16 13h2M20 13h1M12 17h2M16 17h2M20 17h1" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function BoardSymbol({
+  family,
+  value,
+  size,
+  color,
+}: {
+  family: BoardFamily;
+  value: Orientation | DeviceId;
+  size: number;
+  color?: string;
+}) {
+  return family === 'formes' ? (
+    <FlagIcon orientation={value as Orientation} size={size} color={color} />
+  ) : (
+    <DeviceIcon device={value as DeviceId} size={size} color={color} />
+  );
+}
+
+function symbolFamilyLabel(family: SymbolFamily): string {
+  if (family === 'formes') return 'Formes pivotees';
+  if (family === 'mixte') return 'Mixte';
+  return 'Appareils';
 }
 
 // ============================================================================
@@ -229,7 +343,7 @@ export default function Attention2Test() {
   const startGame = useCallback(() => {
     scorer.reset();
     perfSavedRef.current = false;
-    const bs = generateBoards(settingsRef.current.numBoards);
+    const bs = generateBoards(settingsRef.current.numBoards, settingsRef.current.symbolFamily);
     setBoards(bs);
     setCurrentIdx(0);
     setResults([]);
@@ -323,8 +437,11 @@ export default function Attention2Test() {
               </p>
               <p>Un symbole de reference est affiche en haut de chaque tableau.</p>
               <p>
-                Comptez combien de symboles de la grille ont <strong>exactement la meme orientation</strong>{' '}
-                (rotation et sens) que la reference. Les distracteurs sont des versions pivotees ou inversees.
+                {settings.symbolFamily === 'formes'
+                  ? <>Comptez les symboles qui ont <strong>exactement la meme orientation</strong> (rotation et sens) que la reference.</>
+                  : settings.symbolFamily === 'mixte'
+                    ? <>Les tableaux alternent entre formes pivotees et appareils. Comptez les symboles <strong>strictement identiques</strong> a la reference.</>
+                    : <>Comptez les appareils <strong>strictement identiques</strong> a la reference. Les distracteurs sont des appareils proches mais differents.</>}
               </p>
               {settings.totalTimeSec > 0 && (
                 <p>
@@ -339,18 +456,19 @@ export default function Attention2Test() {
             </div>
 
             <div className="flex items-center justify-center gap-6 rounded-lg bg-slate-100 p-4">
-              <div className="text-center">
-                <FlagIcon orientation={{ rot: 0, mirror: false }} size={32} />
-                <p className="mt-1 text-xs text-slate-500">Reference</p>
-              </div>
-              <div className="text-center">
-                <FlagIcon orientation={{ rot: 90, mirror: false }} size={32} color="#94a3b8" />
-                <p className="mt-1 text-xs text-slate-400">Distracteur</p>
-              </div>
-              <div className="text-center">
-                <FlagIcon orientation={{ rot: 0, mirror: true }} size={32} color="#94a3b8" />
-                <p className="mt-1 text-xs text-slate-400">Distracteur</p>
-              </div>
+              {settings.symbolFamily === 'formes' ? (
+                <>
+                  <div className="text-center"><FlagIcon orientation={{ rot: 0, mirror: false }} size={32} /><p className="mt-1 text-xs text-slate-500">Reference</p></div>
+                  <div className="text-center"><FlagIcon orientation={{ rot: 90, mirror: false }} size={32} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
+                  <div className="text-center"><FlagIcon orientation={{ rot: 0, mirror: true }} size={32} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center"><DeviceIcon device="tv" size={34} /><p className="mt-1 text-xs text-slate-500">Reference</p></div>
+                  <div className="text-center"><DeviceIcon device="monitor" size={34} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
+                  <div className="text-center"><DeviceIcon device="radio" size={34} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -432,6 +550,23 @@ export default function Attention2Test() {
                   step={15}
                   className="mt-2"
                 />
+              </div>
+              <div>
+                <Label>Famille de symboles</Label>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {(['appareils', 'formes', 'mixte'] as SymbolFamily[]).map((family) => (
+                    <Button
+                      key={family}
+                      type="button"
+                      variant={settings.symbolFamily === family ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSettings((s) => ({ ...s, symbolFamily: family }))}
+                    >
+                      {symbolFamilyLabel(family)}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500">Mixte alterne les deux familles a chaque tableau.</p>
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -575,20 +710,23 @@ export default function Attention2Test() {
             <CardContent className="space-y-5">
               <div className="flex items-center justify-center gap-3 rounded-lg bg-slate-100 p-3">
                 <span className="text-sm text-slate-500">Reference :</span>
-                <FlagIcon orientation={board.reference} size={28} />
+                <BoardSymbol family={board.family} value={board.reference} size={28} />
               </div>
               <div
                 className="mx-auto grid gap-1.5 rounded-lg bg-[#e8e8e8] p-3"
                 style={{ gridTemplateColumns: `repeat(${board.cols}, 1fr)`, maxWidth: 460 }}
               >
                 {board.cells.map((c, i) => {
-                  const isMatch = sameOrientation(c, board.reference);
+                  const isMatch =
+                    board.family === 'formes'
+                      ? sameOrientation(c as Orientation, board.reference as Orientation)
+                      : c === board.reference;
                   return (
                     <div
                       key={i}
                       className={`flex items-center justify-center rounded ${isMatch ? 'bg-green-200 ring-1 ring-green-500' : ''}`}
                     >
-                      <FlagIcon orientation={c} size={18} />
+                      <BoardSymbol family={board.family} value={c} size={18} />
                     </div>
                   );
                 })}
@@ -620,7 +758,7 @@ export default function Attention2Test() {
                 <div className="flex items-center justify-center gap-3">
                   <span className="text-sm text-slate-500">Symbole de reference :</span>
                   <div className="rounded-lg bg-slate-100 p-2">
-                    <FlagIcon orientation={board?.reference ?? { rot: 0, mirror: false }} size={30} />
+                    {board && <BoardSymbol family={board.family} value={board.reference} size={30} />}
                   </div>
                 </div>
               </CardContent>
@@ -634,7 +772,7 @@ export default function Attention2Test() {
                 >
                   {board?.cells.map((c, i) => (
                     <div key={i} className="flex items-center justify-center">
-                      <FlagIcon orientation={c} size={18} />
+                      <BoardSymbol family={board.family} value={c} size={18} />
                     </div>
                   ))}
                 </div>

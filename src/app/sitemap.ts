@@ -27,22 +27,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // Exercise pages
   const exercisePages: MetadataRoute.Sitemap = EXERCISES.filter((e) => e.ready).map(
-    (exercise) => {
-      // Handle m-back special cases
-      let url = `${BASE_URL}/exercices/${exercise.slug}`;
-      if (exercise.id === 'm2-back') {
-        url = `${BASE_URL}/exercices/m-back?n=2`;
-      } else if (exercise.id === 'm3-back') {
-        url = `${BASE_URL}/exercices/m-back?n=3`;
-      }
-
-      return {
-        url,
-        lastModified: new Date(),
-        changeFrequency: 'monthly' as const,
-        priority: 0.8,
-      };
-    }
+    (exercise) => ({
+      url: `${BASE_URL}/exercices/${exercise.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    })
   );
 
   // Competition pages

@@ -11,13 +11,11 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-// Generate static params for all exercises (except m-back which uses query params)
+// Generate static params for all exercises
 export async function generateStaticParams() {
-  return EXERCISES
-    .filter((e) => e.ready && !e.id.includes('m2-back') && !e.id.includes('m3-back'))
-    .map((exercise) => ({
-      slug: exercise.slug,
-    }));
+  return EXERCISES.filter((e) => e.ready).map((exercise) => ({
+    slug: exercise.slug,
+  }));
 }
 
 // Dynamic metadata generation

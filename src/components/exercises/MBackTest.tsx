@@ -15,6 +15,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 type InternalState = 'sliding' | 'memorize' | 'waiting' | 'feedback';
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
+type NPreset = 2 | 3 | 4 | 5;
+type NSelection = NPreset | 'custom';
 
 interface GameSettings {
   scrollSpeed: number;
@@ -23,10 +25,98 @@ interface GameSettings {
   showAnswer: boolean;
 }
 
-export function MBackTest() {
+const PERFORMANCE_ID = 'memory-back';
+const MBACK_STORAGE_KEY = 'aviatest-mback-settings';
+const CUSTOM_N_MIN = 6;
+const CUSTOM_N_MAX = 100;
+
+const N_PRESETS: { value: NPreset; label: string; color: string }[] = [
+  { value: 2, label: '2 Back', color: '#22c55e' },
+  { value: 3, label: '3 Back', color: '#a3a832' },
+  { value: 4, label: '4 Back', color: '#f59e0b' },
+  { value: 5, label: '5 Back', color: '#ef4444' },
+];
+const CUSTOM_N_COLOR = '#7f1d1d';
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+interface MBackPersistedSettings {
+  nSelection: NSelection;
+  customN: number;
+}
+
+function loadPersistedNSelection(): MBackPersistedSettings | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(MBACK_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<MBackPersistedSettings>;
+    const customN = typeof parsed.customN === 'number'
+      ? clamp(parsed.customN, CUSTOM_N_MIN, CUSTOM_N_MAX)
+      : CUSTOM_N_MIN;
+    const nSelection: NSelection = parsed.nSelection === 'custom'
+      || parsed.nSelection === 2
+      || parsed.nSelection === 3
+      || parsed.nSelection === 4
+      || parsed.nSelection === 5
+      ? parsed.nSelection
+      : 2;
+    return { nSelection, customN };
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedNSelection(settings: MBackPersistedSettings): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(MBACK_STORAGE_KEY, JSON.stringify(settings));
+  } catch { /* quota exceeded or unavailable */ }
+}
+
+export function MBackTest({ n: nProp }: { n?: number }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const n = parseInt(searchParams.get('n') || '2');
+
+  const [nSelection, setNSelection] = useState<NSelection>(2);
+  const [customN, setCustomN] = useState<number>(CUSTOM_N_MIN);
+  const n = nSelection === 'custom' ? customN : nSelection;
+
+  // Resolve initial n: explicit prop/query (legacy deep link) > persisted choice > default 2-back
+  useEffect(() => {
+    const explicitN = nProp ?? (searchParams.get('n') ? parseInt(searchParams.get('n')!, 10) : null);
+    if (explicitN && !Number.isNaN(explicitN)) {
+      if (explicitN >= 2 && explicitN <= 5) {
+        setNSelection(explicitN as NPreset);
+      } else {
+        const clamped = clamp(explicitN, CUSTOM_N_MIN, CUSTOM_N_MAX);
+        setNSelection('custom');
+        setCustomN(clamped);
+      }
+      return;
+    }
+    const persisted = loadPersistedNSelection();
+    if (persisted) {
+      setNSelection(persisted.nSelection);
+      setCustomN(persisted.customN);
+    }
+    // Only run once on mount: explicit deep-link params take priority over persisted settings.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectPreset = useCallback((value: NPreset) => {
+    setNSelection(value);
+    savePersistedNSelection({ nSelection: value, customN });
+  }, [customN]);
+
+  const selectCustom = useCallback((value: number) => {
+    const clamped = clamp(value, CUSTOM_N_MIN, CUSTOM_N_MAX);
+    setCustomN(clamped);
+    setNSelection('custom');
+    savePersistedNSelection({ nSelection: 'custom', customN: clamped });
+  }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const perfSavedRef = useRef(false);
@@ -345,10 +435,65 @@ export function MBackTest() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-bold">M{n} Back</CardTitle>
-            <CardDescription className="text-lg">Test de memoire numerique</CardDescription>
+            <CardTitle className="text-4xl font-bold">Memory Back</CardTitle>
+            <CardDescription className="text-lg">Test de memoire de travail — niveau actuel : M{n} Back</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <Label className="mb-2 block text-slate-600">Choisissez le niveau</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {N_PRESETS.map((preset) => {
+                  const isSelected = nSelection === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => selectPreset(preset.value)}
+                      className="rounded-lg py-3 px-2 text-center font-semibold transition-all"
+                      style={{
+                        border: `2px solid ${preset.color}`,
+                        backgroundColor: isSelected ? preset.color : 'white',
+                        color: isSelected ? 'white' : preset.color,
+                        boxShadow: isSelected ? `0 0 0 3px ${preset.color}33` : 'none',
+                        transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => selectCustom(customN)}
+                  className="rounded-lg py-3 px-2 text-center font-semibold transition-all col-span-3 sm:col-span-1"
+                  style={{
+                    border: `2px solid ${CUSTOM_N_COLOR}`,
+                    backgroundColor: nSelection === 'custom' ? CUSTOM_N_COLOR : 'white',
+                    color: nSelection === 'custom' ? 'white' : CUSTOM_N_COLOR,
+                    boxShadow: nSelection === 'custom' ? `0 0 0 3px ${CUSTOM_N_COLOR}33` : 'none',
+                    transform: nSelection === 'custom' ? 'scale(1.03)' : 'scale(1)',
+                  }}
+                >
+                  Custom
+                </button>
+              </div>
+              {nSelection === 'custom' && (
+                <div className="mt-4 p-4 rounded-lg bg-slate-50 space-y-2">
+                  <Label>Niveau personnalise : M{customN} Back</Label>
+                  <Slider
+                    value={[customN]}
+                    onValueChange={([v]) => selectCustom(v)}
+                    min={CUSTOM_N_MIN}
+                    max={CUSTOM_N_MAX}
+                    step={1}
+                  />
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>{CUSTOM_N_MIN}</span>
+                    <span>{CUSTOM_N_MAX}</span>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-4 text-center">
               <div className="p-4 bg-slate-50 rounded-lg">
                 <p className="text-2xl font-bold text-slate-700">{settings.totalQuestions}</p>
@@ -403,12 +548,11 @@ export function MBackTest() {
 
   if (gameState === 'results') {
     const scoreData = scorer.toJSON();
-    const mbackId = n === 3 ? 'm3-back' : 'm2-back';
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
-      savePerformanceResult(mbackId, scoreData.correct, settings.totalQuestions);
+      savePerformanceResult(PERFORMANCE_ID, scoreData.correct, settings.totalQuestions);
     }
-    const perfEntries = loadEntries(mbackId);
+    const perfEntries = loadEntries(PERFORMANCE_ID);
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-lg">
@@ -435,7 +579,7 @@ export function MBackTest() {
               <div className="border-t pt-4">
                 <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId={mbackId} />
+                  <MiniPerformanceChart entries={perfEntries} exerciseId={PERFORMANCE_ID} />
                 </div>
               </div>
             )}

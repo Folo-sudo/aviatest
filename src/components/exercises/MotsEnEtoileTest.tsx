@@ -144,29 +144,29 @@ function chevronPos(edgeIndex: number): { x: number; y: number; angle: number } 
   const [startV, endV] = EDGE_VERTICES[edgeIndex];
   const s = vertexPos(startV);
   const e = vertexPos(endV);
+  const mid = { x: (s.x + e.x) / 2, y: (s.y + e.y) / 2 };
 
-  const distS = Math.hypot(s.x - CX, s.y - CY);
-  const distE = Math.hypot(e.x - CX, e.y - CY);
-  const outerVertex = distS >= distE ? s : e;
-  const innerVertex = distS < distE ? s : e;
-  const outerIsEnd = distS < distE;
-
-  const letterPos = outerIsEnd ? WORD_LEN - 1 : 0;
-  const cellCenter = edgeCellPos(edgeIndex, letterPos);
-
-  const angle =
-    (Math.atan2(outerVertex.y - innerVertex.y, outerVertex.x - innerVertex.x) * 180) / Math.PI;
-
-  const outwardDx = outerVertex.x - CX;
-  const outwardDy = outerVertex.y - CY;
+  // All 6 star vertices sit on the same circle of radius R, so distance-
+  // from-center can't tell "outer" from "inner" vertex on an edge (they're
+  // equal). Instead, use the radial direction from the star's center
+  // through the edge's midpoint: every point of the star outline (vertices
+  // + letter cells) lies at radius <= R, so placing the chevron beyond R
+  // along this ray keeps it clear of the star no matter the edge.
+  const outwardDx = mid.x - CX;
+  const outwardDy = mid.y - CY;
   const outwardLen = Math.hypot(outwardDx, outwardDy) || 1;
-  const outwardOffset = 28;
+  const ux = outwardDx / outwardLen;
+  const uy = outwardDy / outwardLen;
 
-  return {
-    x: cellCenter.x + (outwardDx / outwardLen) * outwardOffset,
-    y: cellCenter.y + (outwardDy / outwardLen) * outwardOffset,
-    angle,
-  };
+  const outwardRadius = R + CELL_SIZE + CHEVRON_SIZE / 2 + 6;
+  const x = CX + ux * outwardRadius;
+  const y = CY + uy * outwardRadius;
+
+  // Point the chevron back toward the edge/star — i.e. toward where the
+  // word will actually be placed — instead of away from it.
+  const angle = (Math.atan2(-uy, -ux) * 180) / Math.PI;
+
+  return { x, y, angle };
 }
 
 // ============================================================================
@@ -330,7 +330,7 @@ function StarGrid({
   }, []);
 
   return (
-    <svg viewBox="0 0 600 520" className="mx-auto h-full w-full max-h-[480px]">
+    <svg viewBox="0 0 600 560" className="mx-auto h-full w-full max-h-[480px]">
       {starLines.map((line, i) => (
         <line
           key={i}

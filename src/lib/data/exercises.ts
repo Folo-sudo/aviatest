@@ -344,48 +344,28 @@ export const EXERCISES: ExerciseConfig[] = [
     ready: true,
   },
   {
-    id: 'm2-back',
-    slug: 'm2-back',
-    title: 'M2 Back',
-    description: "Identifiez si le chiffre correspond a celui d'il y a 2 tours",
+    id: 'memory-back',
+    slug: 'memory-back',
+    title: 'Memory Back',
+    description:
+      "Identifiez si le chiffre correspond a celui presente n tours plus tot (n reglable de 2 a 100)",
     longDescription:
-      'Ce test mesure votre memoire de travail. Vous devez comparer chaque chiffre presente avec celui qui apparaissait 2 positions avant.',
+      "Ce test mesure votre memoire de travail (n-back). Vous devez comparer chaque chiffre presente avec celui qui apparaissait n positions avant. Choisissez un niveau preregle (M2, M3, M4, M5) ou un n personnalise de 6 a 100 pour un entrainement sur mesure.",
     types: ['memorisation', 'attention'],
     primaryType: 'memorisation',
     competitions: ['psy0', 'psy1', 'enac-epl'],
     difficulty: 'moyen',
-    seoTitle: 'Test M2 Back - Memoire de Travail Pilote | AviaTest',
+    seoTitle: 'Test Memory Back (N-Back) - Memoire de Travail Pilote | AviaTest',
     seoDescription:
-      'Test de memoire de travail M2-Back pour selections pilote. Entrainement PSY0, PSY1 et ENAC EPL.',
+      'Test de memoire de travail N-Back pour selections pilote. M2, M3, M4, M5 Back et niveau personnalise. Entrainement PSY0, PSY1 et ENAC EPL.',
     seoKeywords: [
-      'test m2 back',
-      'memoire de travail',
+      'test memory back',
       'n-back test pilote',
-      'm2 back psy0',
-    ],
-    iconName: 'Brain',
-    estimatedDuration: 8,
-    ready: true,
-  },
-  {
-    id: 'm3-back',
-    slug: 'm3-back',
-    title: 'M3 Back',
-    description: "Identifiez si le chiffre correspond a celui d'il y a 3 tours",
-    longDescription:
-      'Version avancee du test de memoire de travail. Vous devez comparer chaque chiffre avec celui qui apparaissait 3 positions avant, augmentant la charge cognitive.',
-    types: ['memorisation', 'attention'],
-    primaryType: 'memorisation',
-    competitions: ['psy1', 'enac-epl'],
-    difficulty: 'difficile',
-    seoTitle: 'Test M3 Back - Memoire de Travail Avancee Pilote | AviaTest',
-    seoDescription:
-      'Test de memoire de travail avance M3-Back pour selections pilote. Entrainement PSY1 et ENAC EPL.',
-    seoKeywords: [
-      'test m3 back',
-      'memoire de travail avancee',
-      'n-back difficile',
-      'm3 back psy1',
+      'memoire de travail',
+      'm2 back',
+      'm3 back',
+      'm4 back',
+      'm5 back',
     ],
     iconName: 'Brain',
     estimatedDuration: 10,
@@ -917,42 +897,6 @@ export const EXERCISES: ExerciseConfig[] = [
   },
   // ---- Psy1 Cadets AF manquants (copie Pilotest) ----
   {
-    id: 'm4-back',
-    slug: 'm4-back',
-    title: 'M4 Back',
-    description: "Identifiez si le chiffre correspond a celui d'il y a 4 tours",
-    longDescription:
-      'Memoire de travail M4-Back : comparez chaque item avec celui affiche 4 positions avant. Present aux Psy1 Cadets AF et ENAC EPL.',
-    types: ['memorisation', 'attention'],
-    primaryType: 'memorisation',
-    competitions: ['psy1', 'enac-epl'],
-    difficulty: 'difficile',
-    seoTitle: 'Test M4 Back - Memoire de Travail | AviaTest',
-    seoDescription: 'Entrainement Memory 4 Back pour selections pilote Psy1 Cadets AF.',
-    seoKeywords: ['m4 back', 'memory 4 back', 'memoire psy1'],
-    iconName: 'Brain',
-    estimatedDuration: 10,
-    ready: true,
-  },
-  {
-    id: 'm5-back',
-    slug: 'm5-back',
-    title: 'M5 Back',
-    description: "Identifiez si le chiffre correspond a celui d'il y a 5 tours",
-    longDescription:
-      'Memoire de travail M5-Back : comparez chaque item avec celui affiche 5 positions avant. Present aux Psy1 Cadets AF et ENAC EPL.',
-    types: ['memorisation', 'attention'],
-    primaryType: 'memorisation',
-    competitions: ['psy1', 'enac-epl'],
-    difficulty: 'difficile',
-    seoTitle: 'Test M5 Back - Memoire de Travail | AviaTest',
-    seoDescription: 'Entrainement Memory 5 Back pour selections pilote Psy1 Cadets AF.',
-    seoKeywords: ['m5 back', 'memory 5 back', 'memoire psy1'],
-    iconName: 'Brain',
-    estimatedDuration: 12,
-    ready: true,
-  },
-  {
     id: 'calcul-mental-4',
     slug: 'calcul-mental-4',
     title: 'Calcul Mental 4',
@@ -1220,10 +1164,6 @@ export function getAllReadyExercises(): ExerciseConfig[] {
 }
 
 export function getExerciseUrl(exercise: ExerciseConfig): string {
-  if (exercise.id === 'm2-back') return '/exercices/m-back?n=2';
-  if (exercise.id === 'm3-back') return '/exercices/m-back?n=3';
-  if (exercise.id === 'm4-back') return '/exercices/m-back?n=4';
-  if (exercise.id === 'm5-back') return '/exercices/m-back?n=5';
   return `/exercices/${exercise.slug}`;
 }
 

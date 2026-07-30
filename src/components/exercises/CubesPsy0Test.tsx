@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Home, Play, RotateCcw, Settings, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, Home, Play, RotateCcw, Settings, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
   type FaceRotation,
   type LayoutId,
   type NetFace,
+  NET_LAYOUT_IDS,
   cubeToNetBySlot,
   cubesEqualModuloRotation,
   foldNet,
@@ -48,6 +49,7 @@ interface QuestionData {
   playFixedFaces: (FacePiece | null)[];
   missingSlots: number[];
   trayPieces: FacePiece[];
+  solutionFaces: FacePiece[];
 }
 
 interface QuestionResult {
@@ -145,9 +147,13 @@ function generateLogicalCube(): Record<'F' | 'B' | 'L' | 'R' | 'U' | 'D', NetFac
   };
 }
 
+function pickTwoLayouts(): [LayoutId, LayoutId] {
+  const shuffled = shuffle([...NET_LAYOUT_IDS]);
+  return [shuffled[0], shuffled[1]];
+}
+
 function generateQuestion(): QuestionData {
-  const layoutRef: LayoutId = 'A';
-  const layoutPlay: LayoutId = 'B';
+  const [layoutRef, layoutPlay] = pickTwoLayouts();
   const logicalCube = generateLogicalCube();
 
   const refNet = cubeToNetBySlot(logicalCube, layoutRef);
@@ -155,6 +161,10 @@ function generateQuestion(): QuestionData {
 
   const referenceFaces: FacePiece[] = refNet.map((face, i) =>
     pieceFromNet(`ref-${i}`, face),
+  );
+
+  const solutionFaces: FacePiece[] = playNet.map((face, i) =>
+    pieceFromNet(`sol-${i}`, face),
   );
 
   const numMissing = randInt(2, 3);
@@ -196,6 +206,7 @@ function generateQuestion(): QuestionData {
     playFixedFaces,
     missingSlots,
     trayPieces: shuffle([...neededPieces, ...decoys]),
+    solutionFaces,
   };
 }
 
@@ -337,6 +348,7 @@ function FaceCell({
   highlight = false,
   selected = false,
   flash = null,
+  solution = false,
   onClick,
   onDoubleClick,
   onDragOver,
@@ -351,6 +363,7 @@ function FaceCell({
   highlight?: boolean;
   selected?: boolean;
   flash?: 'correct' | 'incorrect' | null;
+  solution?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
@@ -360,15 +373,17 @@ function FaceCell({
   className?: string;
 }) {
   const borderColor =
-    flash === 'correct'
+    solution
       ? '#16a34a'
-      : flash === 'incorrect'
-        ? '#dc2626'
-        : selected
-          ? '#0068C6'
-          : highlight
-            ? '#f59e0b'
-            : FACE_BORDER;
+      : flash === 'correct'
+        ? '#16a34a'
+        : flash === 'incorrect'
+          ? '#dc2626'
+          : selected
+            ? '#0068C6'
+            : highlight
+              ? '#f59e0b'
+              : FACE_BORDER;
   const bg = empty ? '#e8e8e8' : FACE_BG;
 
   return (
@@ -388,13 +403,15 @@ function FaceCell({
         borderColor,
         borderStyle: empty ? 'dashed' : 'solid',
         boxShadow:
-          flash === 'correct'
+          solution
             ? '0 0 0 3px rgba(22,163,74,0.45)'
-            : flash === 'incorrect'
-              ? '0 0 0 3px rgba(220,38,38,0.45)'
-              : selected
-                ? '0 0 0 3px rgba(0,104,198,0.35)'
-                : undefined,
+            : flash === 'correct'
+              ? '0 0 0 3px rgba(22,163,74,0.45)'
+              : flash === 'incorrect'
+                ? '0 0 0 3px rgba(220,38,38,0.45)'
+                : selected
+                  ? '0 0 0 3px rgba(0,104,198,0.35)'
+                  : undefined,
         cursor: onClick || draggable ? 'pointer' : 'default',
       }}
     >
@@ -414,6 +431,7 @@ function CubeNet({
   onSlotClick,
   onSlotDoubleClick,
   onSlotDrop,
+  solutionSlots = [],
   size = FACE_SIZE,
 }: {
   layoutId: LayoutId;
@@ -426,6 +444,7 @@ function CubeNet({
   onSlotClick?: (slot: number) => void;
   onSlotDoubleClick?: (slot: number) => void;
   onSlotDrop?: (slot: number, pieceId: string) => void;
+  solutionSlots?: number[];
   size?: number;
 }) {
   const layout = getLayout(layoutId);
@@ -458,6 +477,7 @@ function CubeNet({
               empty={mode === 'play' && isMissing && !face}
               selected={isSelected}
               highlight={!!selectedPieceId && interactive && !face}
+              solution={solutionSlots.includes(slot)}
               draggable={false}
               onClick={interactive ? () => onSlotClick?.(slot) : undefined}
               onDoubleClick={interactive && face ? () => onSlotDoubleClick?.(slot) : undefined}
@@ -511,6 +531,7 @@ export default function CubesPsy0Test() {
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [locked, setLocked] = useState(false);
   const [flashOutcome, setFlashOutcome] = useState<AnswerOutcome | null>(null);
+  const [showCorrection, setShowCorrection] = useState(false);
 
   const [placements, setPlacements] = useState<(FacePiece | null)[]>(Array(6).fill(null));
   const [trayPieces, setTrayPieces] = useState<FacePiece[]>([]);
@@ -562,6 +583,7 @@ export default function CubesPsy0Test() {
     setSelectedPieceId(null);
     setSelectedSlot(null);
     setFlashOutcome(null);
+    setShowCorrection(false);
   }, []);
 
   const goToNextQuestion = useCallback(() => {
@@ -584,6 +606,7 @@ export default function CubesPsy0Test() {
     setLocked(false);
     lockedRef.current = false;
     setFlashOutcome(null);
+    setShowCorrection(false);
     startTimer(settingsRef.current.timePerQuestionSec * 1000);
   }, [clearTimer, resetQuestionState, startTimer]);
 
@@ -595,9 +618,7 @@ export default function CubesPsy0Test() {
         goToNextQuestion();
       } else {
         setFlashOutcome(result.outcome);
-        const delay =
-          result.outcome === 'correct' ? 700 : result.outcome === 'incorrect' ? 900 : 400;
-        window.setTimeout(goToNextQuestion, delay);
+        setShowCorrection(true);
       }
     },
     [goToNextQuestion],
@@ -715,6 +736,8 @@ export default function CubesPsy0Test() {
     setResults([]);
     setLocked(false);
     lockedRef.current = false;
+    setFlashOutcome(null);
+    setShowCorrection(false);
     resetQuestionState(qs[0]);
     setGameState('playing');
     startTimer(settingsRef.current.timePerQuestionSec * 1000);
@@ -748,7 +771,7 @@ export default function CubesPsy0Test() {
           <CardContent className="space-y-5">
             <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
               <p>
-                A gauche : le <strong>modele complet</strong> (depliage A). A droite : le{' '}
+                A gauche : le <strong>modele complet</strong>. A droite : le{' '}
                 <strong>meme cube</strong> deplie autrement, avec des faces manquantes.
               </p>
               <p>
@@ -935,6 +958,9 @@ export default function CubesPsy0Test() {
   const playFaces: (FacePiece | null)[] = currentQuestion.playFixedFaces.map((f) =>
     f ? { ...f } : null,
   );
+  const solutionFaces: (FacePiece | null)[] = currentQuestion.solutionFaces.map((f) => ({ ...f }));
+  const showSolution =
+    showCorrection && flashOutcome !== 'correct' && flashOutcome !== null;
 
   return (
     <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
@@ -960,18 +986,22 @@ export default function CubesPsy0Test() {
       </div>
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 md:p-6">
-        {flashOutcome && flashOutcome !== 'skipped' && (
+        {showCorrection && flashOutcome && (
           <div
             className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-lg font-semibold ${
               flashOutcome === 'correct'
                 ? 'border-green-200 bg-green-50 text-green-700'
-                : 'border-red-200 bg-red-50 text-red-700'
+                : flashOutcome === 'skipped'
+                  ? 'border-slate-200 bg-slate-50 text-slate-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
             }`}
           >
             {flashOutcome === 'correct' ? (
               <>
                 <CheckCircle2 className="h-6 w-6" /> Correct
               </>
+            ) : flashOutcome === 'skipped' ? (
+              <>Temps ecoule</>
             ) : (
               <>
                 <XCircle className="h-6 w-6" /> Incorrect
@@ -992,55 +1022,67 @@ export default function CubesPsy0Test() {
 
           <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm">
             <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-600">
-              A completer
+              {showSolution ? 'Solution possible' : 'A completer'}
             </p>
             <CubeNet
               layoutId={currentQuestion.layoutPlay}
-              faces={playFaces}
-              missingSlots={currentQuestion.missingSlots}
-              placements={placements}
+              faces={showSolution ? solutionFaces : playFaces}
+              missingSlots={showSolution ? [] : currentQuestion.missingSlots}
+              placements={showSolution ? undefined : placements}
               mode="play"
-              selectedPieceId={selectedPieceId}
-              selectedSlot={selectedSlot}
-              onSlotClick={handleSlotClick}
-              onSlotDoubleClick={handleSlotDoubleClick}
-              onSlotDrop={placePiece}
+              selectedPieceId={showCorrection ? null : selectedPieceId}
+              selectedSlot={showCorrection ? null : selectedSlot}
+              onSlotClick={showCorrection ? undefined : handleSlotClick}
+              onSlotDoubleClick={showCorrection ? undefined : handleSlotDoubleClick}
+              onSlotDrop={showCorrection ? undefined : placePiece}
+              solutionSlots={showSolution ? currentQuestion.missingSlots : []}
             />
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-          <p className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-600">
-            Pieces disponibles
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {trayPieces.map((piece) => (
-              <FaceCell
-                key={piece.id}
-                face={piece}
-                selected={selectedPieceId === piece.id}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/piece-id', piece.id);
-                  setSelectedPieceId(piece.id);
-                }}
-                onClick={() => handleTrayClick(piece)}
-              />
-            ))}
+        {!showCorrection && (
+          <div className="rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+            <p className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-600">
+              Pieces disponibles
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {trayPieces.map((piece) => (
+                <FaceCell
+                  key={piece.id}
+                  face={piece}
+                  selected={selectedPieceId === piece.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/piece-id', piece.id);
+                    setSelectedPieceId(piece.id);
+                  }}
+                  onClick={() => handleTrayClick(piece)}
+                />
+              ))}
+            </div>
+            <p className="mt-4 text-center text-xs text-slate-500">
+              Glisser-deposer pour placer · clic pour pivoter d&apos;un quart de tour · double-clic sur une
+              face placee pour la retirer
+            </p>
           </div>
-          <p className="mt-4 text-center text-xs text-slate-500">
-            Glisser-deposer pour placer · clic pour pivoter d&apos;un quart de tour · double-clic sur une
-            face placee pour la retirer
-          </p>
-        </div>
+        )}
 
         <div className="flex justify-center gap-3">
-          <Button variant="outline" onClick={() => recordOutcome('skipped')} disabled={locked}>
-            Passer
-          </Button>
-          <Button onClick={handleValidate} disabled={locked || !allFilled}>
-            Valider
-          </Button>
+          {showCorrection ? (
+            <Button size="lg" onClick={goToNextQuestion}>
+              {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => recordOutcome('skipped')} disabled={locked}>
+                Passer
+              </Button>
+              <Button onClick={handleValidate} disabled={locked || !allFilled}>
+                Valider
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

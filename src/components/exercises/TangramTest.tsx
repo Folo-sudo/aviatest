@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, RotateCcw, Home, Settings } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Home, Settings, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -18,22 +18,16 @@ import { useRouter } from 'next/navigation';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 type AnswerOutcome = 'correct' | 'incorrect' | 'skipped';
+type BrickLetter = 'U' | 'S' | 'R' | 'Q' | 'P' | 'O' | 'W' | 'T' | 'V' | 'X';
 
 interface GameSettings {
   totalQuestions: number;
-  timeLimitSec: number; // total time for the whole session, 0 = unlimited
+  timeLimitSec: number;
   examMode: boolean;
 }
 
-type Cell = [number, number];
-
-interface BrickPiece {
-  letter: string;
-  cells: Cell[];
-}
-
 interface QuestionData {
-  template: BrickPiece[];
+  grid: BrickLetter[][];
   recipeCounts: Record<string, number>;
   choices: string[];
   correctIndex: number;
@@ -51,91 +45,80 @@ interface QuestionResult {
 // ============================================================================
 
 const SETTINGS_KEY = 'aviatest-tangram-settings';
+const GRID_SIZE = 4;
+const CELL_COUNT = GRID_SIZE * GRID_SIZE;
+const FIGURE_BG = '#d4d4d4';
+const BRICK_FILL = '#000000';
 
 const DEFAULT_SETTINGS: GameSettings = {
   totalQuestions: 24,
-  timeLimitSec: 720, // 12 minutes
+  timeLimitSec: 720,
   examMode: false,
 };
 
-const NAVY = '#1a2b4a';
-const PIECE_COLORS = ['#60a5fa', '#f97316', '#34d399', '#f472b6'];
+const CATALOG_ORDER: BrickLetter[] = ['U', 'S', 'R', 'Q', 'P', 'O', 'W', 'T', 'V', 'X'];
 
-// Catalog of reference bricks shown to the player (8-10 shapes).
-// Only I, O, T and L actually appear in the generated 4x4 tilings below;
-// the rest are decorative/distractor bricks so the catalog reads richer.
-const BRICK_CATALOG: BrickPiece[] = [
-  { letter: 'I', cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-  { letter: 'O', cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-  { letter: 'T', cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
-  { letter: 'S', cells: [[0, 1], [0, 2], [1, 0], [1, 1]] },
-  { letter: 'Z', cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
-  { letter: 'L', cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
-  { letter: 'J', cells: [[0, 1], [1, 1], [2, 1], [2, 0]] },
-  { letter: 'P', cells: [[0, 0], [0, 1], [1, 0]] },
-  { letter: 'X', cells: [[0, 1], [1, 0], [1, 1], [1, 2], [2, 1]] },
-];
-
-const ALL_LETTERS = ['I', 'O', 'T', 'S', 'Z', 'L', 'J'];
-
-// Valid, hand-verified tilings of a 4x4 grid (16 cells) into exactly 4
-// tetromino-shaped bricks (no overlap, full coverage).
-const TEMPLATES: BrickPiece[][] = [
-  // 4 x O
+// Hand-crafted 4x4 patterns (each cell = one catalog brick).
+const PATTERN_TEMPLATES: BrickLetter[][][] = [
   [
-    { letter: 'O', cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-    { letter: 'O', cells: [[0, 2], [0, 3], [1, 2], [1, 3]] },
-    { letter: 'O', cells: [[2, 0], [2, 1], [3, 0], [3, 1]] },
-    { letter: 'O', cells: [[2, 2], [2, 3], [3, 2], [3, 3]] },
+    ['P', 'P', 'X', 'X'],
+    ['P', 'U', 'X', 'V'],
+    ['O', 'S', 'W', 'V'],
+    ['O', 'T', 'Q', 'R'],
   ],
-  // 4 x I horizontal
   [
-    { letter: 'I', cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
-    { letter: 'I', cells: [[1, 0], [1, 1], [1, 2], [1, 3]] },
-    { letter: 'I', cells: [[2, 0], [2, 1], [2, 2], [2, 3]] },
-    { letter: 'I', cells: [[3, 0], [3, 1], [3, 2], [3, 3]] },
+    ['V', 'V', 'V', 'P'],
+    ['R', 'U', 'P', 'P'],
+    ['R', 'S', 'P', 'X'],
+    ['T', 'O', 'W', 'X'],
   ],
-  // 4 x I vertical
   [
-    { letter: 'I', cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-    { letter: 'I', cells: [[0, 1], [1, 1], [2, 1], [3, 1]] },
-    { letter: 'I', cells: [[0, 2], [1, 2], [2, 2], [3, 2]] },
-    { letter: 'I', cells: [[0, 3], [1, 3], [2, 3], [3, 3]] },
+    ['Q', 'P', 'P', 'P'],
+    ['Q', 'U', 'S', 'S'],
+    ['O', 'T', 'V', 'V'],
+    ['W', 'W', 'R', 'X'],
   ],
-  // 2 x O (top) + 2 x I (bottom rows)
   [
-    { letter: 'O', cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-    { letter: 'O', cells: [[0, 2], [0, 3], [1, 2], [1, 3]] },
-    { letter: 'I', cells: [[2, 0], [2, 1], [2, 2], [2, 3]] },
-    { letter: 'I', cells: [[3, 0], [3, 1], [3, 2], [3, 3]] },
+    ['T', 'V', 'V', 'V'],
+    ['R', 'U', 'P', 'P'],
+    ['R', 'S', 'O', 'O'],
+    ['Q', 'W', 'X', 'X'],
   ],
-  // I (top row) + 2 x O (middle) + I (bottom row)
   [
-    { letter: 'I', cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
-    { letter: 'O', cells: [[1, 0], [1, 1], [2, 0], [2, 1]] },
-    { letter: 'O', cells: [[1, 2], [1, 3], [2, 2], [2, 3]] },
-    { letter: 'I', cells: [[3, 0], [3, 1], [3, 2], [3, 3]] },
+    ['P', 'P', 'P', 'X'],
+    ['S', 'U', 'X', 'X'],
+    ['S', 'W', 'V', 'R'],
+    ['O', 'T', 'Q', 'R'],
   ],
-  // 4 x L pinwheel
   [
-    { letter: 'L', cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
-    { letter: 'L', cells: [[0, 3], [1, 1], [1, 2], [1, 3]] },
-    { letter: 'L', cells: [[2, 3], [3, 1], [3, 2], [3, 3]] },
-    { letter: 'L', cells: [[2, 0], [2, 1], [2, 2], [3, 0]] },
+    ['V', 'V', 'R', 'R'],
+    ['P', 'U', 'T', 'Q'],
+    ['P', 'S', 'T', 'O'],
+    ['X', 'W', 'W', 'O'],
   ],
-  // 4 x T pinwheel
   [
-    { letter: 'T', cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
-    { letter: 'T', cells: [[1, 0], [2, 0], [3, 0], [2, 1]] },
-    { letter: 'T', cells: [[3, 1], [3, 2], [3, 3], [2, 2]] },
-    { letter: 'T', cells: [[0, 3], [1, 2], [1, 3], [2, 3]] },
+    ['Q', 'P', 'P', 'V'],
+    ['O', 'U', 'V', 'V'],
+    ['O', 'S', 'T', 'R'],
+    ['W', 'X', 'X', 'R'],
   ],
-  // Mixed: 1 x O, 1 x I, 2 x L
   [
-    { letter: 'O', cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-    { letter: 'I', cells: [[0, 3], [1, 3], [2, 3], [3, 3]] },
-    { letter: 'L', cells: [[0, 2], [1, 2], [2, 2], [2, 1]] },
-    { letter: 'L', cells: [[2, 0], [3, 0], [3, 1], [3, 2]] },
+    ['T', 'V', 'V', 'P'],
+    ['R', 'U', 'P', 'P'],
+    ['R', 'S', 'O', 'W'],
+    ['Q', 'X', 'X', 'W'],
+  ],
+  [
+    ['P', 'P', 'O', 'O'],
+    ['X', 'U', 'S', 'S'],
+    ['X', 'W', 'V', 'R'],
+    ['Q', 'T', 'V', 'R'],
+  ],
+  [
+    ['V', 'V', 'V', 'P'],
+    ['R', 'U', 'P', 'Q'],
+    ['R', 'S', 'T', 'O'],
+    ['W', 'X', 'X', 'O'],
   ],
 ];
 
@@ -163,10 +146,6 @@ function saveSettings(s: GameSettings): void {
   }
 }
 
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -180,9 +159,13 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function computeCounts(template: BrickPiece[]): Record<string, number> {
+function computeCounts(grid: BrickLetter[][]): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const p of template) counts[p.letter] = (counts[p.letter] || 0) + 1;
+  for (const row of grid) {
+    for (const letter of row) {
+      counts[letter] = (counts[letter] || 0) + 1;
+    }
+  }
   return counts;
 }
 
@@ -190,73 +173,95 @@ function formatRecipe(counts: Record<string, number>): string {
   return Object.entries(counts)
     .filter(([, c]) => c > 0)
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([l, c]) => `${c}${l}`)
-    .join(', ');
+    .map(([letter, count]) => (count > 1 ? `${count}${letter}` : letter))
+    .join(' - ');
+}
+
+function recipeTotal(counts: Record<string, number>): number {
+  return Object.values(counts).reduce((sum, c) => sum + c, 0);
+}
+
+function cloneCounts(counts: Record<string, number>): Record<string, number> {
+  return { ...counts };
+}
+
+function randomGrid(): BrickLetter[][] {
+  const template = pick(PATTERN_TEMPLATES);
+  return template.map((row) => [...row]);
 }
 
 function randomRecipeVariant(correct: Record<string, number>): Record<string, number> {
-  const letters = Object.keys(correct);
-  const variant: Record<string, number> = { ...correct };
-  const mode = pick(['swapLetter', 'changeCount', 'addLetter'] as const);
+  const variant = cloneCounts(correct);
+  const present = Object.keys(variant).filter((l) => variant[l] > 0);
+  const mode = pick(['swap', 'shift', 'replace'] as const);
 
-  if (mode === 'swapLetter' && letters.length > 0) {
-    const from = pick(letters);
-    let to = pick(ALL_LETTERS);
+  if (mode === 'swap' && present.length >= 2) {
+    const [a, b] = shuffle(present).slice(0, 2);
+    const move = Math.min(variant[a], pick([1, 1, 2]));
+    if (variant[a] > move) {
+      variant[a] -= move;
+      variant[b] = (variant[b] || 0) + move;
+      if (variant[a] === 0) delete variant[a];
+    }
+  } else if (mode === 'shift') {
+    const from = pick(present);
+    const to = pick(CATALOG_ORDER.filter((l) => l !== from));
+    variant[from] -= 1;
+    if (variant[from] === 0) delete variant[from];
+    variant[to] = (variant[to] || 0) + 1;
+  } else {
+    const from = pick(present);
+    let to = pick(CATALOG_ORDER);
     let guard = 0;
-    while (to === from && guard < 10) {
-      to = pick(ALL_LETTERS);
+    while (to === from && guard < 8) {
+      to = pick(CATALOG_ORDER);
       guard++;
     }
-    variant[to] = variant[from];
-    if (to !== from) delete variant[from];
-  } else if (mode === 'changeCount' && letters.length > 0) {
-    const key = pick(letters);
-    const delta = pick([-1, 1]);
-    variant[key] = Math.max(1, variant[key] + delta);
-  } else {
-    const unused = ALL_LETTERS.filter((l) => !letters.includes(l));
-    const extra = unused.length > 0 ? pick(unused) : pick(ALL_LETTERS);
-    variant[extra] = 1;
-    if (letters.length > 0) {
-      const key = pick(letters);
-      if (variant[key] > 1) variant[key] -= 1;
-      else delete variant[key];
-    }
+    variant[from] -= 1;
+    if (variant[from] === 0) delete variant[from];
+    variant[to] = (variant[to] || 0) + 1;
   }
+
+  if (recipeTotal(variant) !== CELL_COUNT) return { ...correct };
   return variant;
 }
 
 function generateQuestion(): QuestionData {
-  const template = pick(TEMPLATES);
-  const counts = computeCounts(template);
+  const grid = randomGrid();
+  const counts = computeCounts(grid);
   const correctStr = formatRecipe(counts);
 
   const seen = new Set<string>([correctStr]);
   const distractors: string[] = [];
   let guard = 0;
-  while (distractors.length < 4 && guard < 60) {
+  while (distractors.length < 4 && guard < 80) {
     guard++;
     const variant = randomRecipeVariant(counts);
     const str = formatRecipe(variant);
-    if (str && !seen.has(str)) {
-      seen.add(str);
-      distractors.push(str);
-    }
-  }
-  let fallbackGuard = 0;
-  while (distractors.length < 4 && fallbackGuard < 40) {
-    fallbackGuard++;
-    const letter = pick(ALL_LETTERS);
-    const str = `${randInt(1, 4)}${letter}`;
-    if (!seen.has(str)) {
+    if (str && str !== correctStr && recipeTotal(variant) === CELL_COUNT && !seen.has(str)) {
       seen.add(str);
       distractors.push(str);
     }
   }
 
+  let fallback = 0;
+  while (distractors.length < 4 && fallback < 40) {
+    fallback++;
+    const letter = pick(CATALOG_ORDER);
+    const fake = { ...counts, [letter]: (counts[letter] || 0) + 1 };
+    const donor = pick(Object.keys(counts));
+    if (fake[donor] > 1) {
+      fake[donor] -= 1;
+      const str = formatRecipe(fake);
+      if (str && !seen.has(str) && recipeTotal(fake) === CELL_COUNT) {
+        seen.add(str);
+        distractors.push(str);
+      }
+    }
+  }
+
   const choices = shuffle([correctStr, ...distractors]);
-  const correctIndex = choices.indexOf(correctStr);
-  return { template, recipeCounts: counts, choices, correctIndex };
+  return { grid, recipeCounts: counts, choices, correctIndex: choices.indexOf(correctStr) };
 }
 
 function generateQuestions(count: number): QuestionData[] {
@@ -279,48 +284,79 @@ function computeSessionScore(results: QuestionResult[]) {
 // Rendering
 // ============================================================================
 
-function BrickIcon({ cells, cellSize = 16 }: { cells: Cell[]; cellSize?: number }) {
-  const maxR = Math.max(...cells.map((c) => c[0]));
-  const maxC = Math.max(...cells.map((c) => c[1]));
+function BrickShape({ letter, size = 36 }: { letter: BrickLetter; size?: number }) {
+  const common = { fill: BRICK_FILL };
   return (
-    <svg width={(maxC + 1) * cellSize} height={(maxR + 1) * cellSize}>
-      {cells.map(([r, c], i) => (
-        <rect
-          key={i}
-          x={c * cellSize}
-          y={r * cellSize}
-          width={cellSize}
-          height={cellSize}
-          fill={NAVY}
-          stroke="#ffffff"
-          strokeWidth={1.5}
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden>
+      {letter === 'U' && <rect x="0" y="0" width="100" height="100" {...common} />}
+      {letter === 'S' && <rect x="8" y="40" width="84" height="20" {...common} />}
+      {letter === 'R' && <rect x="40" y="8" width="20" height="84" {...common} />}
+      {letter === 'T' && <rect x="42" y="4" width="16" height="92" {...common} />}
+      {letter === 'V' && <rect x="4" y="42" width="92" height="16" {...common} />}
+      {letter === 'Q' && <polygon points="0,0 100,0 0,100" {...common} />}
+      {letter === 'P' && <polygon points="0,0 100,0 100,100" {...common} />}
+      {letter === 'O' && <polygon points="0,100 0,0 100,100" {...common} />}
+      {letter === 'X' && <polygon points="100,100 100,0 0,100" {...common} />}
+      {letter === 'W' && (
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M18 18 H82 V82 H18 Z M32 32 V68 H68 V32 Z"
+          fill={BRICK_FILL}
         />
-      ))}
+      )}
     </svg>
   );
 }
 
-function CompositeGrid({ template, cellSize = 56 }: { template: BrickPiece[]; cellSize?: number }) {
-  const size = 4;
-  const pieceOf = (r: number, c: number) => template.findIndex((p) => p.cells.some(([pr, pc]) => pr === r && pc === c));
+function CatalogLegend({ cellSize = 34 }: { cellSize?: number }) {
   return (
-    <svg width={size * cellSize} height={size * cellSize} className="mx-auto block">
-      {Array.from({ length: size }).map((_, r) =>
-        Array.from({ length: size }).map((_, c) => {
-          const idx = pieceOf(r, c);
-          return (
-            <rect
-              key={`${r}-${c}`}
-              x={c * cellSize}
-              y={r * cellSize}
-              width={cellSize}
-              height={cellSize}
-              fill={idx >= 0 ? PIECE_COLORS[idx % PIECE_COLORS.length] : '#eee'}
-              stroke={NAVY}
-              strokeWidth={2}
-            />
-          );
-        }),
+    <div className="flex flex-wrap items-end justify-center gap-3 sm:gap-4">
+      {CATALOG_ORDER.map((letter) => (
+        <div key={letter} className="flex flex-col items-center gap-0.5">
+          <BrickShape letter={letter} size={cellSize} />
+          <span className="text-xs font-bold text-slate-700">{letter}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CompositeFigure({ grid, cellSize = 52 }: { grid: BrickLetter[][]; cellSize?: number }) {
+  const size = GRID_SIZE * cellSize;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="block"
+      style={{ backgroundColor: FIGURE_BG }}
+      aria-label="Figure tangram 4x4"
+    >
+      {grid.map((row, r) =>
+        row.map((letter, c) => (
+          <g key={`${r}-${c}`} transform={`translate(${c * cellSize} ${r * cellSize})`}>
+            <svg width={cellSize} height={cellSize} viewBox="0 0 100 100">
+              {letter === 'U' && <rect x="0" y="0" width="100" height="100" fill={BRICK_FILL} />}
+              {letter === 'S' && <rect x="8" y="40" width="84" height="20" fill={BRICK_FILL} />}
+              {letter === 'R' && <rect x="40" y="8" width="20" height="84" fill={BRICK_FILL} />}
+              {letter === 'T' && <rect x="42" y="4" width="16" height="92" fill={BRICK_FILL} />}
+              {letter === 'V' && <rect x="4" y="42" width="92" height="16" fill={BRICK_FILL} />}
+              {letter === 'Q' && <polygon points="0,0 100,0 0,100" fill={BRICK_FILL} />}
+              {letter === 'P' && <polygon points="0,0 100,0 100,100" fill={BRICK_FILL} />}
+              {letter === 'O' && <polygon points="0,100 0,0 100,100" fill={BRICK_FILL} />}
+              {letter === 'X' && <polygon points="100,100 100,0 0,100" fill={BRICK_FILL} />}
+              {letter === 'W' && (
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M18 18 H82 V82 H18 Z M32 32 V68 H68 V32 Z"
+                  fill={BRICK_FILL}
+                />
+              )}
+            </svg>
+          </g>
+        )),
       )}
     </svg>
   );
@@ -383,8 +419,7 @@ export default function TangramTest() {
       setTimeLeft(durationMs);
       timerRef.current = setInterval(() => {
         const elapsed = Date.now() - questionStartRef.current;
-        const left = Math.max(0, durationMs - elapsed);
-        setTimeLeft(left);
+        setTimeLeft(Math.max(0, durationMs - elapsed));
       }, 50);
     },
     [clearTimer],
@@ -399,8 +434,7 @@ export default function TangramTest() {
     questionStartRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - questionStartRef.current;
-      const left = Math.max(0, remaining - elapsed);
-      setTimeLeft(left);
+      setTimeLeft(Math.max(0, remaining - elapsed));
     }, 50);
   }, [clearTimer, timeLeft]);
 
@@ -488,7 +522,6 @@ export default function TangramTest() {
     }
   }, [startTimer]);
 
-  // Global timer expiry -> results
   useEffect(() => {
     if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {
       finishGame();
@@ -505,16 +538,16 @@ export default function TangramTest() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Tangram</CardTitle>
             <CardDescription className="mt-2 text-base">
-              Reconnaissez les briques utilisees pour composer chaque figure
+              Decomposez une figure 4x4 en briques de base (style Pilotest Psy1)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
               <p>
-                Un catalogue de <strong>{BRICK_CATALOG.length} briques</strong> etiquetees par une lettre.
+                Un catalogue de <strong>10 briques</strong> (U, S, R, Q, P, O, W, T, V, X).
               </p>
               <p>
-                Une figure 4x4 est composee de <strong>4 briques</strong>. Retrouvez la bonne composition parmi{' '}
+                Chaque case de la figure 4x4 contient une brique. Retrouvez la bonne combinaison parmi{' '}
                 <strong>5 propositions</strong>.
               </p>
               {settings.timeLimitSec > 0 && (
@@ -550,14 +583,7 @@ export default function TangramTest() {
               <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Catalogue de briques
               </p>
-              <div className="flex flex-wrap items-end justify-center gap-4">
-                {BRICK_CATALOG.map((b) => (
-                  <div key={b.letter} className="flex flex-col items-center gap-1">
-                    <BrickIcon cells={b.cells} cellSize={10} />
-                    <span className="text-xs font-semibold text-slate-600">{b.letter}</span>
-                  </div>
-                ))}
-              </div>
+              <CatalogLegend cellSize={28} />
             </div>
 
             {settings.examMode && (
@@ -712,7 +738,7 @@ export default function TangramTest() {
                   const selected = r.selectedIndex !== null ? r.question.choices[r.selectedIndex] : null;
                   return (
                     <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-slate-500">Q{i + 1}</span>
                         <span
                           className={
@@ -725,7 +751,9 @@ export default function TangramTest() {
                         >
                           {r.outcome === 'correct' ? '\u2713' : r.outcome === 'incorrect' ? '\u2717' : '\u2014'}{' '}
                           {selected ?? 'Passe'}
-                          {r.outcome === 'incorrect' && <span className="ml-2 text-green-600">({correctAnswer})</span>}
+                          {r.outcome === 'incorrect' && (
+                            <span className="ml-2 text-green-600">({correctAnswer})</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -762,91 +790,118 @@ export default function TangramTest() {
   // =========================================================================
   const currentQ = questions[currentIdx];
   const timerPercent = totalTime > 0 ? (timeLeft / totalTime) * 100 : 100;
-  const timerColor = timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
+  const timerColor = timerPercent > 50 ? 'bg-green-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex min-h-screen flex-col items-center py-6" style={{ backgroundColor: '#d4d4d4' }}>
-      <div className="relative w-full max-w-3xl px-4">
-        {settings.timeLimitSec > 0 && (
-          <div className="absolute right-0 top-0 bottom-0 flex w-3 flex-col overflow-hidden rounded-full bg-black/10">
-            <div
-              className={`w-full transition-all duration-100 ${timerColor}`}
-              style={{ height: `${100 - timerPercent}%` }}
-            />
-            <div className="flex-1" />
-          </div>
-        )}
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: FIGURE_BG }}>
+      {/* Top catalog */}
+      <div className="border-b border-slate-400 bg-white/90 px-3 py-2">
+        <CatalogLegend cellSize={30} />
+      </div>
 
-        <div className="mb-4 flex items-center justify-between pr-6">
-          <Badge variant="outline" className="border-transparent bg-white px-3 py-1 text-base" style={{ color: NAVY }}>
-            {currentIdx + 1} / {settings.totalQuestions}
-          </Badge>
+      {/* Main: figure left, MCQ right */}
+      <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-center">
+        <div className="flex flex-1 items-center justify-center">
+          {currentQ && <CompositeFigure grid={currentQ.grid} cellSize={56} />}
         </div>
 
-        {/* Catalog reminder */}
-        <div className="mb-4 mr-6 rounded-xl bg-white p-3 shadow-sm">
-          <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Catalogue</p>
-          <div className="flex flex-wrap items-end justify-center gap-4">
-            {BRICK_CATALOG.map((b) => (
-              <div key={b.letter} className="flex flex-col items-center gap-1">
-                <BrickIcon cells={b.cells} cellSize={9} />
-                <span className="text-[11px] font-semibold text-slate-600">{b.letter}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Composite figure */}
-        <div className="mb-6 mr-6 rounded-xl bg-white p-6 shadow-sm">
-          <p className="mb-4 text-center text-sm font-medium text-slate-500">
-            Quelle est la composition exacte de cette figure ?
-          </p>
-          {currentQ && <CompositeGrid template={currentQ.template} />}
-        </div>
-
-        {/* Choices */}
-        <div className="mx-auto mb-4 mr-6 flex max-w-xl flex-col gap-3">
+        <div className="mx-auto w-full max-w-sm shrink-0 space-y-2 lg:max-w-md">
           {currentQ?.choices.map((choice, i) => {
             const isSelected = selectedIdx === i;
             const isCorrectChoice = showCorrection && i === currentQ.correctIndex;
-            let variantClass = 'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50';
-            if (isCorrectChoice) {
-              variantClass = 'border-green-500 bg-green-50 text-green-700';
-            } else if (isSelected && lastOutcome === 'incorrect') {
-              variantClass = 'border-red-500 bg-red-50 text-red-700';
-            }
+            let rowClass = 'border-slate-300 bg-white text-slate-800';
+            if (isCorrectChoice) rowClass = 'border-green-600 bg-green-50 text-green-800';
+            else if (isSelected && lastOutcome === 'incorrect') rowClass = 'border-red-600 bg-red-50 text-red-800';
+            else if (isSelected && !showCorrection) rowClass = 'border-slate-600 bg-slate-100';
+
             return (
-              <button
+              <div
                 key={i}
-                type="button"
-                disabled={locked}
-                onClick={() => handleChoice(i)}
-                className={`rounded-xl border-2 px-5 py-3 text-lg font-semibold tracking-wide shadow-sm transition-all disabled:opacity-70 ${variantClass}`}
+                className={`rounded border-2 px-3 py-2.5 text-sm font-medium leading-snug sm:text-base ${rowClass}`}
               >
+                <span className="mr-2 font-bold">{i + 1})</span>
                 {choice}
-              </button>
+              </div>
             );
           })}
         </div>
+      </div>
 
-        {showCorrection && currentQ && (
-          <div className="mx-auto mb-4 mr-6 max-w-xl rounded-xl border border-slate-200 bg-white p-4">
-            <p
-              className={`text-center text-base font-semibold ${
-                lastOutcome === 'correct' ? 'text-green-600' : lastOutcome === 'incorrect' ? 'text-red-600' : 'text-slate-600'
-              }`}
-            >
-              {lastOutcome === 'correct'
-                ? 'Correct !'
-                : lastOutcome === 'incorrect'
-                  ? `Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`
-                  : `Reponse : ${currentQ.choices[currentQ.correctIndex]}`}
-            </p>
-            <Button size="lg" className="mt-4 w-full" onClick={goToNextQuestion}>
-              {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
-            </Button>
+      {/* Correction banner */}
+      {showCorrection && currentQ && (
+        <div className="px-4 pb-2">
+          <p
+            className={`text-center text-base font-semibold ${
+              lastOutcome === 'correct' ? 'text-green-700' : 'text-red-700'
+            }`}
+          >
+            {lastOutcome === 'correct'
+              ? 'Correct !'
+              : `Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`}
+          </p>
+        </div>
+      )}
+
+      {/* Pilotest-style footer */}
+      <div className="mt-auto border-t border-slate-400 bg-[#d4d4d4] px-4 py-3">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="border-slate-500 bg-white px-3 py-1 text-sm">
+              {currentIdx + 1} / {settings.totalQuestions}
+            </Badge>
+            {settings.timeLimitSec > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-2 overflow-hidden rounded-full bg-slate-400">
+                  <div className={`w-full ${timerColor}`} style={{ height: `${timerPercent}%` }} />
+                </div>
+                <span className="font-mono text-sm text-slate-700 tabular-nums">
+                  {Math.ceil(timeLeft / 1000)}s
+                </span>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {[1, 2, 3, 4, 5].map((n) => {
+              const idx = n - 1;
+              const isSelected = selectedIdx === idx;
+              let btnClass =
+                'h-12 w-12 rounded-lg border-2 border-slate-500 bg-white text-lg font-bold text-slate-800 shadow-sm hover:bg-slate-100 disabled:opacity-60';
+              if (showCorrection && idx === currentQ?.correctIndex) {
+                btnClass =
+                  'h-12 w-12 rounded-lg border-2 border-green-600 bg-green-500 text-lg font-bold text-white shadow-sm';
+              } else if (showCorrection && isSelected && lastOutcome === 'incorrect') {
+                btnClass =
+                  'h-12 w-12 rounded-lg border-2 border-red-600 bg-red-500 text-lg font-bold text-white shadow-sm';
+              } else if (isSelected && !showCorrection) {
+                btnClass =
+                  'h-12 w-12 rounded-lg border-2 border-slate-700 bg-slate-200 text-lg font-bold text-slate-900 shadow-sm';
+              }
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => handleChoice(idx)}
+                  className={btnClass}
+                >
+                  {n}
+                </button>
+              );
+            })}
+
+            {showCorrection && (
+              <button
+                type="button"
+                onClick={goToNextQuestion}
+                className="ml-2 flex items-center gap-2 rounded-lg bg-sky-500 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-sky-600"
+              >
+                {currentIdx + 1 >= questions.length ? 'Resultats' : 'Suivant'}
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

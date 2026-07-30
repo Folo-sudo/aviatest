@@ -178,6 +178,7 @@ const exerciseComponents: Record<string, React.ComponentType<{ n?: number }>> = 
   'formes-couleurs': ShapesColorsTest,
   'jeu-des-billes': BillesTest,
   'm-back': MBackTest,
+  'memory-back': MBackTest,
   'rotation-mentale-3d': MentalRotationTest,
   'calcul-memorisation': CalculMemoTest,
   'calcul-mental': CalculMentalTest,
@@ -237,8 +238,8 @@ function ExerciseLoader({ slug }: { slug: string }) {
     );
   }
 
-  // Special case for m-back with n parameter
-  if (slug === 'm-back' && n) {
+  // Special case for m-back / memory-back with n query param (legacy deep links)
+  if ((slug === 'm-back' || slug === 'memory-back') && n) {
     return <Component n={parseInt(n, 10)} />;
   }
 

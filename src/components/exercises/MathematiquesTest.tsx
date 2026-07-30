@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, RotateCcw, Home, Settings } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Home, Settings, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -21,15 +21,16 @@ type AnswerOutcome = 'correct' | 'incorrect' | 'skipped';
 
 interface GameSettings {
   totalQuestions: number;
-  timePerQuestionSec: number;
   examMode: boolean;
+  timeLimitEnabled: boolean;
+  timeLimitMin: number;
 }
 
 interface QuestionData {
   statement: string;
   choices: string[];
   correctIndex: number;
-  explanation: string;
+  solutionSteps: string;
   category: string;
 }
 
@@ -47,13 +48,29 @@ interface QuestionResult {
 const SETTINGS_KEY = 'aviatest-mathematiques-settings';
 
 const DEFAULT_SETTINGS: GameSettings = {
-  totalQuestions: 20,
-  timePerQuestionSec: 45,
+  totalQuestions: 30,
   examMode: false,
+  timeLimitEnabled: true,
+  timeLimitMin: 35,
 };
 
+const PRENOMS = [
+  'Thomas',
+  'Julien',
+  'Paul',
+  'Marc',
+  'Nicolas',
+  'Antoine',
+  'Laurent',
+  'Sophie',
+  'Claire',
+  'Julie',
+  'Marie',
+  'Camille',
+];
+
 // ============================================================================
-// Helpers
+// Generic helpers
 // ============================================================================
 
 function loadSettings(): GameSettings {
@@ -84,6 +101,10 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function pickDistinct<T>(arr: readonly T[], n: number): T[] {
+  return shuffle([...arr]).slice(0, n);
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -93,8 +114,9 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b);
+function roundTo(n: number, decimals = 2): number {
+  const f = 10 ** decimals;
+  return Math.round(n * f) / f;
 }
 
 function formatNum(n: number, decimals = 0): string {
@@ -119,10 +141,11 @@ function buildNumericChoices(
     if (!map.has(key)) map.set(key, d);
   }
   let guard = 0;
-  while (map.size < 5 && guard < 30) {
+  while (map.size < 5 && guard < 60) {
     guard++;
     const magnitude = Math.max(1, Math.abs(correct) * 0.08);
     const jitter = correct + randInt(1, 6) * (Math.random() < 0.5 ? -1 : 1) * magnitude;
+    if (jitter <= 0) continue;
     const key = fmt(jitter);
     if (!map.has(key)) map.set(key, jitter);
   }
@@ -132,193 +155,780 @@ function buildNumericChoices(
   return { choices, correctIndex };
 }
 
+function buildStringChoices(correct: string, distractors: string[]): { choices: string[]; correctIndex: number } {
+  const set = new Set<string>([correct]);
+  for (const d of distractors) {
+    if (set.size >= 5) break;
+    set.add(d);
+  }
+  const entries = shuffle([...set]);
+  const correctIndex = entries.indexOf(correct);
+  return { choices: entries, correctIndex };
+}
+
+function fmtHM(totalMinutes: number): { str: string; dayOffset: number } {
+  const dayOffset = Math.floor(totalMinutes / 1440);
+  const norm = ((totalMinutes % 1440) + 1440) % 1440;
+  const h = Math.floor(norm / 60);
+  const m = norm % 60;
+  const str = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return { str, dayOffset };
+}
+
 // ============================================================================
-// Question generators
+// Skeleton 1 — Debits de travail (3 personnes)
 // ============================================================================
 
-const RULE_OF_THREE_ITEMS = [
-  'kg de pommes',
-  "litres d'essence",
-  'kg de farine',
-  'billets de train',
-  'kg de peinture',
-  'metres de tissu',
-];
+function genWorkRates3(): QuestionData {
+  const [n1, n2, n3] = pickDistinct(PRENOMS, 3);
+  const k = randInt(1, 6);
+  const t = 6 * k; // n1 seul
+  const p = 3 * k; // n2 seul
+  const j = 2 * k; // n3 seul
+  const A = k; // les trois ensemble
+  const C = 2 * k; // n1 + n2 ensemble
+  const D = 1.5 * k; // n1 + n3 ensemble (reponse)
 
-function genRuleOfThree(): QuestionData {
-  const item = pick(RULE_OF_THREE_ITEMS);
-  const unitPrice = randInt(2, 15);
-  const x = randInt(2, 8);
-  const y = unitPrice * x;
-  let z = randInt(2, 20);
-  while (z === x) z = randInt(2, 20);
-  const answer = unitPrice * z;
-  const statement = `${x} ${item} coutent ${y} €. Combien coutent ${z} ${item} ?`;
-  const distractors = [
-    y * z,
-    y + z,
-    Math.round(y / z),
-    unitPrice * z + x,
-    answer + x,
-    answer - x,
-    x * z,
-  ].filter((d) => d !== answer && d > 0);
-  const { choices, correctIndex } = buildNumericChoices(answer, distractors, ' €');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `Prix unitaire = ${y} / ${x} = ${unitPrice} €. Pour ${z} unites : ${unitPrice} x ${z} = ${answer} €.`,
-    category: 'Regle de trois',
-  };
-}
+  const statement = `${n1}, ${n2} et ${n3} sont charges de la maintenance complete d'un avion. A eux trois, ils la terminent en ${formatNum(A, 1)} h. ${n2} seul mettrait ${p} h. ${n1} et ${n2} ensemble mettent ${C} h. Combien de temps faudrait-il a ${n1} et ${n3} pour la terminer ensemble ?`;
 
-function genPercentageOf(): QuestionData {
-  const pct = pick([5, 10, 15, 20, 25, 40, 50, 75]);
-  const divisor = 100 / gcd(pct, 100);
-  const k = randInt(2, 20);
-  const base = divisor * k;
-  const answer = (base * pct) / 100;
-  const statement = `Combien vaut ${pct} % de ${base} ?`;
-  const distractors = [
-    (base * pct) / 10,
-    base / pct,
-    answer + pct,
-    answer - pct,
-    base - answer,
-    answer * 2,
-  ].filter((d) => d !== answer && d > 0);
-  const { choices, correctIndex } = buildNumericChoices(answer, distractors, '');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `${pct} % de ${base} = (${pct} / 100) x ${base} = ${answer}.`,
-    category: 'Pourcentages',
-  };
-}
-
-function genPercentageChange(): QuestionData {
-  const pct = pick([10, 20, 25, 30, 50, 15, 5]);
-  const divisor = 100 / gcd(pct, 100);
-  const k = randInt(2, 15);
-  const price = divisor * k;
-  const isDiscount = Math.random() < 0.65;
-  const delta = (price * pct) / 100;
-  const answer = isDiscount ? price - delta : price + delta;
-  const statement = `Un article coute ${price} €. Il ${isDiscount ? 'est solde de' : 'augmente de'} ${pct} %. Quel est le nouveau prix ?`;
-  const distractors = [
-    isDiscount ? price + delta : price - delta,
-    delta,
-    (price * pct) / 10,
-    answer + pct,
-    answer - pct,
-  ].filter((d) => d !== answer && d > 0);
-  const { choices, correctIndex } = buildNumericChoices(answer, distractors, ' €');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `${isDiscount ? 'Remise' : 'Hausse'} = ${price} x ${pct} / 100 = ${delta} €. Nouveau prix = ${price} ${isDiscount ? '-' : '+'} ${delta} = ${answer} €.`,
-    category: 'Pourcentages',
-  };
-}
-
-function genGroundspeed(): QuestionData {
-  const tas = Math.round(randInt(120, 300) / 10) * 10;
-  const wind = Math.round(randInt(10, 60) / 5) * 5;
-  const tailwind = Math.random() < 0.6;
-  const gs = tailwind ? tas + wind : tas - wind;
-  const statement = `Un avion vole a une vitesse propre de ${tas} km/h. Il subit un vent ${tailwind ? 'arriere' : 'de face'} de ${wind} km/h. Quelle est sa vitesse sol ?`;
-  const distractors = [tas, tas + (tailwind ? -wind : wind), tas + wind, tas - wind, gs + wind, gs - wind].filter(
-    (d) => d !== gs && d > 0,
+  const distractors = [p, C, A, (t + j) / 2, Math.abs(t - j), t, j, A + C - p].filter(
+    (d) => d !== D && d > 0,
   );
-  const { choices, correctIndex } = buildNumericChoices(gs, distractors, ' km/h');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `Vitesse sol = vitesse propre ${tailwind ? '+' : '-'} vent = ${tas} ${tailwind ? '+' : '-'} ${wind} = ${gs} km/h.`,
-    category: 'Vitesse / distance / temps',
-  };
+  const { choices, correctIndex } = buildNumericChoices(D, distractors, ' h', 1);
+
+  const solutionSteps = [
+    `1) ${n2} seul effectue le travail en ${p} h (debit = 1/${p}).`,
+    `2) ${n1} et ${n2} ensemble mettent ${C} h, donc ${n1} seul mettrait 1/${C} - 1/${p} = 1/${t} : soit ${t} h.`,
+    `3) A eux trois ils mettent ${formatNum(A, 1)} h, donc ${n3} seul mettrait 1/${A} - 1/${C} = 1/${j} : soit ${j} h.`,
+    `4) ${n1} et ${n3} ensemble : 1/${t} + 1/${j} = 1/${formatNum(D, 1)} → temps = ${formatNum(D, 1)} h.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Debits de travail' };
 }
 
-function genTimeForDistance(): QuestionData {
-  const gs = pick([120, 150, 180, 200, 240, 300, 360, 400, 450, 480, 600]);
-  const hoursFraction = pick([0.25, 0.5, 0.75, 1, 1.5, 2]);
-  const distance = Math.round(gs * hoursFraction);
-  const timeMin = Math.round(hoursFraction * 60);
-  const statement = `Un avion vole a une vitesse sol de ${gs} km/h. Combien de temps lui faut-il pour parcourir ${distance} km ?`;
+// ============================================================================
+// Skeleton 2 — Systeme lineaire (voitures / motos)
+// ============================================================================
+
+function genLinearSystem2(): QuestionData {
+  const pairsPool = [
+    { a1: 1, b1: 3, a2: 2, b2: 1 },
+    { a1: 1, b1: 2, a2: 3, b2: 4 },
+    { a1: 1, b1: 4, a2: 2, b2: 3 },
+    { a1: 1, b1: 1, a2: 2, b2: 5 },
+    { a1: 1, b1: 5, a2: 3, b2: 2 },
+  ];
+  const { a1, b1, a2, b2 } = pick(pairsPool);
+  const Pc = pick([8000, 9000, 10000, 12000, 15000, 18000, 20000]);
+  const Pm = pick([2000, 2500, 3000, 3500, 4000, 5000, 6000]);
+  const T1 = a1 * Pc + b1 * Pm;
+  const T2 = a2 * Pc + b2 * Pm;
+  const askCar = Math.random() < 0.5;
+  const answer = askCar ? Pc : Pm;
+
+  const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+  const statement = `Chez un concessionnaire, ${plural(a1, 'voiture')} et ${plural(b1, 'moto')} coutent au total ${formatNum(T1)} €. ${plural(a2, 'voiture')} et ${plural(b2, 'moto')} coutent au total ${formatNum(T2)} €. Quel est le prix d'une ${askCar ? 'voiture' : 'moto'} ?`;
+
+  const distractors = [askCar ? Pm : Pc, Math.round(T1 / a1), Math.round(T2 / (a2 || 1)), answer + 1000, answer - 1000, Math.round((T1 - T2) / (a1 - a2 || 1))].filter(
+    (d) => d !== answer && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(answer, distractors, ' €');
+
+  const solutionSteps = [
+    `Notons x le prix d'une voiture et y celui d'une moto.`,
+    `${a1}x + ${b1}y = ${formatNum(T1)}  →  x = ${formatNum(T1)} - ${b1}y`,
+    `En remplacant dans la 2eme equation : ${a2}(${formatNum(T1)} - ${b1}y) + ${b2}y = ${formatNum(T2)}`,
+    `y = ${formatNum(Pm)} €, donc x = ${formatNum(T1)} - ${b1} x ${formatNum(Pm)} = ${formatNum(Pc)} €.`,
+    `Reponse : ${askCar ? 'voiture' : 'moto'} = ${formatNum(answer)} €.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Systeme lineaire' };
+}
+
+// ============================================================================
+// Skeleton 3 — Regle de trois (devises)
+// ============================================================================
+
+function genCurrencyRuleOfThree(): QuestionData {
+  const currency = pick(['rial', 'dinar', 'yen']);
+  const N = pick([10, 50, 100, 1000]);
+  const E = pick([5, 7.5, 10, 12.5, 15, 20, 25]);
+  const m = randInt(2, 8);
+  const M = N * m;
+  const unitRate = E / N;
+  const answer = roundTo(E * m, 2);
+
+  const statement = `${N} ${currency}s valent ${formatNum(E, 2)} €. Combien valent ${formatNum(M)} ${currency}s ?`;
+
   const distractors = [
-    timeMin / 2,
-    timeMin * 2,
-    timeMin + 15,
-    timeMin - 15,
-    Math.round((distance / gs) * 100),
-  ].filter((d) => d !== timeMin && d > 0);
-  const { choices, correctIndex } = buildNumericChoices(timeMin, distractors, ' min');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `Temps = distance / vitesse = ${distance} / ${gs} h = ${hoursFraction} h = ${timeMin} min.`,
-    category: 'Vitesse / distance / temps',
-  };
+    roundTo(E * N, 2),
+    roundTo(M / E, 2),
+    roundTo(E + M, 2),
+    roundTo(answer / 2, 2),
+    roundTo(answer * 2, 2),
+    roundTo(N * M, 2),
+  ].filter((d) => d !== answer && d > 0);
+  const { choices, correctIndex } = buildNumericChoices(answer, distractors, ' €', 2);
+
+  const solutionSteps = [
+    `1 ${currency} vaut ${formatNum(E, 2)} / ${N} = ${formatNum(unitRate, 4)} €.`,
+    `${formatNum(M)} = ${m} x ${N}, donc la reponse est simplement ${m} x ${formatNum(E, 2)} = ${formatNum(answer, 2)} €.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Conversion de devises' };
 }
 
-function genAviationCombined(): QuestionData {
-  const tas = pick([160, 180, 200, 220, 240, 260, 280, 300]);
-  const wind = pick([10, 20, 30, 40]);
-  const tailwind = Math.random() < 0.5;
-  const gs = tailwind ? tas + wind : tas - wind;
-  const hoursFraction = pick([0.5, 1, 1.5, 2, 2.5]);
-  const distance = Math.round(gs * hoursFraction);
-  const timeMin = Math.round(hoursFraction * 60);
-  const statement = `Un avion vole a une vitesse propre de ${tas} km/h avec un vent ${tailwind ? 'arriere' : 'de face'} de ${wind} km/h. Combien de temps lui faut-il pour parcourir ${distance} km ?`;
+// ============================================================================
+// Skeleton 4 — Remises successives (aller)
+// ============================================================================
+
+function genDoubleDiscountForward(): QuestionData {
+  const P = pick([400, 500, 600, 800, 1000, 1200, 1500, 2000]);
+  const [r1, r2] = pickDistinct([10, 20, 25, 50], 2);
+  const step1 = roundTo((P * (100 - r1)) / 100, 2);
+  const step2 = roundTo((step1 * (100 - r2)) / 100, 2);
+
+  const statement = `Un article coute ${formatNum(P)} €. Il subit d'abord une remise de ${r1} %, puis une seconde remise de ${r2} % appliquee sur le nouveau prix. Quel est le prix final ?`;
+
+  const wrongAdditive = roundTo((P * (100 - r1 - r2)) / 100, 2);
+  const distractors = [wrongAdditive, step1, roundTo((step1 + step2) / 2, 2), roundTo(step2 * 1.1, 2), roundTo(step2 - 5, 2)].filter(
+    (d) => d !== step2 && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(step2, distractors, ' €', 2);
+
+  const solutionSteps = [
+    `Apres la 1ere remise : ${formatNum(P)} x (1 - ${r1}/100) = ${formatNum(P)} x ${formatNum((100 - r1) / 100, 2)} = ${formatNum(step1, 2)} €.`,
+    `Apres la 2eme remise : ${formatNum(step1, 2)} x (1 - ${r2}/100) = ${formatNum(step1, 2)} x ${formatNum((100 - r2) / 100, 2)} = ${formatNum(step2, 2)} €.`,
+    `Attention : on n'additionne pas les pourcentages (${r1} + ${r2} = ${r1 + r2} % donnerait a tort ${formatNum(wrongAdditive, 2)} €).`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Remises successives' };
+}
+
+// ============================================================================
+// Skeleton 5 — Remises successives (retrouver le prix initial)
+// ============================================================================
+
+function genDoubleDiscountReverse(): QuestionData {
+  const Porig = pick([400, 500, 600, 800, 1000, 1200, 1500, 2000]);
+  const [r1, r2] = pickDistinct([10, 20, 25, 50], 2);
+  const step1 = roundTo((Porig * (100 - r1)) / 100, 2);
+  const F = roundTo((step1 * (100 - r2)) / 100, 2);
+
+  const statement = `Apres une remise de ${r1} % puis une seconde remise de ${r2} % (appliquee sur le nouveau prix), un article coute ${formatNum(F, 2)} €. Quel etait son prix initial ?`;
+
+  const wrongAdditive = roundTo((F * 100) / (100 - r1 - r2), 2);
+  const wrongInverse = roundTo(F * (1 + r1 / 100) * (1 + r2 / 100), 2);
+  const wrongOneStep = roundTo((F * 100) / (100 - r1), 2);
+  const distractors = [wrongAdditive, wrongInverse, wrongOneStep, Porig + 100, Porig - 100].filter(
+    (d) => d !== Porig && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(Porig, distractors, ' €', 2);
+
+  const solutionSteps = [
+    `Prix initial x (1 - ${r1}/100) x (1 - ${r2}/100) = ${formatNum(F, 2)} €.`,
+    `Prix initial = ${formatNum(F, 2)} / (${formatNum((100 - r1) / 100, 2)} x ${formatNum((100 - r2) / 100, 2)}) = ${formatNum(F, 2)} / ${formatNum(((100 - r1) * (100 - r2)) / 10000, 4)}.`,
+    `Prix initial = ${formatNum(Porig, 2)} €.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Remises successives (inverse)' };
+}
+
+// ============================================================================
+// Skeleton 6 — Proportionnalite (ouvriers / m2 / heures)
+// ============================================================================
+
+function genWorkersProportion(): QuestionData {
+  const r = pick([2, 3, 4, 5, 6]);
+  const N = randInt(2, 8);
+  const H = randInt(2, 8);
+  const S = N * H * r;
+  const N2 = randInt(2, 10);
+  const H2 = randInt(2, 8);
+  const S2 = N2 * H2 * r;
+
+  const statement = `${N} ouvriers peignent une surface de ${formatNum(S)} m² en ${H} heures. Combien de temps faudrait-il a ${N2} ouvriers pour peindre ${formatNum(S2)} m² (au meme rythme) ?`;
+
   const distractors = [
-    timeMin + 15,
-    timeMin - 15,
-    Math.round((distance / tas) * 60),
-    timeMin * 2,
-    Math.round(timeMin / 2),
-  ].filter((d) => d !== timeMin && d > 0);
-  const { choices, correctIndex } = buildNumericChoices(timeMin, distractors, ' min');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `Vitesse sol = ${tas} ${tailwind ? '+' : '-'} ${wind} = ${gs} km/h. Temps = ${distance} / ${gs} h = ${hoursFraction} h = ${timeMin} min.`,
-    category: 'Vitesse / distance / temps',
-  };
+    Math.round((S2 / S) * H),
+    Math.round((S / S2) * H),
+    Math.round((H * N) / N2),
+    H2 + 2,
+    Math.max(1, H2 - 2),
+  ].filter((d) => d !== H2 && d > 0);
+  const { choices, correctIndex } = buildNumericChoices(H2, distractors, ' h');
+
+  const solutionSteps = [
+    `Rendement d'un ouvrier = ${formatNum(S)} / (${N} x ${H}) = ${r} m²/h.`,
+    `Pour ${N2} ouvriers, rendement total = ${N2} x ${r} = ${N2 * r} m²/h.`,
+    `Temps = ${formatNum(S2)} / ${N2 * r} = ${H2} h.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Proportionnalite (ouvriers)' };
 }
 
-function genSimpleEquation(): QuestionData {
-  const a = randInt(2, 9);
-  const x = randInt(-10, 20);
-  let b = randInt(-15, 15);
-  while (b === 0) b = randInt(-15, 15);
-  const c = a * x + b;
-  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
-  const statement = `${a}x ${bStr} = ${c}. Quelle est la valeur de x ?`;
-  const distractors = [x + 1, x - 1, x + a, x - a, -x].filter((d) => d !== x);
+// ============================================================================
+// Skeleton 7 — Remise en € → pourcentage
+// ============================================================================
+
+function genRemiseToPercent(): QuestionData {
+  const k = randInt(1, 6);
+  const P = 40 * k;
+  const pct = pick([5, 10, 15, 20, 25, 30, 40, 50]);
+  const R = (P * pct) / 100;
+
+  const statement = `Un article coute ${formatNum(P)} €. Il beneficie d'une remise de ${formatNum(R)} €. Quel est le pourcentage de remise applique ?`;
+
+  const distractors = [100 - pct, pct + 10, pct - 10, R, Math.round((P / R) * 10)].filter(
+    (d) => d !== pct && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(pct, distractors, ' %');
+
+  const solutionSteps = [
+    `Pourcentage = (remise / prix) x 100 = (${formatNum(R)} / ${formatNum(P)}) x 100 = ${pct} %.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Pourcentage de remise' };
+}
+
+// ============================================================================
+// Skeleton 8 — Prix final + % → prix initial
+// ============================================================================
+
+function genFinalPriceToOriginal(): QuestionData {
+  const k = randInt(2, 10);
+  const Porig = 20 * k;
+  const pct = pick([5, 10, 15, 20, 25, 30, 40, 50]);
+  const isIncrease = Math.random() < 0.5;
+  const factor = isIncrease ? 100 + pct : 100 - pct;
+  const F = (Porig * factor) / 100;
+
+  const statement = `Apres une ${isIncrease ? 'hausse' : 'remise'} de ${pct} %, un article coute ${formatNum(F)} €. Quel etait son prix avant cette ${isIncrease ? 'hausse' : 'remise'} ?`;
+
+  const wrongSameOp = isIncrease ? F * (1 + pct / 100) : F * (1 - pct / 100);
+  const wrongDelta = isIncrease ? F - (F * pct) / 100 : F + (F * pct) / 100;
+  const distractors = [roundTo(wrongSameOp), roundTo(wrongDelta), Porig + 20, Porig - 20].filter(
+    (d) => d !== Porig && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(Porig, distractors, ' €');
+
+  const solutionSteps = [
+    `Prix apres = prix avant x ${formatNum(factor / 100, 2)}.`,
+    `Prix avant = ${formatNum(F)} / ${formatNum(factor / 100, 2)} = ${formatNum(Porig)} €.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Prix initial' };
+}
+
+// ============================================================================
+// Skeleton 9 — Interets composes
+// ============================================================================
+
+function genCompoundInterest(): QuestionData {
+  const C = pick([1000, 2000, 3000, 5000, 8000, 10000, 15000, 20000]);
+  const r = pick([10, 20]);
+  const n = pick([2, 3]);
+  const values: number[] = [C];
+  for (let i = 0; i < n; i++) {
+    values.push(roundTo((values[values.length - 1] * (100 + r)) / 100, 2));
+  }
+  const final = values[values.length - 1];
+
+  const statement = `Un capital de ${formatNum(C)} € est place a un taux d'interet compose de ${r} % par an. Quelle est sa valeur au bout de ${n} ans ?`;
+
+  const simpleInterest = roundTo(C * (1 + (r * n) / 100), 2);
+  const distractors = [simpleInterest, roundTo(final - C, 2), roundTo(C * (1 + r / 100) * n, 2), values[1]].filter(
+    (d) => d !== final && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(final, distractors, ' €', 2);
+
+  const stepsLines = values.slice(1).map((v, i) => `Annee ${i + 1} : ${formatNum(values[i])} x ${formatNum((100 + r) / 100, 2)} = ${formatNum(v, 2)} €.`);
+  const solutionSteps = [
+    ...stepsLines,
+    `(Attention, ce n'est pas un interet simple : ${formatNum(simpleInterest, 2)} € serait faux.)`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Interets composes' };
+}
+
+// ============================================================================
+// Skeleton 10 — Hausses / baisses successives (3 etapes)
+// ============================================================================
+
+function genSuccessivePercentChanges(): QuestionData {
+  const P = pick([1000, 1200, 1500, 2000, 2500, 3000]);
+  const changes = pickDistinct([10, 20, 25], 3).map((r) => ({ r, up: Math.random() < 0.5 }));
+  let current = P;
+  const steps: string[] = [];
+  for (const { r, up } of changes) {
+    const next = roundTo((current * (up ? 100 + r : 100 - r)) / 100, 2);
+    steps.push(
+      `${formatNum(current)} € ${up ? '+ ' + r + ' %' : '- ' + r + ' %'} → ${formatNum(current)} x ${formatNum((up ? 100 + r : 100 - r) / 100, 2)} = ${formatNum(next, 2)} €.`,
+    );
+    current = next;
+  }
+  const final = current;
+
+  const description = changes.map((c) => `${c.up ? 'augmente' : 'diminue'} de ${c.r} %`).join(', puis ');
+  const statement = `Le prix d'un billet d'avion est de ${formatNum(P)} €. Il ${description}. Quel est le prix final (arrondi au centime) ?`;
+
+  const netPct = changes.reduce((acc, c) => acc + (c.up ? c.r : -c.r), 0);
+  const wrongNet = roundTo((P * (100 + netPct)) / 100, 2);
+  const distractors = [wrongNet, P, roundTo(final + 10, 2), roundTo(final - 10, 2)].filter(
+    (d) => d !== final && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(final, distractors, ' €', 2);
+
+  const solutionSteps = [...steps, `Prix final = ${formatNum(final, 2)} €.`].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Hausses successives' };
+}
+
+// ============================================================================
+// Skeleton 11 — Consommation aller/retour avec vent
+// ============================================================================
+
+function genConsumptionAllerRetour(): QuestionData {
+  const pool = [
+    { tasOut: 160, tasReturn: 240, pct: 20 },
+    { tasOut: 120, tasReturn: 180, pct: 20 },
+    { tasOut: 200, tasReturn: 300, pct: 20 },
+    { tasOut: 80, tasReturn: 120, pct: 20 },
+    { tasOut: 150, tasReturn: 250, pct: 25 },
+    { tasOut: 90, tasReturn: 150, pct: 25 },
+    { tasOut: 120, tasReturn: 200, pct: 25 },
+  ];
+  const { tasOut, tasReturn } = pick(pool);
+  const gcdFn = (a: number, b: number): number => (b === 0 ? a : gcdFn(b, a % b));
+  const lcm = (tasOut * tasReturn) / gcdFn(tasOut, tasReturn);
+  const k = lcm > 700 ? 1 : pick([1, 2]);
+  const D = lcm * k;
+  const tOut = D / tasOut;
+  const tRet = D / tasReturn;
+  const C = pick([40, 50, 60, 80, 100]);
+  const totalTime = tOut + tRet;
+  const totalFuel = C * totalTime;
+
+  const statement = `Un avion effectue un vol aller-retour sur la meme route. A l'aller, un vent de face reduit sa vitesse sol a ${tasOut} km/h. Au retour, le vent devient favorable et sa vitesse sol passe a ${tasReturn} km/h. La distance parcourue est de ${formatNum(D)} km dans chaque sens. Sachant que l'avion consomme ${C} L/h, quelle est la consommation totale pour l'aller-retour ?`;
+
+  const distractors = [
+    C * tOut * 2,
+    C * tRet * 2,
+    Math.round(totalFuel / 2),
+    C * Math.round((2 * D) / ((tasOut + tasReturn) / 2)),
+  ].filter((d) => d !== totalFuel && d > 0);
+  const { choices, correctIndex } = buildNumericChoices(totalFuel, distractors, ' L');
+
+  const solutionSteps = [
+    `Temps aller = ${formatNum(D)} / ${tasOut} = ${tOut} h.`,
+    `Temps retour = ${formatNum(D)} / ${tasReturn} = ${tRet} h.`,
+    `Temps total = ${tOut} + ${tRet} = ${totalTime} h.`,
+    `Consommation totale = ${C} x ${totalTime} = ${formatNum(totalFuel)} L.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Consommation aller-retour' };
+}
+
+// ============================================================================
+// Skeleton 12 — Surface d'un champ (longueur/largeur augmentent)
+// ============================================================================
+
+function genFieldSurfaceIncrease(): QuestionData {
+  const L = pick([40, 60, 80, 100, 120]);
+  const l = pick([20, 30, 40, 50, 60]);
+  const [r1, r2] = pickDistinct([10, 20, 25, 50], 2);
+  const L2 = (L * (100 + r1)) / 100;
+  const l2 = (l * (100 + r2)) / 100;
+  const S1 = L * l;
+  const S2 = L2 * l2;
+
+  const statement = `Un champ rectangulaire mesure ${L} m de long sur ${l} m de large. Sa longueur augmente de ${r1} % et sa largeur augmente de ${r2} %. Quelle est la nouvelle surface du champ ?`;
+
+  const wrongAdditive = roundTo((S1 * (100 + r1 + r2)) / 100, 2);
+  const distractors = [wrongAdditive, L2 * l, L * l2, S1, roundTo(S2 / 2, 2)].filter(
+    (d) => d !== S2 && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(S2, distractors, ' m²');
+
+  const solutionSteps = [
+    `Nouvelle longueur = ${L} x ${formatNum((100 + r1) / 100, 2)} = ${formatNum(L2)} m.`,
+    `Nouvelle largeur = ${l} x ${formatNum((100 + r2) / 100, 2)} = ${formatNum(l2)} m.`,
+    `Nouvelle surface = ${formatNum(L2)} x ${formatNum(l2)} = ${formatNum(S2)} m².`,
+    `(Ancienne surface : ${formatNum(S1)} m² — on ne peut pas simplement additionner les pourcentages.)`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: "Surface d'un champ" };
+}
+
+// ============================================================================
+// Skeleton 13 — Deux trains qui se croisent
+// ============================================================================
+
+function genTrainsMeet(): QuestionData {
+  if (Math.random() < 0.5) {
+    const V1 = pick([60, 70, 80, 90, 100, 120]);
+    const V2 = pick([60, 70, 80, 90, 100, 120]);
+    const t = randInt(1, 6);
+    const D = (V1 + V2) * t;
+
+    const statement = `Deux trains partent au meme instant de deux gares distantes de ${formatNum(D)} km, l'un vers l'autre. Le premier roule a ${V1} km/h, le second a ${V2} km/h. Au bout de combien de temps se croisent-ils ?`;
+
+    const distractors = [Math.round(D / V1), Math.round(D / V2), t / 2, t * 2].filter((d) => d !== t && d > 0);
+    const { choices, correctIndex } = buildNumericChoices(t, distractors, ' h', 1);
+
+    const solutionSteps = [
+      `Vitesse de rapprochement = ${V1} + ${V2} = ${V1 + V2} km/h.`,
+      `Temps = distance / vitesse de rapprochement = ${formatNum(D)} / ${V1 + V2} = ${t} h.`,
+    ].join('\n');
+
+    return { statement, choices, correctIndex, solutionSteps, category: 'Trains qui se croisent' };
+  }
+
+  const tuples = [
+    { V1: 60, h: 2, V2: 90 },
+    { V1: 60, h: 2, V2: 100 },
+    { V1: 60, h: 2, V2: 120 },
+    { V1: 80, h: 1, V2: 120 },
+    { V1: 80, h: 3, V2: 120 },
+    { V1: 90, h: 2, V2: 120 },
+  ];
+  const { V1, h, V2 } = pick(tuples);
+  const headstart = V1 * h;
+  const diff = V2 - V1;
+  const tCatch = headstart / diff;
+
+  const statement = `Un train part d'une gare a ${V1} km/h. ${h} heure(s) plus tard, un second train part de la meme gare, dans la meme direction, a ${V2} km/h. Combien de temps apres son propre depart le second train rattrape-t-il le premier ?`;
+
+  const distractors = [h, tCatch + 1, Math.max(1, tCatch - 1), Math.round(headstart / V2)].filter(
+    (d) => d !== tCatch && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(tCatch, distractors, ' h');
+
+  const solutionSteps = [
+    `Avance du premier train au moment du 2e depart = ${V1} x ${h} = ${headstart} km.`,
+    `Vitesse de rapprochement = ${V2} - ${V1} = ${diff} km/h.`,
+    `Temps de rattrapage = ${headstart} / ${diff} = ${tCatch} h.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Trains qui se croisent' };
+}
+
+// ============================================================================
+// Skeleton 14 — Repartition de salaires (equipage)
+// ============================================================================
+
+function genSalariesRatio(): QuestionData {
+  const ratios = [
+    [5, 3, 2],
+    [4, 3, 2],
+    [6, 4, 3],
+    [5, 4, 2],
+    [3, 2, 1],
+  ];
+  const [a, b, c] = pick(ratios);
+  const totalParts = a + b + c;
+  const v = pick([100, 150, 200, 250, 300, 400, 500]);
+  const S = v * totalParts;
+  const roles: [string, number][] = [
+    ['commandant', a],
+    ['copilote', b],
+    ['steward', c],
+  ];
+  const [roleName, rolePart] = pick(roles);
+  const answer = v * rolePart;
+
+  const statement = `La masse salariale mensuelle d'un equipage (commandant, copilote, steward) est de ${formatNum(S)} €, repartie selon le ratio ${a}:${b}:${c}. Quel est le salaire du ${roleName} ?`;
+
+  const distractors = roles.map(([, part]) => v * part).concat([Math.round(S / 3), v]);
+  const filtered = distractors.filter((d) => d !== answer && d > 0);
+  const { choices, correctIndex } = buildNumericChoices(answer, filtered, ' €');
+
+  const solutionSteps = [
+    `Nombre total de parts = ${a} + ${b} + ${c} = ${totalParts}.`,
+    `Valeur d'une part = ${formatNum(S)} / ${totalParts} = ${formatNum(v)} €.`,
+    `Salaire du ${roleName} = ${rolePart} x ${formatNum(v)} = ${formatNum(answer)} €.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Repartition de salaires' };
+}
+
+// ============================================================================
+// Skeleton 15 — Champ carre dont le cote augmente
+// ============================================================================
+
+function genSquareFieldEnlarge(): QuestionData {
+  const C = pick([20, 40, 60, 80, 100]);
+  const r = pick([10, 20, 50]);
+  const newSide = (C * (100 + r)) / 100;
+  const oldArea = C * C;
+  const newArea = newSide * newSide;
+
+  const statement = `Un champ carre a un cote de ${C} m. Ce cote est agrandi de ${r} %. Quelle est la nouvelle aire du champ ?`;
+
+  const wrongLinear = roundTo(oldArea * (1 + (2 * r) / 100), 2);
+  const distractors = [wrongLinear, roundTo(oldArea * (1 + r / 100), 2), newSide * C, Math.round(newArea / 2)].filter(
+    (d) => d !== newArea && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(newArea, distractors, ' m²');
+
+  const solutionSteps = [
+    `Nouveau cote = ${C} x ${formatNum((100 + r) / 100, 2)} = ${formatNum(newSide)} m.`,
+    `Nouvelle aire = ${formatNum(newSide)}² = ${formatNum(newArea)} m² (ancienne aire : ${formatNum(oldArea)} m²).`,
+    `Piege classique : l'aire augmente plus vite que le cote (pas juste +${2 * r} %) car elle depend du carre du cote.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Champ carre' };
+}
+
+// ============================================================================
+// Skeleton 16 — Fuseaux horaires / heures locales de vol
+// ============================================================================
+
+function genTimezoneFlight(): QuestionData {
+  const depH = randInt(0, 23);
+  const depM = pick([0, 15, 30, 45]);
+  const H = randInt(1, 10);
+  const M = pick([0, 15, 30, 45]);
+  const tz = pick([-9, -8, -6, -5, -3, -1, 1, 2, 3, 5, 6, 8, 9]);
+
+  const depTotal = depH * 60 + depM;
+  const durMin = H * 60 + M;
+  const parisArrivalTotal = depTotal + durMin;
+  const localArrivalTotal = parisArrivalTotal + tz * 60;
+
+  const depStr = fmtHM(depTotal).str;
+  const parisArrival = fmtHM(parisArrivalTotal);
+  const localArrival = fmtHM(localArrivalTotal);
+
+  const durStr = `${H}h${M === 0 ? '00' : M}`;
+  const tzStr = `${tz >= 0 ? '+' : ''}${tz} h`;
+  const correctStr = `${localArrival.str}${localArrival.dayOffset >= 1 ? ' (J+1)' : localArrival.dayOffset <= -1 ? ' (J-1)' : ''}`;
+
+  const statement = `Un avion decolle a ${depStr} (heure de Paris). Le vol dure ${durStr}. La destination a un decalage horaire de ${tzStr} par rapport a Paris. Quelle est l'heure locale d'arrivee ?`;
+
+  const fmtWithDay = (totalMin: number) => {
+    const r = fmtHM(totalMin);
+    return `${r.str}${r.dayOffset >= 1 ? ' (J+1)' : r.dayOffset <= -1 ? ' (J-1)' : ''}`;
+  };
+  const rawCandidates = [
+    parisArrivalTotal,
+    parisArrivalTotal - tz * 60,
+    localArrivalTotal + 60,
+    localArrivalTotal - 30,
+    localArrivalTotal + 30,
+    localArrivalTotal - 60,
+    localArrivalTotal + 15,
+    localArrivalTotal - 15,
+  ];
+  const distractorStrs = rawCandidates.map(fmtWithDay).filter((s) => s !== correctStr);
+
+  const { choices, correctIndex } = buildStringChoices(correctStr, distractorStrs);
+
+  const solutionSteps = [
+    `Heure de depart (Paris) : ${depStr}. Duree de vol : ${durStr}.`,
+    `Heure d'arrivee en heure de Paris = ${depStr} + ${durStr} = ${parisArrival.str}${parisArrival.dayOffset >= 1 ? ' (jour suivant)' : ''}.`,
+    `Decalage horaire de la destination : ${tzStr} → heure locale = ${parisArrival.str} ${tz >= 0 ? '+' : '-'} ${Math.abs(tz)} h = ${correctStr}.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Fuseaux horaires' };
+}
+
+// ============================================================================
+// Skeleton 17 — Probleme d'ages
+// ============================================================================
+
+function genAgeProblem(): QuestionData {
+  const [nA, nB] = pickDistinct(PRENOMS, 2);
+  const k = pick([2, 3, 4]);
+  const m = pick([3, 5, 8, 10]);
+  const b = pick([4, 5, 6, 7, 8]);
+  const a = k * b;
+  const S = a + b + 2 * m;
+
+  const statement = `${nA} a actuellement ${k} fois l'age de ${nB}. Dans ${m} ans, la somme de leurs ages sera de ${S} ans. Quel est l'age actuel de ${nA} ?`;
+
+  const distractors = [b, a + m, a - m, Math.round(S / 2), k * (b + 1)].filter((d) => d !== a && d > 0);
+  const { choices, correctIndex } = buildNumericChoices(a, distractors, ' ans');
+
+  const solutionSteps = [
+    `Notons b l'age actuel de ${nB} ; ${nA} a alors ${k} x b ans.`,
+    `Dans ${m} ans : (${k}b + ${m}) + (b + ${m}) = ${S}, donc ${k + 1}b + ${2 * m} = ${S}.`,
+    `${k + 1}b = ${S - 2 * m}, donc b = ${b} ans.`,
+    `Age actuel de ${nA} = ${k} x ${b} = ${a} ans.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: "Probleme d'ages" };
+}
+
+// ============================================================================
+// Skeleton 18 — Pieces de 10 € et 2 €
+// ============================================================================
+
+function genCoins(): QuestionData {
+  const x = randInt(3, 30); // billets de 10€
+  const y = randInt(3, 30); // pieces de 2€
+  const T = x + y;
+  const S = 10 * x + 2 * y;
+
+  const statement = `Une caisse contient ${T} billets et pieces, uniquement des billets de 10 € et des pieces de 2 €, pour une valeur totale de ${formatNum(S)} €. Combien y a-t-il de billets de 10 € ?`;
+
+  const distractors = [y, Math.round(T / 2), Math.round(S / 12), Math.round(S / 10), Math.abs(x - y)].filter(
+    (d) => d !== x && d > 0,
+  );
   const { choices, correctIndex } = buildNumericChoices(x, distractors, '');
-  return {
-    statement,
-    choices,
-    correctIndex,
-    explanation: `${a}x = ${c} ${b >= 0 ? '-' : '+'} ${Math.abs(b)} = ${c - b}, donc x = ${c - b} / ${a} = ${x}.`,
-    category: 'Equations simples',
-  };
+
+  const solutionSteps = [
+    `Si toutes les ${T} pieces/billets etaient des pieces de 2 € : ${T} x 2 = ${T * 2} €.`,
+    `Difference avec le total reel : ${formatNum(S)} - ${T * 2} = ${S - T * 2} €.`,
+    `Chaque billet de 10 € apporte 8 € de plus qu'une piece de 2 € : ${S - T * 2} / 8 = ${x} billets de 10 €.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Pieces de monnaie' };
 }
+
+// ============================================================================
+// Skeleton 19 — Barreaux d'une echelle
+// ============================================================================
+
+function genLadderRungs(): QuestionData {
+  const N = pick([5, 7, 9, 11, 13]);
+  const spacing = pick([10, 15, 20, 25, 30]);
+  const H = spacing * (N - 1);
+
+  const statement = `Une echelle de ${H} cm de haut comporte ${N} barreaux regulierement espaces (le premier tout en bas, le dernier tout en haut). Quel est l'espacement entre deux barreaux consecutifs ?`;
+
+  const trap = Math.round(H / N);
+  const distractors = [trap, spacing + 5, Math.max(1, spacing - 5), spacing * 2].filter(
+    (d) => d !== spacing && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(spacing, distractors, ' cm');
+
+  const solutionSteps = [
+    `Nombre d'intervalles entre ${N} barreaux = ${N} - 1 = ${N - 1} (piege classique : ce n'est pas ${N}).`,
+    `Espacement = ${H} / ${N - 1} = ${spacing} cm.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: "Barreaux d'echelle" };
+}
+
+// ============================================================================
+// Skeleton 20 — Plante qui double chaque mois
+// ============================================================================
+
+function genPlantDoubling(): QuestionData {
+  const H0 = pick([2, 3, 4, 5, 6]);
+  const n = randInt(2, 6);
+  let cur = H0;
+  const steps: string[] = [];
+  for (let i = 1; i <= n; i++) {
+    cur *= 2;
+    steps.push(`Mois ${i} : ${cur / 2} x 2 = ${cur} cm.`);
+  }
+  const answer = cur;
+
+  const statement = `Une plante mesure ${H0} cm. Sa hauteur double chaque mois. Quelle sera sa hauteur au bout de ${n} mois ?`;
+
+  const distractors = [H0 * n * 2, H0 * 2 ** (n - 1), H0 * 2 ** (n + 1), H0 + n * H0].filter(
+    (d) => d !== answer && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(answer, distractors, ' cm');
+
+  const solutionSteps = [...steps, `Hauteur finale = ${answer} cm.`].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Croissance exponentielle' };
+}
+
+// ============================================================================
+// Skeleton 21 — Vent de face (fraction de la vitesse)
+// ============================================================================
+
+function genHeadwindFraction(): QuestionData {
+  const fractions = [
+    { num: 1, den: 4, subNum: 3, subDen: 4, label: 'un quart' },
+    { num: 1, den: 3, subNum: 2, subDen: 3, label: 'un tiers' },
+    { num: 1, den: 5, subNum: 4, subDen: 5, label: 'un cinquieme' },
+    { num: 1, den: 2, subNum: 1, subDen: 2, label: 'la moitie' },
+  ];
+  const f = pick(fractions);
+  const tPool: Record<string, number[]> = {
+    '3/4': [3, 6, 9, 12],
+    '2/3': [2, 4, 6, 8, 10],
+    '4/5': [4, 8, 12, 16],
+    '1/2': [1, 2, 3, 4, 5, 6],
+  };
+  const key = `${f.subNum}/${f.subDen}`;
+  const t = pick(tPool[key]);
+  const answer = (t * f.subDen) / f.subNum;
+  const V = pick([160, 180, 200, 220, 250]);
+
+  const statement = `Un avion effectue normalement un trajet en ${formatNum(t, 1)} h sans vent (vitesse propre ${V} km/h). Un vent de face reduit sa vitesse sol de ${f.label} (${Math.round((f.num / f.den) * 100)} %). Combien de temps dure le trajet avec ce vent de face ?`;
+
+  const distractors = [roundTo(t * (f.subNum / f.subDen), 2), t * 2, roundTo(t / 2, 2), roundTo(t + f.num / f.den, 2)].filter(
+    (d) => d !== answer && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(answer, distractors, ' h', 2);
+
+  const solutionSteps = [
+    `La vitesse sol est reduite a ${f.subNum}/${f.subDen} de la vitesse initiale.`,
+    `A distance egale, le temps est multiplie par l'inverse : ${formatNum(t, 1)} x ${f.subDen}/${f.subNum} = ${formatNum(answer, 2)} h.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Vent de face (fraction)' };
+}
+
+// ============================================================================
+// Skeleton 22 — Correction altimetrique de temperature
+// ============================================================================
+
+function genAltimeterCorrection(): QuestionData {
+  const A = pick([3000, 4000, 5000, 6000, 8000, 10000]);
+  const dT = pick([5, 10, 15, 20]);
+  const colder = Math.random() < 0.5;
+  const slabs = A / 1000;
+  const correction = 4 * slabs * dT;
+
+  const statement = `Un altimetre indique une altitude de ${formatNum(A)} ft. La temperature reelle est ${colder ? 'inferieure' : 'superieure'} de ${dT} °C a la temperature standard (ISA). Sachant que l'erreur d'altitude est d'environ 4 pieds par tranche de 1000 pieds et par degre d'ecart, quelle est l'erreur d'altitude approximative ?`;
+
+  const distractors = [correction / 2, correction * 2, slabs * dT, 4 * dT, correction + 100].filter(
+    (d) => d !== correction && d > 0,
+  );
+  const { choices, correctIndex } = buildNumericChoices(correction, distractors, ' ft');
+
+  const solutionSteps = [
+    `Nombre de tranches de 1000 ft = ${formatNum(A)} / 1000 = ${slabs}.`,
+    `Erreur = 4 x ${slabs} x ${dT} = ${formatNum(correction)} ft.`,
+  ].join('\n');
+
+  return { statement, choices, correctIndex, solutionSteps, category: 'Correction altimetrique' };
+}
+
+// ============================================================================
+// Generator registry
+// ============================================================================
 
 const GENERATORS = [
-  genRuleOfThree,
-  genPercentageOf,
-  genPercentageChange,
-  genGroundspeed,
-  genTimeForDistance,
-  genAviationCombined,
-  genSimpleEquation,
+  genWorkRates3,
+  genLinearSystem2,
+  genCurrencyRuleOfThree,
+  genDoubleDiscountForward,
+  genDoubleDiscountReverse,
+  genWorkersProportion,
+  genRemiseToPercent,
+  genFinalPriceToOriginal,
+  genCompoundInterest,
+  genSuccessivePercentChanges,
+  genConsumptionAllerRetour,
+  genFieldSurfaceIncrease,
+  genTrainsMeet,
+  genSalariesRatio,
+  genSquareFieldEnlarge,
+  genTimezoneFlight,
+  genAgeProblem,
+  genCoins,
+  genLadderRungs,
+  genPlantDoubling,
+  genHeadwindFraction,
+  genAltimeterCorrection,
 ];
 
 function generateQuestion(): QuestionData {
@@ -352,6 +962,13 @@ function computeSessionScore(results: QuestionResult[]) {
   return { correct, incorrect, skipped };
 }
 
+function formatClock(ms: number): string {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -381,55 +998,48 @@ export default function MathematiquesTest() {
   const [showCorrection, setShowCorrection] = useState(false);
   const [lastOutcome, setLastOutcome] = useState<AnswerOutcome | null>(null);
 
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [totalTime, setTotalTime] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(0);
+  const [sessionTotalMs, setSessionTotalMs] = useState(0);
+  const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartRef = useRef(0);
   const questionStartRef = useRef(0);
   const perfSavedRef = useRef(false);
   const lockedRef = useRef(false);
   const currentIdxRef = useRef(0);
   const questionsRef = useRef<QuestionData[]>([]);
+  const finishedRef = useRef(false);
 
   currentIdxRef.current = currentIdx;
   questionsRef.current = questions;
   lockedRef.current = locked;
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+  const clearSessionTimer = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearInterval(sessionTimerRef.current);
+      sessionTimerRef.current = null;
     }
   }, []);
 
-  const startTimer = useCallback(
-    (durationMs: number) => {
-      clearTimer();
-      questionStartRef.current = Date.now();
-      setTotalTime(durationMs);
-      setTimeLeft(durationMs);
-      timerRef.current = setInterval(() => {
-        const elapsed = Date.now() - questionStartRef.current;
-        const left = Math.max(0, durationMs - elapsed);
-        setTimeLeft(left);
-      }, 50);
-    },
-    [clearTimer],
-  );
+  useEffect(() => () => clearSessionTimer(), [clearSessionTimer]);
 
-  useEffect(() => () => clearTimer(), [clearTimer]);
+  const finishSession = useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    clearSessionTimer();
+    setLocked(false);
+    lockedRef.current = false;
+    setSelectedIdx(null);
+    setShowCorrection(false);
+    setLastOutcome(null);
+    setGameState('results');
+  }, [clearSessionTimer]);
 
   const goToNextQuestion = useCallback(() => {
     const idx = currentIdxRef.current;
     const qs = questionsRef.current;
 
     if (idx + 1 >= qs.length) {
-      clearTimer();
-      setLocked(false);
-      lockedRef.current = false;
-      setSelectedIdx(null);
-      setShowCorrection(false);
-      setLastOutcome(null);
-      setGameState('results');
+      finishSession();
       return;
     }
 
@@ -441,15 +1051,14 @@ export default function MathematiquesTest() {
     setSelectedIdx(null);
     setShowCorrection(false);
     setLastOutcome(null);
-    startTimer(settingsRef.current.timePerQuestionSec * 1000);
-  }, [clearTimer, startTimer]);
+    questionStartRef.current = Date.now();
+  }, [finishSession]);
 
   const recordAnswer = useCallback(
     (index: number | null, outcome: AnswerOutcome) => {
       if (lockedRef.current) return;
       lockedRef.current = true;
       setLocked(true);
-      clearTimer();
 
       const timeUsed = Date.now() - questionStartRef.current;
       const q = questionsRef.current[currentIdxRef.current];
@@ -464,7 +1073,7 @@ export default function MathematiquesTest() {
         setShowCorrection(true);
       }
     },
-    [clearTimer, goToNextQuestion],
+    [goToNextQuestion],
   );
 
   const handleChoice = useCallback(
@@ -476,8 +1085,13 @@ export default function MathematiquesTest() {
     [recordAnswer],
   );
 
+  const handleSkip = useCallback(() => {
+    recordAnswer(null, 'skipped');
+  }, [recordAnswer]);
+
   const startGame = useCallback(() => {
     perfSavedRef.current = false;
+    finishedRef.current = false;
     const qs = generateQuestions(settingsRef.current.totalQuestions);
     setQuestions(qs);
     questionsRef.current = qs;
@@ -490,15 +1104,31 @@ export default function MathematiquesTest() {
     setShowCorrection(false);
     setLastOutcome(null);
     setGameState('playing');
-    startTimer(settingsRef.current.timePerQuestionSec * 1000);
-  }, [startTimer]);
+    questionStartRef.current = Date.now();
+
+    clearSessionTimer();
+    if (settingsRef.current.timeLimitEnabled) {
+      const durationMs = settingsRef.current.timeLimitMin * 60 * 1000;
+      sessionStartRef.current = Date.now();
+      setSessionTotalMs(durationMs);
+      setSessionTimeLeft(durationMs);
+      sessionTimerRef.current = setInterval(() => {
+        const elapsed = Date.now() - sessionStartRef.current;
+        const left = Math.max(0, durationMs - elapsed);
+        setSessionTimeLeft(left);
+      }, 250);
+    } else {
+      setSessionTotalMs(0);
+      setSessionTimeLeft(0);
+    }
+  }, [clearSessionTimer]);
 
   useEffect(() => {
-    if (gameState !== 'playing' || locked) return;
-    if (totalTime > 0 && timeLeft <= 0) {
-      recordAnswer(null, 'skipped');
+    if (gameState !== 'playing') return;
+    if (sessionTotalMs > 0 && sessionTimeLeft <= 0) {
+      finishSession();
     }
-  }, [timeLeft, totalTime, gameState, locked, recordAnswer]);
+  }, [sessionTimeLeft, sessionTotalMs, gameState, finishSession]);
 
   // =========================================================================
   // MENU
@@ -510,21 +1140,25 @@ export default function MathematiquesTest() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Mathematiques</CardTitle>
             <CardDescription className="mt-2 text-base">
-              Resolvez des problemes de mathematiques appliquees a l&apos;aeronautique
+              Problemes de mathematiques appliquees au style des concours pilotes : debits de travail,
+              pourcentages, systemes lineaires, vitesse/temps, etc.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
               <p>
-                <strong>{settings.totalQuestions} problemes</strong> : regle de trois, pourcentages, vitesse /
-                distance / temps, equations simples.
+                <strong>{settings.totalQuestions} problemes</strong> a resoudre au papier, sans calculatrice.
               </p>
               <p>
-                Choisissez la bonne reponse parmi <strong>4 a 5 propositions</strong>.
+                Choisissez la bonne reponse parmi <strong>5 propositions</strong>.
               </p>
-              <p>
-                <strong>{settings.timePerQuestionSec}s</strong> par question.
-              </p>
+              {settings.timeLimitEnabled ? (
+                <p>
+                  Temps total : <strong>{settings.timeLimitMin} minutes</strong> pour l&apos;ensemble du test.
+                </p>
+              ) : (
+                <p>Aucune limite de temps.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -533,18 +1167,20 @@ export default function MathematiquesTest() {
                 <p className="text-xs text-slate-500">Questions</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">4-5</p>
+                <p className="text-xl font-bold text-slate-700">5</p>
                 <p className="text-xs text-slate-500">Choix</p>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+                <p className="text-xl font-bold text-slate-700">
+                  {settings.timeLimitEnabled ? `${settings.timeLimitMin} min` : '∞'}
+                </p>
+                <p className="text-xs text-slate-500">Temps total</p>
               </div>
             </div>
 
             {settings.examMode && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
-                Mode examen — resultats a la fin
+                Mode examen — pas de correction entre les questions
               </div>
             )}
 
@@ -583,23 +1219,35 @@ export default function MathematiquesTest() {
                 <Slider
                   value={[settings.totalQuestions]}
                   onValueChange={([v]) => setSettings((s) => ({ ...s, totalQuestions: v }))}
-                  min={5}
+                  min={10}
                   max={40}
                   step={1}
                   className="mt-2"
                 />
               </div>
-              <div>
-                <Label>Temps par question : {settings.timePerQuestionSec}s</Label>
-                <Slider
-                  value={[settings.timePerQuestionSec]}
-                  onValueChange={([v]) => setSettings((s) => ({ ...s, timePerQuestionSec: v }))}
-                  min={15}
-                  max={120}
-                  step={5}
-                  className="mt-2"
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Limiter le temps total</Label>
+                  <p className="mt-0.5 text-xs text-slate-500">Comme en conditions d&apos;examen</p>
+                </div>
+                <Switch
+                  checked={settings.timeLimitEnabled}
+                  onCheckedChange={(v) => setSettings((s) => ({ ...s, timeLimitEnabled: v }))}
                 />
               </div>
+              {settings.timeLimitEnabled && (
+                <div>
+                  <Label>Temps total : {settings.timeLimitMin} min</Label>
+                  <Slider
+                    value={[settings.timeLimitMin]}
+                    onValueChange={([v]) => setSettings((s) => ({ ...s, timeLimitMin: v }))}
+                    min={10}
+                    max={60}
+                    step={5}
+                    className="mt-2"
+                  />
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
@@ -678,12 +1326,12 @@ export default function MathematiquesTest() {
 
             <div className="rounded-lg bg-amber-50 p-3 text-center">
               <p className="text-2xl font-bold text-amber-600">{avgTime}s</p>
-              <p className="text-sm text-amber-700">Temps moyen</p>
+              <p className="text-sm text-amber-700">Temps moyen par question</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
-              <div className="max-h-64 space-y-1.5 overflow-y-auto">
+              <div className="max-h-72 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => {
                   const correctAnswer = r.question.choices[r.question.correctIndex];
                   const selected = r.selectedIndex !== null ? r.question.choices[r.selectedIndex] : null;
@@ -710,7 +1358,6 @@ export default function MathematiquesTest() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-500">{r.question.statement}</p>
-                      <p className="mt-0.5 text-xs text-slate-400">{r.question.explanation}</p>
                     </div>
                   );
                 })}
@@ -744,38 +1391,44 @@ export default function MathematiquesTest() {
   // PLAYING
   // =========================================================================
   const currentQ = questions[currentIdx];
-  const timerPercent = totalTime > 0 ? (timeLeft / totalTime) * 100 : 100;
-  const timerColor = timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
+  const timerPercent = sessionTotalMs > 0 ? (sessionTimeLeft / sessionTotalMs) * 100 : 100;
+  const timerColor = timerPercent > 50 ? 'text-blue-600' : timerPercent > 20 ? 'text-amber-600' : 'text-red-600';
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <div className="relative w-full max-w-3xl">
-        {settings.timePerQuestionSec > 0 && (
-          <div className="absolute right-0 top-0 bottom-0 flex w-3 flex-col overflow-hidden rounded-full bg-slate-200">
-            <div
-              className={`w-full transition-all duration-100 ${timerColor}`}
-              style={{ height: `${100 - timerPercent}%` }}
-            />
-            <div className="flex-1" />
-          </div>
-        )}
-
-        <div className="mb-4 flex items-center justify-between pr-6">
+      <div className="w-full max-w-2xl">
+        <div className="mb-4 flex items-center justify-between">
           <Badge variant="outline" className="px-3 py-1 text-base">
-            {currentIdx + 1} / {settings.totalQuestions}
+            {currentIdx + 1} / {questions.length}
           </Badge>
           <Badge variant="secondary" className="px-3 py-1 text-sm">
             {currentQ?.category}
           </Badge>
+          {sessionTotalMs > 0 && (
+            <span className={`flex items-center gap-1 text-sm font-semibold ${timerColor}`}>
+              <Clock className="h-4 w-4" /> {formatClock(sessionTimeLeft)}
+            </span>
+          )}
         </div>
 
-        <Card className="mr-6">
-          <CardContent className="space-y-8 py-10">
-            <p className="text-center text-xl font-semibold leading-relaxed text-slate-800 sm:text-2xl md:text-3xl">
+        {sessionTotalMs > 0 && (
+          <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className={`h-full transition-all duration-200 ${
+                timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500'
+              }`}
+              style={{ width: `${timerPercent}%` }}
+            />
+          </div>
+        )}
+
+        <Card>
+          <CardContent className="space-y-6 py-8">
+            <p className="text-left text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
               {currentQ?.statement}
             </p>
 
-            <div className="mx-auto flex max-w-xl flex-col gap-3">
+            <div className="flex flex-col gap-3">
               {currentQ?.choices.map((choice, i) => {
                 const isSelected = selectedIdx === i;
                 const isCorrectChoice = showCorrection && i === currentQ.correctIndex;
@@ -792,7 +1445,7 @@ export default function MathematiquesTest() {
                     type="button"
                     disabled={locked}
                     onClick={() => handleChoice(i)}
-                    className={`rounded-xl border-2 px-5 py-4 text-lg font-semibold shadow-sm transition-all disabled:opacity-70 ${variantClass}`}
+                    className={`rounded-xl border-2 px-5 py-3 text-left text-base font-semibold shadow-sm transition-all disabled:opacity-70 ${variantClass}`}
                   >
                     {choice}
                   </button>
@@ -800,10 +1453,22 @@ export default function MathematiquesTest() {
               })}
             </div>
 
+            {!locked && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="text-sm text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline"
+                >
+                  Passer cette question
+                </button>
+              </div>
+            )}
+
             {showCorrection && currentQ && (
-              <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p
-                  className={`mb-1 text-center text-base font-semibold ${
+                  className={`mb-2 text-center text-base font-semibold ${
                     lastOutcome === 'correct'
                       ? 'text-green-600'
                       : lastOutcome === 'incorrect'
@@ -812,12 +1477,16 @@ export default function MathematiquesTest() {
                   }`}
                 >
                   {lastOutcome === 'correct'
-                    ? 'Correct !'
+                    ? '\u2713 Correct !'
                     : lastOutcome === 'incorrect'
-                      ? `Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`
+                      ? `\u2717 Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`
                       : `Reponse : ${currentQ.choices[currentQ.correctIndex]}`}
                 </p>
-                <p className="text-center text-sm text-slate-600">{currentQ.explanation}</p>
+                <div className="space-y-1 text-left text-sm text-slate-600">
+                  {currentQ.solutionSteps.split('\n').map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
+                </div>
                 <Button size="lg" className="mt-4 w-full" onClick={goToNextQuestion}>
                   {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
                 </Button>

@@ -66,13 +66,7 @@ export default function ExercicesPage() {
             {readyExercises.map((exercise) => {
               const primaryType = EXERCISE_TYPES[exercise.primaryType];
 
-              // Build exercise URL
-              let exerciseUrl = `/exercices/${exercise.slug}`;
-              if (exercise.id === 'm2-back') {
-                exerciseUrl = '/exercices/m-back?n=2';
-              } else if (exercise.id === 'm3-back') {
-                exerciseUrl = '/exercices/m-back?n=3';
-              }
+              const exerciseUrl = `/exercices/${exercise.slug}`;
 
               return (
                 <Link key={exercise.id} href={exerciseUrl} target="_blank">

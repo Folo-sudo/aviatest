@@ -19,7 +19,6 @@ import { useRouter } from 'next/navigation';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 type Phase = 'prompt' | 'animating' | 'answering';
-type Dir = 'N' | 'E' | 'S' | 'W';
 type Turn = 'left' | 'right';
 
 interface GameSettings {
@@ -73,11 +72,14 @@ const TIMER_BLUE = '#0068C6';
 const TIMER_RED = '#dc2626';
 
 const CANVAS_SIZE = 260;
-const DIR_ORDER: Dir[] = ['N', 'E', 'S', 'W'];
-const DIR_VECT: Record<Dir, [number, number]> = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
 
 const PROMPT_MS = 1100;
 const SEGMENT_REVEAL_MS = 550;
+
+// Turn deflection magnitude range (degrees). Kept away from 0 (straight,
+// ambiguous) and 180 (U-turn, ambiguous chirality).
+const MIN_TURN_DEG = 25;
+const MAX_TURN_DEG = 155;
 
 // ============================================================================
 // Helpers
@@ -107,20 +109,34 @@ function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function randFloat(min: number, max: number): number {
+  return Math.random() * (max - min) + min;
 }
 
-function turnFrom(prev: Dir, next: Dir): Turn {
-  const pi = DIR_ORDER.indexOf(prev);
-  const ni = DIR_ORDER.indexOf(next);
-  const diff = (ni - pi + 4) % 4;
-  return diff === 1 ? 'right' : 'left';
+/**
+ * Heading is a free-form angle in degrees (not limited to the 4 cardinal
+ * points). 0 = up (north). Positive headings rotate counter-clockwise on
+ * screen (visually "to the left" when walking forward), negative headings
+ * rotate clockwise ("to the right") — this matches the left/right turn
+ * convention used below.
+ */
+function headingVector(headingDeg: number): [number, number] {
+  const rad = (headingDeg * Math.PI) / 180;
+  return [-Math.sin(rad), -Math.cos(rad)];
 }
 
-function perpendicular(dir: Dir): [Dir, Dir] {
-  const i = DIR_ORDER.indexOf(dir);
-  return [DIR_ORDER[(i + 1) % 4], DIR_ORDER[(i + 3) % 4]];
+/**
+ * Signed turn delta convention: delta in (0, 180] => left, delta in
+ * (-180, 0) => right. Magnitude is randomized so turns aren't always 90°.
+ */
+function randomTurnDelta(): number {
+  const magnitude = randFloat(MIN_TURN_DEG, MAX_TURN_DEG);
+  const sign = Math.random() < 0.5 ? 1 : -1;
+  return sign * magnitude;
+}
+
+function turnLabelFromDelta(delta: number): Turn {
+  return delta > 0 ? 'left' : 'right';
 }
 
 function normalizePoints(points: Point[]): Point[] {
@@ -142,7 +158,7 @@ function normalizePoints(points: Point[]): Point[] {
 function generateQuestion(): QuestionData {
   const numSegments = randInt(5, 9);
   const unit = 22;
-  let dir: Dir = pick(DIR_ORDER);
+  let heading = randFloat(0, 360);
   let x = 0;
   let y = 0;
   const rawPoints: Point[] = [{ x, y }];
@@ -153,15 +169,14 @@ function generateQuestion(): QuestionData {
   for (let i = 0; i < numSegments; i++) {
     let turn: Turn | null = null;
     if (i > 0) {
-      const [rightDir, leftDir] = perpendicular(dir);
-      const nextDir = Math.random() < 0.5 ? rightDir : leftDir;
-      turn = turnFrom(dir, nextDir);
+      const delta = randomTurnDelta();
+      turn = turnLabelFromDelta(delta);
       if (turn === 'right') rightCount++;
       else leftCount++;
-      dir = nextDir;
+      heading += delta;
     }
     const length = randInt(2, 5) * unit;
-    const [vx, vy] = DIR_VECT[dir];
+    const [vx, vy] = headingVector(heading);
     const nx = x + vx * length;
     const ny = y + vy * length;
     rawSegments.push({ from: { x, y }, to: { x: nx, y: ny }, turn });
