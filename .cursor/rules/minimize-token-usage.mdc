@@ -1,0 +1,17 @@
+---
+description: Prefer low-token options over speed unless the user says otherwise
+alwaysApply: true
+---
+
+# Minimiser la consommation de tokens
+
+Sauf indication contraire explicite de l'utilisateur, **toujours privilégier l'option qui consomme le moins de tokens** (abonnement), même si elle prend plus de temps.
+
+## Conséquences pratiques
+
+- Faire le travail **soi-même** par défaut ; ne lancer un sous-agent que si c'est vraiment indispensable (parallélisme massif, isolation stricte).
+- Ne pas relancer plusieurs sous-agents sur le même fichier.
+- Éviter les modèles / sous-agents coûteux quand un travail direct ou un modèle plus léger suffit.
+- Réponses courtes ; pas de relecture verbeuse ni de confirmation répétée.
+- Ne pas relire tout un fichier si un grep / extrait ciblé suffit.
+- Ne pas lancer d'outils redondants « au cas où ».
