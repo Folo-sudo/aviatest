@@ -12,9 +12,30 @@ import {
 
 type Phase = 'idle' | 'loading' | 'countdown' | 'go' | 'error';
 
+function isPlayButton(el: HTMLButtonElement): boolean {
+  const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  return (
+    text === 'jouer' ||
+    text === 'commencer' ||
+    text.endsWith(' jouer') ||
+    text.endsWith(' commencer')
+  );
+}
+
+function clickPlayButton(): boolean {
+  const buttons = Array.from(document.querySelectorAll('button'));
+  const play = buttons.find(
+    (b) => isPlayButton(b as HTMLButtonElement) && !(b as HTMLButtonElement).disabled,
+  );
+  if (play) {
+    play.click();
+    return true;
+  }
+  return false;
+}
+
 /**
- * Stadium play mode: lock competition settings, heroic 3s countdown,
- * then mount the test and auto-click Jouer/Commencer (skip settings menu).
+ * Stadium play: lock settings, heroic countdown, auto-start (no menu flash).
  */
 export default function StadiumPlayGate({
   slug,
@@ -83,111 +104,22 @@ export default function StadiumPlayGate({
   useEffect(() => {
     if (phase !== 'countdown') return;
     if (count <= 0) {
-      setPhase('go');
+      const started = Date.now();
+      const tick = () => {
+        if (clickPlayButton() || Date.now() - started > 8000) {
+          setPhase('go');
+          return;
+        }
+        window.setTimeout(tick, 80);
+      };
+      tick();
       return;
     }
     const t = window.setTimeout(() => setCount((c) => c - 1), 1000);
     return () => window.clearTimeout(t);
   }, [phase, count]);
 
-  useEffect(() => {
-    if (phase !== 'go') return;
-
-    const labels = /^(jouer|commencer)$/i;
-    const tryClick = () => {
-      const buttons = Array.from(document.querySelectorAll('button'));
-      const play = buttons.find((b) =>
-        labels.test((b.textContent || '').replace(/\s+/g, ' ').trim()),
-      );
-      if (play && !(play as HTMLButtonElement).disabled) {
-        play.click();
-        return true;
-      }
-      return false;
-    };
-
-    if (tryClick()) return;
-
-    const started = Date.now();
-    const id = window.setInterval(() => {
-      if (tryClick() || Date.now() - started > 8000) {
-        window.clearInterval(id);
-      }
-    }, 120);
-    return () => window.clearInterval(id);
-  }, [phase]);
-
   if (phase === 'idle') return <>{children}</>;
-
-  if (phase === 'loading' || phase === 'countdown') {
-    return (
-      <div
-        className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 30%, #4a4038 0%, #1a1614 55%, #0c0a09 100%)',
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(251,250,249,0.03) 2px, rgba(251,250,249,0.03) 4px)',
-          }}
-        />
-        {phase === 'loading' ? (
-          <p
-            className="relative text-sm tracking-[0.3em] uppercase"
-            style={{ color: 'rgba(251,250,249,0.55)' }}
-          >
-            Chargement...
-          </p>
-        ) : (
-          <div className="relative flex flex-col items-center gap-10 px-6 text-center">
-            <p
-              className="text-xs sm:text-sm tracking-[0.45em] uppercase"
-              style={{ color: 'rgba(251,250,249,0.45)' }}
-            >
-              Stadium
-            </p>
-            <h1
-              className="text-4xl sm:text-6xl md:text-7xl font-bold leading-tight max-w-3xl animate-in fade-in zoom-in-95 duration-700"
-              style={{
-                fontFamily: 'var(--font-playfair), Georgia, serif',
-                color: '#fbfaf9',
-                textShadow:
-                  '0 0 40px rgba(251,250,249,0.15), 0 4px 24px rgba(0,0,0,0.5)',
-                letterSpacing: '0.02em',
-              }}
-            >
-              Prepare toi
-              <br />
-              champion
-            </h1>
-            <div
-              key={count}
-              className="text-8xl sm:text-9xl font-bold tabular-nums animate-in fade-in zoom-in-50 duration-500"
-              style={{
-                fontFamily: 'var(--font-playfair), Georgia, serif',
-                color: '#fbfaf9',
-                textShadow: '0 0 60px rgba(251,250,249,0.25)',
-              }}
-            >
-              {count > 0 ? count : '!'}
-            </div>
-          </div>
-        )}
-        <Link
-          href="/stadium"
-          className="absolute bottom-8 text-xs tracking-wide uppercase"
-          style={{ color: 'rgba(251,250,249,0.4)' }}
-          onClick={() => setActiveCompetitionId(null)}
-        >
-          Retour Stadium
-        </Link>
-      </div>
-    );
-  }
 
   if (phase === 'error') {
     return (
@@ -200,5 +132,97 @@ export default function StadiumPlayGate({
     );
   }
 
-  return <>{children}</>;
+  const mountTest = phase === 'countdown' || phase === 'go';
+  const showOverlay = phase === 'loading' || phase === 'countdown';
+
+  return (
+    <>
+      {mountTest && (
+        <div
+          aria-hidden={showOverlay}
+          style={
+            showOverlay
+              ? {
+                  position: 'fixed',
+                  inset: 0,
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                }
+              : undefined
+          }
+        >
+          {children}
+        </div>
+      )}
+
+      {showOverlay && (
+        <div
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 30%, #4a4038 0%, #1a1614 55%, #0c0a09 100%)',
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(251,250,249,0.03) 2px, rgba(251,250,249,0.03) 4px)',
+            }}
+          />
+          {phase === 'loading' || count <= 0 ? (
+            <p
+              className="relative text-sm tracking-[0.3em] uppercase"
+              style={{ color: 'rgba(251,250,249,0.55)' }}
+            >
+              {phase === 'loading' ? 'Chargement...' : 'C\'est parti...'}
+            </p>
+          ) : (
+            <div className="relative flex flex-col items-center gap-10 px-6 text-center">
+              <p
+                className="text-xs sm:text-sm tracking-[0.45em] uppercase"
+                style={{ color: 'rgba(251,250,249,0.45)' }}
+              >
+                Stadium
+              </p>
+              <h1
+                className="text-4xl sm:text-6xl md:text-7xl font-bold leading-tight max-w-3xl animate-in fade-in zoom-in-95 duration-700"
+                style={{
+                  fontFamily: 'var(--font-playfair), Georgia, serif',
+                  color: '#fbfaf9',
+                  textShadow:
+                    '0 0 40px rgba(251,250,249,0.15), 0 4px 24px rgba(0,0,0,0.5)',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Prepare toi
+                <br />
+                champion
+              </h1>
+              <div
+                key={count}
+                className="text-8xl sm:text-9xl font-bold tabular-nums animate-in fade-in zoom-in-50 duration-500"
+                style={{
+                  fontFamily: 'var(--font-playfair), Georgia, serif',
+                  color: '#fbfaf9',
+                  textShadow: '0 0 60px rgba(251,250,249,0.25)',
+                }}
+              >
+                {count}
+              </div>
+            </div>
+          )}
+          <Link
+            href="/stadium"
+            className="absolute bottom-8 text-xs tracking-wide uppercase"
+            style={{ color: 'rgba(251,250,249,0.4)' }}
+            onClick={() => setActiveCompetitionId(null)}
+          >
+            Retour Stadium
+          </Link>
+        </div>
+      )}
+    </>
+  );
 }

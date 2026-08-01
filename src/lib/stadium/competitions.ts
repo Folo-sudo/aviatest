@@ -130,7 +130,7 @@ export async function listTopScoresGrouped(
   const grouped: Record<string, CompetitionScore[]> = {};
   for (const row of (data || []) as CompetitionScore[]) {
     const list = grouped[row.competition_id] || [];
-    if (list.length < 10) {
+    if (list.length < 50) {
       list.push(row);
       grouped[row.competition_id] = list;
     }

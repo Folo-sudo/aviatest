@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Trophy, ArrowLeft, Plus } from 'lucide-react';
+import { Trophy, ArrowLeft, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
 import { Button } from '@/components/ui/button';
 import { EXERCISES } from '@/lib/data/exercises';
@@ -21,7 +21,235 @@ const styles = {
   border: '#e0dedb',
   cardBg: '#ffffff',
   shadow: '0 8px 24px rgba(55, 50, 47, 0.08)',
+  gold: '#c9a227',
+  goldSoft: '#f5e6b8',
+  silver: '#9aa0a6',
+  bronze: '#b87333',
 };
+
+function GoldenLaurel({ children }: { children: ReactNode }) {
+  return (
+    <span className="relative inline-flex items-center justify-center px-7 py-1">
+      <svg
+        aria-hidden
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        viewBox="0 0 200 56"
+        fill="none"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M28 48c-10-8-16-18-14-28 8-4 18-2 26 6M28 48c8-2 16-10 20-20"
+          stroke={styles.gold}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M22 22c4 2 8 8 8 14M18 30c5 1 10 6 11 12"
+          stroke={styles.gold}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+        <path
+          d="M172 48c10-8 16-18 14-28-8-4-18-2-26 6M172 48c-8-2-16-10-20-20"
+          stroke={styles.gold}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M178 22c-4 2-8 8-8 14M182 30c-5 1-10 6-11 12"
+          stroke={styles.gold}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+        <circle cx="100" cy="8" r="3" fill={styles.gold} />
+        <path
+          d="M88 10c4-6 8-8 12-8s8 2 12 8"
+          stroke={styles.gold}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span
+        className="relative font-semibold tracking-wide"
+        style={{
+          fontFamily: 'var(--font-playfair), Georgia, serif',
+          color: styles.gold,
+          textShadow: `0 0 12px ${styles.goldSoft}`,
+        }}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
+function ScoreLine({
+  rank,
+  score,
+}: {
+  rank: number;
+  score: CompetitionScore;
+}) {
+  return (
+    <li
+      className="flex items-center justify-between text-sm py-1.5"
+      style={{ color: styles.text }}
+    >
+      <span>
+        <span className="mr-2 tabular-nums" style={{ color: styles.textMuted }}>
+          #{rank}
+        </span>
+        {score.pseudo}
+      </span>
+      <span className="font-medium">
+        {score.score_pct}%{' '}
+        <span className="text-xs font-normal" style={{ color: styles.textMuted }}>
+          ({score.correct}/{score.total})
+        </span>
+      </span>
+    </li>
+  );
+}
+
+function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
+  const [open, setOpen] = useState(false);
+  const first = scores[0];
+  const second = scores[1];
+  const third = scores[2];
+  const rest = scores.slice(3);
+
+  if (scores.length === 0) {
+    return (
+      <p className="text-sm" style={{ color: styles.textMuted }}>
+        Pas encore de scores.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-end justify-center gap-3 sm:gap-5 pt-2 pb-1">
+        {/* 2nd */}
+        <div className="flex w-[28%] max-w-[120px] flex-col items-center gap-2">
+          <p
+            className="text-center text-xs sm:text-sm font-medium truncate w-full"
+            style={{ color: second ? styles.silver : styles.textMuted }}
+            title={second?.pseudo}
+          >
+            {second?.pseudo || '—'}
+          </p>
+          {second && (
+            <p className="text-[10px] tabular-nums" style={{ color: styles.textMuted }}>
+              {second.score_pct}%
+            </p>
+          )}
+          <div
+            className="w-full rounded-t-md flex items-start justify-center pt-2 text-sm font-bold"
+            style={{
+              height: 56,
+              backgroundColor: second ? '#e8eaed' : '#f3f2f1',
+              color: styles.silver,
+            }}
+          >
+            2
+          </div>
+        </div>
+
+        {/* 1st */}
+        <div className="flex w-[34%] max-w-[150px] flex-col items-center gap-2">
+          {first ? (
+            <GoldenLaurel>{first.pseudo}</GoldenLaurel>
+          ) : (
+            <p className="text-sm" style={{ color: styles.textMuted }}>
+              —
+            </p>
+          )}
+          {first && (
+            <p className="text-xs tabular-nums font-medium" style={{ color: styles.gold }}>
+              {first.score_pct}%
+            </p>
+          )}
+          <div
+            className="w-full rounded-t-md flex items-start justify-center pt-2 text-base font-bold"
+            style={{
+              height: 84,
+              background: first
+                ? `linear-gradient(180deg, ${styles.goldSoft} 0%, #e8d48b 100%)`
+                : '#f3f2f1',
+              color: styles.gold,
+              boxShadow: first ? `0 0 0 1px ${styles.gold}33` : undefined,
+            }}
+          >
+            1
+          </div>
+        </div>
+
+        {/* 3rd */}
+        <div className="flex w-[28%] max-w-[120px] flex-col items-center gap-2">
+          <p
+            className="text-center text-xs sm:text-sm font-medium truncate w-full"
+            style={{ color: third ? styles.bronze : styles.textMuted }}
+            title={third?.pseudo}
+          >
+            {third?.pseudo || '—'}
+          </p>
+          {third && (
+            <p className="text-[10px] tabular-nums" style={{ color: styles.textMuted }}>
+              {third.score_pct}%
+            </p>
+          )}
+          <div
+            className="w-full rounded-t-md flex items-start justify-center pt-2 text-sm font-bold"
+            style={{
+              height: 40,
+              backgroundColor: third ? '#f0e0d0' : '#f3f2f1',
+              color: styles.bronze,
+            }}
+          >
+            3
+          </div>
+        </div>
+      </div>
+
+      {rest.length > 0 && (
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-1" /> Masquer le classement
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-1" /> Classement
+              </>
+            )}
+          </Button>
+          {open && (
+            <ol
+              className="mt-3 rounded-lg px-3 py-2 space-y-0.5"
+              style={{
+                border: `1px solid ${styles.border}`,
+                backgroundColor: '#fbfaf9',
+              }}
+            >
+              {rest.map((s, i) => (
+                <ScoreLine key={s.id} rank={i + 4} score={s} />
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StadiumContent() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -157,7 +385,7 @@ function StadiumContent() {
                   boxShadow: styles.shadow,
                 }}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
                   <div>
                     <h3 className="font-semibold" style={{ color: styles.text }}>
                       {exerciseTitle(c.exercise_id)}
@@ -178,32 +406,7 @@ function StadiumContent() {
                     </Button>
                   </Link>
                 </div>
-                {top.length === 0 ? (
-                  <p className="text-sm" style={{ color: styles.textMuted }}>
-                    Pas encore de scores.
-                  </p>
-                ) : (
-                  <ol className="space-y-2">
-                    {top.map((s, i) => (
-                      <li
-                        key={s.id}
-                        className="flex items-center justify-between text-sm"
-                        style={{ color: styles.text }}
-                      >
-                        <span>
-                          <span className="text-[#605a57] mr-2">#{i + 1}</span>
-                          {s.pseudo}
-                        </span>
-                        <span className="font-medium">
-                          {s.score_pct}%{' '}
-                          <span className="text-xs font-normal text-[#605a57]">
-                            ({s.correct}/{s.total})
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
+                <CompetitionPodium scores={top} />
               </article>
             );
           })}
