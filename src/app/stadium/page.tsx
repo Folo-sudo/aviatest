@@ -13,6 +13,7 @@ import {
   type CompetitionScore,
 } from '@/lib/stadium/competitions';
 import { setActiveCompetitionId } from '@/lib/stadium/settingsKeys';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const styles = {
   background: '#fbfaf9',
@@ -254,6 +255,7 @@ function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
 function StadiumContent() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [scores, setScores] = useState<Record<string, CompetitionScore[]>>({});
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -264,6 +266,11 @@ function StadiumContent() {
     setLoading(true);
     setError(null);
     try {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUserId(user?.id ?? null);
       const list = await listCompetitions();
       setCompetitions(list);
       const grouped = await listTopScoresGrouped(list.map((c) => c.id));
@@ -286,6 +293,13 @@ function StadiumContent() {
 
   const exerciseSlug = (id: string) =>
     EXERCISES.find((e) => e.id === id)?.slug || id;
+
+  const myRank = (competitionId: string): number | null => {
+    if (!userId) return null;
+    const list = scores[competitionId] || [];
+    const idx = list.findIndex((s) => s.user_id === userId);
+    return idx >= 0 ? idx + 1 : null;
+  };
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: styles.background }}>
@@ -375,6 +389,7 @@ function StadiumContent() {
         <div className="space-y-4">
           {competitions.map((c) => {
             const top = scores[c.id] || [];
+            const rank = myRank(c.id);
             return (
               <article
                 key={c.id}
@@ -385,7 +400,7 @@ function StadiumContent() {
                   boxShadow: styles.shadow,
                 }}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                   <div>
                     <h3 className="font-semibold" style={{ color: styles.text }}>
                       {exerciseTitle(c.exercise_id)}
@@ -396,6 +411,8 @@ function StadiumContent() {
                   </div>
                   <Link
                     href={`/exercices/${exerciseSlug(c.exercise_id)}?competitionId=${c.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={() => setActiveCompetitionId(c.id)}
                   >
                     <Button
@@ -406,6 +423,28 @@ function StadiumContent() {
                     </Button>
                   </Link>
                 </div>
+
+                <div
+                  className="mb-4 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
+                  style={{
+                    backgroundColor: '#fbfaf9',
+                    border: `1px solid ${styles.border}`,
+                  }}
+                >
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wide"
+                    style={{ color: styles.textMuted }}
+                  >
+                    Mon rang
+                  </span>
+                  <span
+                    className="text-sm font-semibold"
+                    style={{ color: rank ? styles.text : styles.textMuted }}
+                  >
+                    {rank ? `#${rank}` : 'Pas encore joue'}
+                  </span>
+                </div>
+
                 <CompetitionPodium scores={top} />
               </article>
             );

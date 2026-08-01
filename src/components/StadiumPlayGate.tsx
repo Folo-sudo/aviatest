@@ -9,6 +9,12 @@ import {
   writeExerciseSettings,
   setActiveCompetitionId,
 } from '@/lib/stadium/settingsKeys';
+import {
+  ensureStadiumTimerPatch,
+  nativeClearTimeout,
+  nativeSetTimeout,
+  setStadiumHold,
+} from '@/lib/stadium/hold';
 
 type Phase = 'idle' | 'loading' | 'countdown' | 'go' | 'error';
 
@@ -35,7 +41,7 @@ function clickPlayButton(): boolean {
 }
 
 /**
- * Stadium play: lock settings, heroic countdown, auto-start (no menu flash).
+ * Stadium play: pre-mount test under countdown with timers held, then reveal.
  */
 export default function StadiumPlayGate({
   slug,
@@ -53,6 +59,7 @@ export default function StadiumPlayGate({
   );
   const [count, setCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
 
   const exercise =
     getExerciseBySlug(slug) ||
@@ -61,6 +68,7 @@ export default function StadiumPlayGate({
 
   useEffect(() => {
     if (!competitionId || stadiumCreate) {
+      setStadiumHold(false);
       setPhase('idle');
       return;
     }
@@ -71,7 +79,11 @@ export default function StadiumPlayGate({
     }
 
     let cancelled = false;
+    ensureStadiumTimerPatch();
+    setStadiumHold(true);
     setPhase('loading');
+    setStarted(false);
+
     (async () => {
       try {
         const competition = await getCompetition(competitionId);
@@ -98,26 +110,60 @@ export default function StadiumPlayGate({
 
     return () => {
       cancelled = true;
+      setStadiumHold(false);
     };
   }, [competitionId, stadiumCreate, exercise]);
 
+  // Pre-start the test as soon as it mounts (timers held / paused).
+  useEffect(() => {
+    if (phase !== 'countdown' || started) return;
+
+    const begin = Date.now();
+    let cancelled = false;
+
+    const tick = () => {
+      if (cancelled) return;
+      if (clickPlayButton()) {
+        setStarted(true);
+        return;
+      }
+      if (Date.now() - begin > 10000) return;
+      nativeSetTimeout(tick, 80);
+    };
+    tick();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, started]);
+
+  // Heroic countdown (uses native timers, not affected by hold).
   useEffect(() => {
     if (phase !== 'countdown') return;
-    if (count <= 0) {
-      const started = Date.now();
-      const tick = () => {
-        if (clickPlayButton() || Date.now() - started > 8000) {
-          setPhase('go');
-          return;
-        }
-        window.setTimeout(tick, 80);
+    if (count > 0) {
+      const t = nativeSetTimeout(() => setCount((c) => c - 1), 1000);
+      return () => {
+        nativeClearTimeout(t);
       };
-      tick();
-      return;
     }
-    const t = window.setTimeout(() => setCount((c) => c - 1), 1000);
-    return () => window.clearTimeout(t);
-  }, [phase, count]);
+
+    // Count finished: wait until play has started (or timeout), then reveal.
+    const begin = Date.now();
+    let cancelled = false;
+    const reveal = () => {
+      if (cancelled) return;
+      if (started || Date.now() - begin > 4000) {
+        setStadiumHold(false);
+        setPhase('go');
+        return;
+      }
+      nativeSetTimeout(reveal, 50);
+    };
+    reveal();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, count, started]);
 
   if (phase === 'idle') return <>{children}</>;
 
@@ -171,12 +217,12 @@ export default function StadiumPlayGate({
                 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(251,250,249,0.03) 2px, rgba(251,250,249,0.03) 4px)',
             }}
           />
-          {phase === 'loading' || count <= 0 ? (
+          {phase === 'loading' ? (
             <p
               className="relative text-sm tracking-[0.3em] uppercase"
               style={{ color: 'rgba(251,250,249,0.55)' }}
             >
-              {phase === 'loading' ? 'Chargement...' : 'C\'est parti...'}
+              Chargement...
             </p>
           ) : (
             <div className="relative flex flex-col items-center gap-10 px-6 text-center">
@@ -209,7 +255,7 @@ export default function StadiumPlayGate({
                   textShadow: '0 0 60px rgba(251,250,249,0.25)',
                 }}
               >
-                {count}
+                {count > 0 ? count : '!'}
               </div>
             </div>
           )}
