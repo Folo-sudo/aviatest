@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import AuthGate from '@/components/AuthGate';
 import StadiumBanner from '@/components/StadiumBanner';
+import StadiumPlayGate from '@/components/StadiumPlayGate';
 
 // Dynamic imports for all exercise components
 const ClockAngleTest = dynamic(
@@ -262,7 +263,9 @@ export default function ExerciseClient({ slug }: { slug: string }) {
         }
       >
         <StadiumBanner slug={slug} />
-        <ExerciseLoader slug={slug} />
+        <StadiumPlayGate slug={slug}>
+          <ExerciseLoader slug={slug} />
+        </StadiumPlayGate>
       </Suspense>
     </AuthGate>
   );

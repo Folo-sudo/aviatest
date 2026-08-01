@@ -4,21 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { getExerciseBySlug, EXERCISES } from '@/lib/data/exercises';
-import {
-  createCompetition,
-  getCompetition,
-} from '@/lib/stadium/competitions';
+import { createCompetition } from '@/lib/stadium/competitions';
 import {
   readExerciseSettings,
-  writeExerciseSettings,
   setActiveCompetitionId,
   EXERCISE_SETTINGS_KEYS,
 } from '@/lib/stadium/settingsKeys';
 
 /**
- * Floating bar on exercise pages for Stadium create / play modes.
- * - stadiumCreate=1: configure settings in the test, then open competition
- * - competitionId=...: lock settings from the competition and track scores
+ * Floating bar for Stadium create mode only.
+ * Play mode (competitionId) is handled by StadiumPlayGate (countdown + auto-start).
  */
 export default function StadiumBanner({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
@@ -28,7 +23,6 @@ export default function StadiumBanner({ slug }: { slug: string }) {
 
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [ready, setReady] = useState(false);
 
   const exercise =
     getExerciseBySlug(slug) ||
@@ -36,59 +30,15 @@ export default function StadiumBanner({ slug }: { slug: string }) {
     null;
 
   useEffect(() => {
-    if (!competitionId || !exercise) {
-      setReady(true);
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const competition = await getCompetition(competitionId);
-        if (cancelled) return;
-        if (!competition) {
-          setMessage('Competition introuvable.');
-          setReady(true);
-          return;
-        }
-        writeExerciseSettings(
-          competition.exercise_id,
-          competition.settings || {},
-        );
-        setActiveCompetitionId(competition.id);
-        setMessage(
-          'Mode Stadium : reglages verrouilles. Ton meilleur score sera enregistre.',
-        );
-      } catch {
-        if (!cancelled) setMessage('Impossible de charger la competition.');
-      } finally {
-        if (!cancelled) setReady(true);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [competitionId, exercise]);
-
-  useEffect(() => {
     if (stadiumCreate) {
       setActiveCompetitionId(null);
       setMessage(
-        'Mode creation Stadium : regle les Parametres du test, puis ouvre la competition.',
+        'Mode creation Stadium : regle les Parametres du test (mode examen inclus), puis ouvre la competition.',
       );
-      setReady(true);
     }
   }, [stadiumCreate]);
 
-  if (!stadiumCreate && !competitionId) return null;
-  if (!ready && competitionId) {
-    return (
-      <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-[#e0dedb] bg-white px-4 py-3 text-sm text-[#605a57] shadow-lg">
-        Chargement Stadium...
-      </div>
-    );
-  }
+  if (!stadiumCreate || competitionId) return null;
 
   const openCompetition = async () => {
     if (!exercise) return;
@@ -101,7 +51,6 @@ export default function StadiumBanner({ slug }: { slug: string }) {
       }
       const created = await createCompetition(exercise.id, settings);
       setActiveCompetitionId(created.id);
-      setMessage('Competition ouverte. Tu peux jouer maintenant.');
       router.replace(
         `/exercices/${exercise.slug}?competitionId=${created.id}`,
       );
@@ -125,16 +74,14 @@ export default function StadiumBanner({ slug }: { slug: string }) {
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(560px,92vw)] -translate-x-1/2 rounded-xl border border-[#e0dedb] bg-white p-4 shadow-lg">
       <p className="text-sm text-[#37322f] mb-3">{message}</p>
       <div className="flex flex-wrap gap-2">
-        {stadiumCreate && (
-          <Button
-            type="button"
-            disabled={busy || !exercise}
-            onClick={openCompetition}
-            style={{ backgroundColor: '#37322f', color: '#fbfaf9' }}
-          >
-            {busy ? 'Ouverture...' : 'Ouvrir la competition'}
-          </Button>
-        )}
+        <Button
+          type="button"
+          disabled={busy || !exercise}
+          onClick={openCompetition}
+          style={{ backgroundColor: '#37322f', color: '#fbfaf9' }}
+        >
+          {busy ? 'Ouverture...' : 'Ouvrir la competition'}
+        </Button>
         <Button
           type="button"
           variant="outline"
