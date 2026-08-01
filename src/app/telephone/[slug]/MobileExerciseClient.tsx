@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import AuthGate from '@/components/AuthGate';
 
 const CalculMentalMobile = dynamic(
   () => import('@/components/exercises/mobile/CalculMentalMobile'),
@@ -60,17 +61,19 @@ function MobileExerciseLoader({ slug }: { slug: string }) {
 
 export default function MobileExerciseClient({ slug }: { slug: string }) {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fbfaf9' }}>
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto mb-4" />
-            <p style={{ color: '#605a57' }}>Chargement...</p>
+    <AuthGate>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fbfaf9' }}>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto mb-4" />
+              <p style={{ color: '#605a57' }}>Chargement...</p>
+            </div>
           </div>
-        </div>
-      }
-    >
-      <MobileExerciseLoader slug={slug} />
-    </Suspense>
+        }
+      >
+        <MobileExerciseLoader slug={slug} />
+      </Suspense>
+    </AuthGate>
   );
 }

@@ -18,9 +18,9 @@ import {
   ChevronDown,
   ChevronRight,
   Smartphone,
-  Lock,
   BarChart3,
   User,
+  LogOut,
   Gamepad2,
   Boxes,
   Box,
@@ -48,6 +48,8 @@ import {
   setPseudo as setStoredPseudo,
   listPseudos,
 } from '@/lib/core/PerformanceTracker';
+import AuthGate from '@/components/AuthGate';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 // ============================================================================
 // Design System - Warm Cream/Beige Palette
@@ -249,88 +251,6 @@ function CompetitionCard({
 // Main Component
 // ============================================================================
 
-const PASSWORD = 'Obelix41';
-
-function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === PASSWORD) {
-      sessionStorage.setItem('aviatest-auth', 'true');
-      onSuccess();
-    } else {
-      setError(true);
-      setPassword('');
-    }
-  };
-
-  return (
-    <main
-      className="min-h-screen flex items-center justify-center"
-      style={{ backgroundColor: homeStyles.colors.background }}
-    >
-      <div
-        className="w-full max-w-md mx-4 p-8 rounded-2xl text-center"
-        style={{
-          backgroundColor: homeStyles.colors.cardBg,
-          border: `1px solid ${homeStyles.colors.border}`,
-          boxShadow: homeStyles.shadows.card,
-        }}
-      >
-        <div
-          className="mx-auto mb-6 w-16 h-16 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: '#f0eeeb' }}
-        >
-          <Lock className="h-7 w-7" style={{ color: homeStyles.colors.text }} />
-        </div>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Target className="h-6 w-6" style={{ color: homeStyles.colors.text }} />
-          <h1
-            className="text-2xl font-bold"
-            style={{ color: homeStyles.colors.text }}
-          >
-            AviaTest
-          </h1>
-        </div>
-        <p
-          className="text-sm mb-8"
-          style={{ color: homeStyles.colors.textMuted }}
-        >
-          Entrez le mot de passe pour acceder aux exercices
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError(false);
-            }}
-            className="text-center text-lg"
-            autoFocus
-          />
-          {error && (
-            <p className="text-sm text-red-500">Mot de passe incorrect</p>
-          )}
-          <Button
-            type="submit"
-            className="w-full"
-            style={{
-              backgroundColor: homeStyles.colors.text,
-              color: homeStyles.colors.background,
-            }}
-          >
-            Acceder
-          </Button>
-        </form>
-      </div>
-    </main>
-  );
-}
-
 function PseudoGate({ onSelect }: { onSelect: (pseudo: string) => void }) {
   const [name, setName] = useState('');
   const [known, setKnown] = useState<string[]>([]);
@@ -443,8 +363,7 @@ function PseudoGate({ onSelect }: { onSelect: (pseudo: string) => void }) {
   );
 }
 
-export default function Home() {
-  const [authenticated, setAuthenticated] = useState(false);
+function HomeContent() {
   const [pseudo, setPseudoState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const competitions = getAllCompetitions();
@@ -453,16 +372,20 @@ export default function Home() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only state after hydration
-    setAuthenticated(sessionStorage.getItem('aviatest-auth') === 'true');
     setPseudoState(getPseudo());
     setLoading(false);
   }, []);
 
-  if (loading) return null;
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    } catch {
+      // AuthGate will show login if session is gone / misconfigured
+    }
+  };
 
-  if (!authenticated) {
-    return <PasswordGate onSuccess={() => setAuthenticated(true)} />;
-  }
+  if (loading) return null;
 
   if (!pseudo) {
     return <PseudoGate onSelect={(p) => setPseudoState(p)} />;
@@ -514,6 +437,15 @@ export default function Home() {
               >
                 <User className="h-3.5 w-3.5" />
                 <span className="font-medium">{pseudo}</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ color: homeStyles.colors.textMuted }}
+                title="Se deconnecter"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Deconnexion</span>
               </button>
               <Link href="/progression">
                 <Badge
@@ -810,5 +742,13 @@ export default function Home() {
         </div>
       </footer>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <AuthGate>
+      <HomeContent />
+    </AuthGate>
   );
 }

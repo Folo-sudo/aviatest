@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import AuthGate from '@/components/AuthGate';
 
 // Dynamic imports for all exercise components
 const ClockAngleTest = dynamic(
@@ -248,17 +249,19 @@ function ExerciseLoader({ slug }: { slug: string }) {
 
 export default function ExerciseClient({ slug }: { slug: string }) {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#fbfaf9]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#37322f] mx-auto mb-4" />
-            <p className="text-[#605a57]">Chargement de l&apos;exercice...</p>
+    <AuthGate>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#fbfaf9]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#37322f] mx-auto mb-4" />
+              <p className="text-[#605a57]">Chargement de l&apos;exercice...</p>
+            </div>
           </div>
-        </div>
-      }
-    >
-      <ExerciseLoader slug={slug} />
-    </Suspense>
+        }
+      >
+        <ExerciseLoader slug={slug} />
+      </Suspense>
+    </AuthGate>
   );
 }

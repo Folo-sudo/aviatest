@@ -19,6 +19,7 @@ import {
   type ExerciseStats,
 } from '@/lib/core/PerformanceTracker';
 import PerformanceChart from '@/components/PerformanceChart';
+import AuthGate from '@/components/AuthGate';
 
 // ============================================================================
 // Stanine badge color
@@ -55,6 +56,14 @@ function scoreBadge(score: number | null) {
 // ============================================================================
 
 export default function ProgressionPage() {
+  return (
+    <AuthGate>
+      <ProgressionContent />
+    </AuthGate>
+  );
+}
+
+function ProgressionContent() {
   const [allStats, setAllStats] = useState<ExerciseStats[]>([]);
   const [pseudo, setPseudo] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);

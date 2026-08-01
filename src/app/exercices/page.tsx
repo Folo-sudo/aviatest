@@ -7,6 +7,7 @@ import {
 } from '@/lib/data/exercises';
 import StructuredData from '@/components/seo/StructuredData';
 import { generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
+import AuthGate from '@/components/AuthGate';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
 
@@ -40,7 +41,7 @@ export default function ExercicesPage() {
   ]);
 
   return (
-    <>
+    <AuthGate>
       <StructuredData data={breadcrumbData} />
       <main className="min-h-screen bg-[#fbfaf9]">
         <div className="container mx-auto px-4 py-12">
@@ -111,6 +112,6 @@ export default function ExercicesPage() {
           </div>
         </div>
       </main>
-    </>
+    </AuthGate>
   );
 }
