@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, BarChart3, Trash2, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import {
 } from '@/lib/data/exercises';
 import {
   getAllExerciseStats,
+  getAllExerciseStatsFromMap,
   clearAllPerformanceData,
   migratePerformanceData,
   scoreToStanine,
@@ -20,10 +22,11 @@ import {
 } from '@/lib/core/PerformanceTracker';
 import PerformanceChart from '@/components/PerformanceChart';
 import AuthGate from '@/components/AuthGate';
-
-// ============================================================================
-// Stanine badge color
-// ============================================================================
+import {
+  fetchCloudEntriesForUser,
+  lookupPseudo,
+  syncPseudoFromProfile,
+} from '@/lib/account/profile';
 
 function stanineBadge(score: number | null) {
   if (score === null) return null;
@@ -51,34 +54,74 @@ function scoreBadge(score: number | null) {
   return stanineBadge(score);
 }
 
-// ============================================================================
-// Page
-// ============================================================================
-
 export default function ProgressionPage() {
   return (
     <AuthGate>
-      <ProgressionContent />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">
+            Chargement...
+          </div>
+        }
+      >
+        <ProgressionContent />
+      </Suspense>
     </AuthGate>
   );
 }
 
 function ProgressionContent() {
+  const searchParams = useSearchParams();
+  const viewPseudo = searchParams.get('pseudo')?.trim() || null;
+
   const [allStats, setAllStats] = useState<ExerciseStats[]>([]);
   const [pseudo, setPseudo] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [confirmStep, setConfirmStep] = useState(0); // 0=hidden, 1=first confirm, 2=final confirm
+  const [error, setError] = useState<string | null>(null);
+  const [isOwn, setIsOwn] = useState(true);
+  const [confirmStep, setConfirmStep] = useState(0);
 
   useEffect(() => {
-    const currentPseudo = getPseudo();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only localStorage data after hydration
-    setPseudo(currentPseudo);
-    if (currentPseudo) {
-      migratePerformanceData();
-      setAllStats(getAllExerciseStats());
-    }
-    setLoaded(true);
-  }, []);
+    (async () => {
+      setLoaded(false);
+      setError(null);
+      try {
+        const myPseudo = (await syncPseudoFromProfile()) || getPseudo();
+
+        if (!viewPseudo || (myPseudo && viewPseudo.toLowerCase() === myPseudo.toLowerCase())) {
+          setIsOwn(true);
+          setPseudo(myPseudo);
+          if (myPseudo) {
+            migratePerformanceData();
+            setAllStats(getAllExerciseStats());
+          } else {
+            setAllStats([]);
+          }
+        } else {
+          setIsOwn(false);
+          const profile = await lookupPseudo(viewPseudo);
+          if (!profile) {
+            setPseudo(viewPseudo);
+            setError('Pseudo introuvable.');
+            setAllStats([]);
+          } else if (!profile.progression_public) {
+            setPseudo(profile.username);
+            setError('Cette progression est privee.');
+            setAllStats([]);
+          } else {
+            setPseudo(profile.username);
+            const map = await fetchCloudEntriesForUser(profile.id);
+            setAllStats(getAllExerciseStatsFromMap(map));
+          }
+        }
+      } catch {
+        setError('Impossible de charger la progression.');
+        setAllStats([]);
+      } finally {
+        setLoaded(true);
+      }
+    })();
+  }, [viewPseudo]);
 
   const handleClear = () => {
     clearAllPerformanceData();
@@ -86,18 +129,26 @@ function ProgressionContent() {
     setConfirmStep(0);
   };
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">
+        Chargement...
+      </div>
+    );
+  }
 
-  if (!pseudo) {
+  if (isOwn && !pseudo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
         <Card>
           <CardContent className="py-12 text-center">
             <User className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-lg font-medium text-slate-500 mb-2">Aucun pseudo selectionne</p>
-            <p className="text-sm text-slate-400 mb-6">Retournez a l&apos;accueil pour choisir votre pseudo.</p>
-            <Link href="/">
-              <Button>Retour a l&apos;accueil</Button>
+            <p className="text-lg font-medium text-slate-500 mb-2">Profil incomplet</p>
+            <p className="text-sm text-slate-400 mb-6">
+              Ouvre ton compte pour verifier ton pseudo.
+            </p>
+            <Link href="/compte">
+              <Button>Mon compte</Button>
             </Link>
           </CardContent>
         </Card>
@@ -105,9 +156,30 @@ function ProgressionContent() {
     );
   }
 
-  // Match stats with exercise configs
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <Card>
+          <CardContent className="py-12 text-center max-w-md">
+            <User className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-lg font-medium text-slate-500 mb-2">{pseudo}</p>
+            <p className="text-sm text-slate-400 mb-6">{error}</p>
+            <div className="flex gap-2 justify-center">
+              <Link href="/compte">
+                <Button variant="outline">Compte</Button>
+              </Link>
+              <Link href="/">
+                <Button>Accueil</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const exercisesWithStats: { config: ExerciseConfig; stats: ExerciseStats }[] = [];
-  const statsMap = new Map(allStats.map(s => [s.exerciseId, s]));
+  const statsMap = new Map(allStats.map((s) => [s.exerciseId, s]));
 
   for (const ex of EXERCISES) {
     if (!ex.ready) continue;
@@ -117,30 +189,31 @@ function ProgressionContent() {
     }
   }
 
-  // Also include exercises without stats for display
   const exercisesWithoutStats: ExerciseConfig[] = EXERCISES.filter(
-    ex => ex.ready && !statsMap.has(ex.id) && ex.id !== 'glossaire-angles'
+    (ex) => ex.ready && !statsMap.has(ex.id) && ex.id !== 'glossaire-angles',
   );
 
   const totalAttempts = allStats.reduce((s, st) => s + st.totalAttempts, 0);
-  const globalAvg = allStats.length > 0
-    ? Math.round(allStats.reduce((s, st) => s + st.avgScore, 0) / allStats.length)
-    : 0;
+  const globalAvg =
+    allStats.length > 0
+      ? Math.round(allStats.reduce((s, st) => s + st.avgScore, 0) / allStats.length)
+      : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/">
+            <Link href={isOwn ? '/compte' : '/compte'}>
               <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" /> Accueil
+                <ArrowLeft className="h-4 w-4 mr-1" /> {isOwn ? 'Compte' : 'Compte'}
               </Button>
             </Link>
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-slate-700" />
-              <h1 className="text-lg font-bold text-slate-700">Progression</h1>
+              <h1 className="text-lg font-bold text-slate-700">
+                {isOwn ? 'Progression' : 'Progression publique'}
+              </h1>
             </div>
             {pseudo && (
               <div className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -149,13 +222,15 @@ function ProgressionContent() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
-          </div>
+          <Link href="/">
+            <Button variant="ghost" size="sm">
+              Accueil
+            </Button>
+          </Link>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Global Summary */}
         {exercisesWithStats.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Card>
@@ -185,21 +260,25 @@ function ProgressionContent() {
           </div>
         )}
 
-        {/* No data */}
         {exercisesWithStats.length === 0 && (
           <Card className="mb-8">
             <CardContent className="py-12 text-center">
               <TrendingUp className="h-12 w-12 text-slate-300 mx-auto mb-4" />
               <p className="text-lg font-medium text-slate-500 mb-2">Aucune donnee de progression</p>
-              <p className="text-sm text-slate-400 mb-6">Completez des exercices pour voir votre progression ici.</p>
-              <Link href="/">
-                <Button>Commencer un exercice</Button>
-              </Link>
+              <p className="text-sm text-slate-400 mb-6">
+                {isOwn
+                  ? 'Completez des exercices pour voir votre progression ici.'
+                  : 'Ce joueur n a pas encore de resultats synchronises.'}
+              </p>
+              {isOwn && (
+                <Link href="/">
+                  <Button>Commencer un exercice</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Progression Charts Grid */}
         {exercisesWithStats.length > 0 && (
           <section className="mb-10">
             <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -230,7 +309,6 @@ function ProgressionContent() {
           </section>
         )}
 
-        {/* Classes Table */}
         {exercisesWithStats.length > 0 && (
           <section className="mb-10">
             <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -330,14 +408,13 @@ function ProgressionContent() {
           </section>
         )}
 
-        {/* Exercises without data */}
-        {exercisesWithoutStats.length > 0 && exercisesWithStats.length > 0 && (
+        {isOwn && exercisesWithoutStats.length > 0 && exercisesWithStats.length > 0 && (
           <section>
             <h2 className="text-sm font-medium text-slate-400 mb-3">
               Exercices non pratiques ({exercisesWithoutStats.length})
             </h2>
             <div className="flex flex-wrap gap-2">
-              {exercisesWithoutStats.map(ex => (
+              {exercisesWithoutStats.map((ex) => (
                 <Badge key={ex.id} variant="outline" className="text-slate-400">
                   {ex.title}
                 </Badge>
@@ -346,8 +423,7 @@ function ProgressionContent() {
           </section>
         )}
 
-        {/* Reset zone - bottom, discreet */}
-        {exercisesWithStats.length > 0 && (
+        {isOwn && exercisesWithStats.length > 0 && (
           <section className="mt-16 mb-8 border-t border-slate-200 pt-8">
             {confirmStep === 0 && (
               <div className="text-center">
@@ -385,11 +461,7 @@ function ProgressionContent() {
                   Cette action est irreversible. Confirmer la suppression ?
                 </p>
                 <div className="flex items-center justify-center gap-3">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleClear}
-                  >
+                  <Button variant="destructive" size="sm" onClick={handleClear}>
                     <Trash2 className="h-3.5 w-3.5 mr-1" /> Supprimer definitivement
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => setConfirmStep(0)}>

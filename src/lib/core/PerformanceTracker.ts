@@ -150,6 +150,16 @@ export function savePerformanceResult(
     localStorage.setItem(key, JSON.stringify(existing));
   } catch { /* quota exceeded or unavailable */ }
 
+  // Cloud sync for public progression (fire-and-forget)
+  try {
+    const entries = loadEntries(exerciseId);
+    void import('@/lib/account/profile')
+      .then(({ upsertPerformanceCloud }) =>
+        upsertPerformanceCloud(exerciseId, entries),
+      )
+      .catch(() => { /* ignore */ });
+  } catch { /* ignore */ }
+
   // Stadium: best score per competition (fire-and-forget)
   try {
     const competitionId = sessionStorage.getItem('aviatest-stadium-competition-id');
@@ -180,13 +190,15 @@ export function loadEntries(exerciseId: string): PerformanceEntry[] {
 }
 
 /**
- * Get full stats for an exercise (uses current pseudo).
+ * Get full stats for an exercise from an entries array (local or cloud).
  */
-export function getExerciseStats(exerciseId: string): ExerciseStats | null {
-  const entries = loadEntries(exerciseId);
+export function getExerciseStatsFromEntries(
+  exerciseId: string,
+  entries: PerformanceEntry[],
+): ExerciseStats | null {
   if (entries.length === 0) return null;
 
-  const scores = entries.map(e => e.score);
+  const scores = entries.map((e) => e.score);
   const now = new Date();
 
   const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
@@ -194,26 +206,27 @@ export function getExerciseStats(exerciseId: string): ExerciseStats | null {
   const filterByDays = (days: number) => {
     const cutoff = new Date(now);
     cutoff.setDate(cutoff.getDate() - days);
-    return entries.filter(e => new Date(e.date) >= cutoff).map(e => e.score);
+    return entries.filter((e) => new Date(e.date) >= cutoff).map((e) => e.score);
   };
 
-  const todayScores = entries.filter(e => {
-    const d = new Date(e.date);
-    return d.toDateString() === now.toDateString();
-  }).map(e => e.score);
+  const todayScores = entries
+    .filter((e) => {
+      const d = new Date(e.date);
+      return d.toDateString() === now.toDateString();
+    })
+    .map((e) => e.score);
 
   const last7 = filterByDays(7);
   const last3 = filterByDays(3);
 
-  // Average time per question (only entries that tracked time)
-  const timedEntries = entries.filter(e => e.avgTimeMs > 0);
-  const avgTimeSec = timedEntries.length > 0
-    ? Math.round(avg(timedEntries.map(e => e.avgTimeMs)) / 100) / 10
-    : null;
+  const timedEntries = entries.filter((e) => e.avgTimeMs > 0);
+  const avgTimeSec =
+    timedEntries.length > 0
+      ? Math.round(avg(timedEntries.map((e) => e.avgTimeMs)) / 100) / 10
+      : null;
   const lastEntry = entries[entries.length - 1];
-  const lastAvgTimeSec = lastEntry.avgTimeMs > 0
-    ? Math.round(lastEntry.avgTimeMs / 100) / 10
-    : null;
+  const lastAvgTimeSec =
+    lastEntry.avgTimeMs > 0 ? Math.round(lastEntry.avgTimeMs / 100) / 10 : null;
 
   return {
     exerciseId,
@@ -229,6 +242,27 @@ export function getExerciseStats(exerciseId: string): ExerciseStats | null {
     avgTimeSec,
     lastAvgTimeSec,
   };
+}
+
+/**
+ * Get full stats for an exercise (uses current pseudo).
+ */
+export function getExerciseStats(exerciseId: string): ExerciseStats | null {
+  return getExerciseStatsFromEntries(exerciseId, loadEntries(exerciseId));
+}
+
+/**
+ * Build stats list from a map of exerciseId → entries (cloud view).
+ */
+export function getAllExerciseStatsFromMap(
+  map: Record<string, PerformanceEntry[]>,
+): ExerciseStats[] {
+  const results: ExerciseStats[] = [];
+  for (const [exerciseId, entries] of Object.entries(map)) {
+    const stats = getExerciseStatsFromEntries(exerciseId, entries);
+    if (stats) results.push(stats);
+  }
+  return results;
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   normalizeUsername,
   validateUsername,
 } from '@/lib/auth/messages';
+import { syncPseudoFromProfile } from '@/lib/account/profile';
 
 const styles = {
   colors: {
@@ -105,6 +106,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
           return;
         }
 
+        await syncPseudoFromProfile();
         onSuccess();
         return;
       }
@@ -119,6 +121,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
         return;
       }
 
+      await syncPseudoFromProfile();
       onSuccess();
     } catch (err) {
       const message = err instanceof Error ? err.message : undefined;
@@ -225,7 +228,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                 required
               />
               <p className="text-xs" style={{ color: styles.colors.textMuted }}>
-                Unique, visible sur le site. Distinct de ton pseudo de progression.
+                Unique, lie a ton email. Sert aussi de pseudo (progression / Stadium).
               </p>
             </div>
           )}
