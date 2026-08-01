@@ -21,6 +21,7 @@ import {
   type BugStatus,
   type Missive,
 } from '@/lib/feedback/api';
+import { publishMissiveToAgora, unpublishMissiveFromAgora } from '@/lib/agora/api';
 
 const BUG_LIMIT = 10;
 const MISSIVE_LIMIT = 2;
@@ -222,6 +223,7 @@ function MissivesPanel() {
   const [count, setCount] = useState(0);
   const [missives, setMissives] = useState<Missive[]>([]);
   const [busy, setBusy] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const reload = async () => {
@@ -258,6 +260,27 @@ function MissivesPanel() {
     }
   };
 
+  const onAgoraToggle = async (m: Missive) => {
+    setBusyId(m.id);
+    setMessage(null);
+    try {
+      if (m.in_agora) {
+        await unpublishMissiveFromAgora(m.id);
+        setMessage('Missive retiree de l Agora.');
+      } else {
+        await publishMissiveToAgora(m.id);
+        setMessage('Missive publiee dans l Agora.');
+      }
+      await reload();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'already_in_agora') setMessage('Deja dans l Agora.');
+      else setMessage('Action Agora impossible. Verifie schema-agora.sql.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div
@@ -271,6 +294,11 @@ function MissivesPanel() {
         <p className="text-sm" style={{ color: styles.textMuted }}>
           Idee, compliment ou plainte diplomatique. {remaining} missive
           {remaining > 1 ? 's' : ''} restante{remaining > 1 ? 's' : ''} (max {MISSIVE_LIMIT}).
+          Tu peux ensuite publier une missive dans l&apos;{' '}
+          <Link href="/agora" className="underline">
+            Agora
+          </Link>{' '}
+          pour recueillir des accords.
         </p>
         <form onSubmit={onSubmit} className="space-y-4">
           <textarea
@@ -284,7 +312,11 @@ function MissivesPanel() {
           />
           {message && (
             <p
-              className={`text-sm ${message.includes('envoyee') ? 'text-emerald-600' : 'text-red-500'}`}
+              className={`text-sm ${
+                message.includes('envoyee') || message.includes('publiee') || message.includes('retiree')
+                  ? 'text-emerald-600'
+                  : 'text-red-500'
+              }`}
             >
               {message}
             </p>
@@ -320,9 +352,21 @@ function MissivesPanel() {
                 boxShadow: styles.shadow,
               }}
             >
-              <p className="text-xs" style={{ color: styles.textMuted }}>
-                {new Date(m.created_at).toLocaleString('fr-FR')}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs" style={{ color: styles.textMuted }}>
+                  {new Date(m.created_at).toLocaleString('fr-FR')}
+                  {m.in_agora ? ' · Dans l Agora' : ''}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busyId === m.id}
+                  onClick={() => onAgoraToggle(m)}
+                >
+                  {m.in_agora ? 'Retirer de l Agora' : 'Publier dans l Agora'}
+                </Button>
+              </div>
               <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
                 {m.body}
               </p>

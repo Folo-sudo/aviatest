@@ -21,6 +21,7 @@ import {
   LogOut,
   Trophy,
   MessageSquare,
+  Landmark,
   Inbox,
   Gamepad2,
   Boxes,
@@ -318,6 +319,14 @@ function HomeContent() {
               >
                 <Trophy className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Stadium</span>
+              </Link>
+              <Link
+                href="/agora"
+                className="flex items-center gap-1 text-sm hover:opacity-80"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
+                <Landmark className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Agora</span>
               </Link>
               <Link
                 href="/boite"

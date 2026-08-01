@@ -22,6 +22,8 @@ export type Missive = {
   admin_reply: string | null;
   admin_reply_at: string | null;
   created_at: string;
+  in_agora?: boolean;
+  agora_published_at?: string | null;
 };
 
 export const BUG_STATUS_LABEL: Record<BugStatus, string> = {
@@ -85,9 +87,14 @@ export async function listMyBugs(): Promise<BugReport[]> {
 
 export async function listMyMissives(): Promise<Missive[]> {
   const supabase = getSupabaseBrowserClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from('missives')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as Missive[];
@@ -98,7 +105,13 @@ export async function listBugsAdmin(): Promise<BugReport[]> {
 }
 
 export async function listMissivesAdmin(): Promise<Missive[]> {
-  return listMyMissives();
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('missives')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as Missive[];
 }
 
 export async function adminSetBugStatus(
