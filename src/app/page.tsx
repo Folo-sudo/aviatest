@@ -21,6 +21,10 @@ import {
   BarChart3,
   User,
   LogOut,
+  Trophy,
+  Bug,
+  Mail,
+  Inbox,
   Gamepad2,
   Boxes,
   Box,
@@ -50,6 +54,7 @@ import {
 } from '@/lib/core/PerformanceTracker';
 import AuthGate from '@/components/AuthGate';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
 
 // ============================================================================
 // Design System - Warm Cream/Beige Palette
@@ -366,6 +371,7 @@ function PseudoGate({ onSelect }: { onSelect: (pseudo: string) => void }) {
 function HomeContent() {
   const [pseudo, setPseudoState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const competitions = getAllCompetitions();
   const readyExercises = EXERCISES.filter((e) => e.ready);
   const exercisesByType = groupExercisesByTypes(readyExercises, EXERCISE_TYPE_ORDER);
@@ -374,6 +380,12 @@ function HomeContent() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load client-only state after hydration
     setPseudoState(getPseudo());
     setLoading(false);
+    void getSupabaseBrowserClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        setIsAdmin(data.user?.email === ADMIN_EMAIL);
+      })
+      .catch(() => setIsAdmin(false));
   }, []);
 
   const handleLogout = async () => {
@@ -405,7 +417,7 @@ function HomeContent() {
         }}
       >
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Target
                 className="h-7 w-7"
@@ -418,12 +430,46 @@ function HomeContent() {
                 AviaTest
               </span>
             </div>
-            <nav className="flex items-center gap-4">
+            <nav className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
+              <Link
+                href="/stadium"
+                className="flex items-center gap-1 text-sm hover:opacity-80"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
+                <Trophy className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Stadium</span>
+              </Link>
+              <Link
+                href="/signaler-beug"
+                className="flex items-center gap-1 text-sm hover:opacity-80"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
+                <Bug className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Beug</span>
+              </Link>
+              <Link
+                href="/missive"
+                className="flex items-center gap-1 text-sm hover:opacity-80"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Missive</span>
+              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-1 text-sm hover:opacity-80"
+                  style={{ color: homeStyles.colors.text }}
+                >
+                  <Inbox className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              )}
               {competitions.slice(0, 2).map((competition) => (
                 <Link
                   key={competition.id}
                   href={`/concours/${competition.slug}`}
-                  className="text-sm transition-colors hidden sm:block hover:opacity-80"
+                  className="text-sm transition-colors hidden lg:block hover:opacity-80"
                   style={{ color: homeStyles.colors.textMuted }}
                 >
                   {competition.name}
@@ -576,43 +622,49 @@ function HomeContent() {
           {exercisesByType.map(({ type, config, exercises }) => (
             <div
               key={type}
-              className="rounded-xl overflow-hidden"
+              className="h-full rounded-xl overflow-hidden transition-transform hover:scale-[1.02]"
               style={{
                 backgroundColor: homeStyles.colors.cardBg,
                 border: `1px solid ${homeStyles.colors.border}`,
+                borderLeft: `4px solid ${config.color}`,
                 boxShadow: homeStyles.shadows.card,
               }}
             >
-              <div
-                className="flex items-center justify-between px-5 py-4"
-                style={{
-                  borderBottom: `1px solid ${homeStyles.colors.border}`,
-                  backgroundColor: config.bgColor,
-                }}
-              >
-                <h3
-                  className="text-lg font-semibold"
-                  style={{ color: config.color }}
-                >
-                  {config.label}
-                </h3>
+              <div className="flex items-center justify-between px-5 py-4">
+                <div>
+                  <h3
+                    className="text-lg font-semibold"
+                    style={{ color: homeStyles.colors.text }}
+                  >
+                    {config.label}
+                  </h3>
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: homeStyles.colors.textMuted }}
+                  >
+                    {exercises.length} exercice{exercises.length > 1 ? 's' : ''}
+                  </p>
+                </div>
                 <span
-                  className="text-xs font-medium px-2 py-1 rounded-full"
+                  className="text-xs font-medium px-2 py-1 rounded"
                   style={{
-                    backgroundColor: homeStyles.colors.cardBg,
+                    backgroundColor: config.bgColor,
                     color: config.color,
                   }}
                 >
-                  {exercises.length}
+                  {config.label}
                 </span>
               </div>
-              <ul className="p-4 space-y-1">
+              <ul
+                className="px-4 pb-4 space-y-1"
+                style={{ borderTop: `1px solid ${homeStyles.colors.border}` }}
+              >
                 {exercises.map((exercise) => (
                   <li key={`${type}-${exercise.id}`}>
                     <Link
                       href={getExerciseUrl(exercise)}
                       target="_blank"
-                      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:opacity-90"
+                      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors"
                       style={{ color: homeStyles.colors.text }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = config.bgColor;

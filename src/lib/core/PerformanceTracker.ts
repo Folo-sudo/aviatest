@@ -149,6 +149,18 @@ export function savePerformanceResult(
     }
     localStorage.setItem(key, JSON.stringify(existing));
   } catch { /* quota exceeded or unavailable */ }
+
+  // Stadium: best score per competition (fire-and-forget)
+  try {
+    const competitionId = sessionStorage.getItem('aviatest-stadium-competition-id');
+    if (competitionId) {
+      void import('@/lib/stadium/competitions')
+        .then(({ upsertCompetitionBestScore }) =>
+          upsertCompetitionBestScore(competitionId, correct, total, avgTimeMs),
+        )
+        .catch(() => { /* ignore network / auth errors */ });
+    }
+  } catch { /* ignore */ }
 }
 
 /**
