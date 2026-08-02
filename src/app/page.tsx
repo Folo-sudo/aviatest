@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   ArrowRight,
   Binary,
@@ -34,7 +33,6 @@ import {
   Search,
   Shapes,
   Smartphone,
-  Sparkles,
   Star,
   Target,
   Trophy,
@@ -121,7 +119,8 @@ const trainingLanes: Array<{
   {
     id: 'speed-attention',
     title: 'Attention & vitesse',
-    description: 'Tout ce qui demande rapidite de lecture, alternance de regles et precision sous pression.',
+    description:
+      'Pour t entrainer a rester precis quand tout va vite : formes, chiffres, signaux et reactions.',
     types: ['attention', 'psychomoteur'],
     accent: '#0ea5e9',
     accentBg: '#e0f2fe',
@@ -129,7 +128,8 @@ const trainingLanes: Array<{
   {
     id: 'spatial-cockpit',
     title: 'Spatial & cockpit',
-    description: 'Orientation mentale, angles, vision 3D, lecture instrumentale et reperage visuel.',
+    description:
+      'Pour visualiser dans l espace, lire des instruments et te situer mentalement comme en cabine.',
     types: ['spatiale'],
     accent: '#d97706',
     accentBg: '#fffbeb',
@@ -137,7 +137,8 @@ const trainingLanes: Array<{
   {
     id: 'logic-maths',
     title: 'Calcul & logique',
-    description: 'Calcul mental, estimation, raisonnement abstrait et resolution de contraintes.',
+    description:
+      'Pour renforcer le calcul mental, les estimations et le raisonnement sous contrainte de temps.',
     types: ['numerique', 'intellectuel'],
     accent: '#7c3aed',
     accentBg: '#f5f3ff',
@@ -145,7 +146,8 @@ const trainingLanes: Array<{
   {
     id: 'memory-multitask',
     title: 'Memoire & multitache',
-    description: 'Memoire de travail, double tache et maintien de performance sur plusieurs flux.',
+    description:
+      'Pour tenir plusieurs informations en tete et enchainer sans perdre le fil.',
     types: ['memorisation'],
     accent: '#e11d48',
     accentBg: '#fff1f2',
@@ -153,7 +155,8 @@ const trainingLanes: Array<{
   {
     id: 'language-comprehension',
     title: 'Verbal & anglais',
-    description: 'Comprendre vite, trier, classer et raisonner avec des mots ou des QCM linguistiques.',
+    description:
+      'Pour comprendre vite, trier des infos et repondre a des QCM ou consignes en francais / anglais.',
     types: ['verbal', 'anglais'],
     accent: '#0f766e',
     accentBg: '#ecfeff',
@@ -164,23 +167,19 @@ function getExerciseIcon(iconName: string): React.ReactNode {
   return iconMap[iconName] || <Circle className="h-5 w-5" />;
 }
 
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 function summarizeDifficulty(exercises: ExerciseConfig[]): string {
   const difficultCount = exercises.filter((exercise) => exercise.difficulty === 'difficile').length;
   const easyCount = exercises.filter((exercise) => exercise.difficulty === 'facile').length;
 
   if (difficultCount >= Math.ceil(exercises.length / 2)) {
-    return 'Plutot exigeant';
+    return 'Niveau exigeant';
   }
 
   if (easyCount >= Math.ceil(exercises.length / 2)) {
-    return 'Accessible rapidement';
+    return 'Bon pour demarrer';
   }
 
-  return 'Equilibre progressif';
+  return 'Progression equilibree';
 }
 
 function buildLaneExercises(types: ExerciseType[], readyExercises: ExerciseConfig[]): ExerciseConfig[] {
@@ -201,15 +200,17 @@ function CompetitionHeroCard({
   competition,
   exerciseCount,
   hook,
+  compact = false,
 }: {
   competition: Competition;
   exerciseCount: number;
   hook: string;
+  compact?: boolean;
 }) {
   return (
     <Link href={`/concours/${competition.slug}`} className="block h-full">
       <article
-        className="h-full rounded-[28px] p-6 transition-transform hover:scale-[1.01]"
+        className={`h-full rounded-[24px] transition-transform hover:scale-[1.01] ${compact ? 'p-5' : 'p-6'}`}
         style={{
           background:
             competition.id === 'psy0'
@@ -221,12 +222,18 @@ function CompetitionHeroCard({
           boxShadow: homeStyles.shadows.soft,
         }}
       >
-        <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em]" style={{ color: homeStyles.colors.textMuted }}>
+            <p
+              className="text-xs uppercase tracking-[0.22em]"
+              style={{ color: homeStyles.colors.textMuted }}
+            >
               {competition.organization}
             </p>
-            <h3 className="mt-2 text-2xl font-semibold" style={{ color: homeStyles.colors.text }}>
+            <h3
+              className={`mt-2 font-semibold ${compact ? 'text-xl' : 'text-2xl'}`}
+              style={{ color: homeStyles.colors.text }}
+            >
               {competition.name}
             </h3>
           </div>
@@ -241,14 +248,17 @@ function CompetitionHeroCard({
             {exerciseCount} tests
           </div>
         </div>
-        <p className="mb-4 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+        <p className="mb-3 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
           {competition.description}
         </p>
-        <p className="mb-8 text-sm font-medium" style={{ color: homeStyles.colors.text }}>
+        <p className="mb-6 text-sm font-medium" style={{ color: homeStyles.colors.text }}>
           {hook}
         </p>
-        <div className="flex items-center justify-between text-sm font-medium" style={{ color: homeStyles.colors.text }}>
-          <span>Voir la batterie</span>
+        <div
+          className="flex items-center justify-between text-sm font-medium"
+          style={{ color: homeStyles.colors.text }}
+        >
+          <span>Voir les exercices</span>
           <ArrowRight className="h-4 w-4" />
         </div>
       </article>
@@ -280,25 +290,33 @@ function LaneCard({
         boxShadow: homeStyles.shadows.soft,
       }}
     >
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <div
-            className="inline-flex rounded-full px-3 py-1 text-xs font-medium"
-            style={{ backgroundColor: accentBg, color: accent }}
-          >
-            {exercises.length} exercices
-          </div>
-          <h3 className="mt-3 text-xl font-semibold" style={{ color: homeStyles.colors.text }}>
-            {title}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-            {description}
-          </p>
+      <div className="mb-5">
+        <div
+          className="inline-flex rounded-full px-3 py-1 text-xs font-medium"
+          style={{ backgroundColor: accentBg, color: accent }}
+        >
+          {exercises.length} exercices
         </div>
+        <h3 className="mt-3 text-xl font-semibold" style={{ color: homeStyles.colors.text }}>
+          {title}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+          {description}
+        </p>
       </div>
-      <div className="mb-4 flex items-center justify-between text-xs" style={{ color: homeStyles.colors.textMuted }}>
+      <div
+        className="mb-4 flex items-center justify-between text-xs"
+        style={{ color: homeStyles.colors.textMuted }}
+      >
         <span>{summarizeDifficulty(exercises)}</span>
-        <span>{Math.round(exercises.reduce((sum, exercise) => sum + exercise.estimatedDuration, 0) / Math.max(exercises.length, 1))} min en moyenne</span>
+        <span>
+          ~
+          {Math.round(
+            exercises.reduce((sum, exercise) => sum + exercise.estimatedDuration, 0) /
+              Math.max(exercises.length, 1)
+          )}{' '}
+          min / test
+        </span>
       </div>
       <div className="space-y-2">
         {featured.map((exercise) => (
@@ -310,10 +328,7 @@ function LaneCard({
             style={{ backgroundColor: accentBg, color: homeStyles.colors.text }}
           >
             <div className="flex items-center gap-3">
-              <div
-                className="rounded-xl p-2"
-                style={{ backgroundColor: '#ffffff', color: accent }}
-              >
+              <div className="rounded-xl p-2" style={{ backgroundColor: '#ffffff', color: accent }}>
                 {getExerciseIcon(exercise.iconName)}
               </div>
               <div>
@@ -366,7 +381,10 @@ function ExerciseLibraryCard({ exercise }: { exercise: ExerciseConfig }) {
         <p className="mb-4 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
           {exercise.description}
         </p>
-        <div className="flex items-center justify-between text-xs" style={{ color: homeStyles.colors.textMuted }}>
+        <div
+          className="flex items-center justify-between text-xs"
+          style={{ color: homeStyles.colors.textMuted }}
+        >
           <span>{getDifficultyLabel(exercise.difficulty)}</span>
           <span>~{exercise.estimatedDuration} min</span>
         </div>
@@ -382,6 +400,10 @@ function HomeContent() {
   const [activeCompetition, setActiveCompetition] = useState<CompetitionId>('psy0');
   const competitions = getAllCompetitions();
   const readyExercises = useMemo(() => EXERCISES.filter((exercise) => exercise.ready), []);
+
+  const psy0 = competitions.find((c) => c.id === 'psy0');
+  const psy1 = competitions.find((c) => c.id === 'psy1');
+  const enac = competitions.find((c) => c.id === 'enac-epl');
 
   useEffect(() => {
     void (async () => {
@@ -412,9 +434,9 @@ function HomeContent() {
   );
 
   const heroHooks: Record<CompetitionId, string> = {
-    psy0: 'Ideal pour cadrer une preparation rapide, avec beaucoup d attention, de spatial et de vitesse.',
-    psy1: 'La meilleure entree si tu veux travailler le calcul, la 3D et les doubles taches serieuses.',
-    'enac-epl': 'Pour une preparation plus large et equilibree, utile si tu veux couvrir toutes les familles critiques.',
+    psy0: 'Parfait pour demarrer : attention, spatial et vitesse.',
+    psy1: 'Pour monter en niveau : calcul, 3D et doubles taches.',
+    'enac-epl': 'Une preparation large, utile pour couvrir toutes les familles de tests.',
   };
 
   const handleLogout = async () => {
@@ -428,6 +450,9 @@ function HomeContent() {
 
   if (loading) return null;
 
+  const navLinkClass =
+    'inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-opacity hover:opacity-80';
+
   return (
     <main className="min-h-screen" style={{ backgroundColor: homeStyles.colors.background }}>
       <header
@@ -437,329 +462,353 @@ function HomeContent() {
           borderBottom: `1px solid ${homeStyles.colors.border}`,
         }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="rounded-2xl p-2"
-                  style={{ backgroundColor: '#fff3e0', color: homeStyles.colors.text }}
-                >
-                  <Target className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xl font-semibold" style={{ color: homeStyles.colors.text }}>
-                    AviaTest
-                  </p>
-                  <p className="text-xs tracking-[0.18em] uppercase" style={{ color: homeStyles.colors.textMuted }}>
-                    Preparation pilote
-                  </p>
-                </div>
+        <div className="container mx-auto px-4 py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="rounded-2xl p-2 shrink-0"
+                style={{ backgroundColor: '#fff3e0', color: homeStyles.colors.text }}
+              >
+                <Target className="h-5 w-5" />
               </div>
-              <Link href="/compte" className="xl:hidden">
-                <Badge
-                  variant="secondary"
-                  className="px-3 py-1.5"
-                  style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
+              <div className="min-w-0">
+                <p className="text-lg font-semibold leading-tight" style={{ color: homeStyles.colors.text }}>
+                  AviaTest
+                </p>
+                <p
+                  className="text-[11px] tracking-[0.16em] uppercase truncate"
+                  style={{ color: homeStyles.colors.textMuted }}
                 >
-                  <User className="mr-1 h-3 w-3" />
-                  {pseudo || 'Compte'}
-                </Badge>
-              </Link>
+                  Tests psychotechniques pilote
+                </p>
+              </div>
             </div>
 
-            <nav className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => scrollToId('concours')}
-                className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-              >
-                Concours
-              </button>
-              <button
-                onClick={() => scrollToId('parcours')}
-                className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-              >
-                Familles de tests
-              </button>
+            <nav className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
               <Link
                 href="/stadium"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-[1.02]"
+                className={`${navLinkClass} text-white`}
                 style={{
                   background: `linear-gradient(135deg, ${homeStyles.colors.stadiumStart} 0%, ${homeStyles.colors.stadiumEnd} 100%)`,
                   boxShadow: homeStyles.shadows.stadium,
                 }}
               >
-                <span className="inline-flex items-center gap-2">
-                  <Trophy className="h-4 w-4" />
-                  Stadium
-                </span>
+                <Trophy className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Stadium</span>
               </Link>
               <Link
                 href="/agora"
-                className="rounded-full px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                className={`${navLinkClass} text-white`}
                 style={{
                   background: `linear-gradient(135deg, ${homeStyles.colors.agoraStart} 0%, ${homeStyles.colors.agoraEnd} 100%)`,
                 }}
               >
-                <span className="inline-flex items-center gap-2">
-                  <Landmark className="h-4 w-4" />
-                  Agora
-                </span>
-              </Link>
-              <Link
-                href="/boite"
-                className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Boite
-                </span>
-              </Link>
-              <Link
-                href="/telephone"
-                className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Smartphone className="h-4 w-4" />
-                  Telephone
-                </span>
+                <Landmark className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Agora</span>
               </Link>
               <Link
                 href="/compte"
-                className="hidden rounded-full px-4 py-2 text-sm font-medium xl:inline-flex"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
+                className={navLinkClass}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: homeStyles.colors.text,
+                  border: `1px solid ${homeStyles.colors.border}`,
+                }}
               >
-                <span className="inline-flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {pseudo || 'Compte'}
-                </span>
+                <User className="h-3.5 w-3.5" />
+                <span className="max-w-[7rem] truncate">{pseudo || 'Profil'}</span>
+              </Link>
+              <Link
+                href="/telephone"
+                className={navLinkClass}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: homeStyles.colors.text,
+                  border: `1px solid ${homeStyles.colors.border}`,
+                }}
+                title="Mode telephone"
+              >
+                <Smartphone className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Telephone</span>
               </Link>
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="rounded-full px-4 py-2 text-sm font-medium"
+                  className={navLinkClass}
                   style={{ backgroundColor: '#fff3e0', color: '#9a3412', border: '1px solid #fdba74' }}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    <Inbox className="h-4 w-4" />
-                    Admin
-                  </span>
+                  <Inbox className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Admin</span>
                 </Link>
               )}
               <button
                 onClick={handleLogout}
-                className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.textMuted, border: `1px solid ${homeStyles.colors.border}` }}
+                className="ml-0.5 inline-flex items-center justify-center rounded-full p-2 transition-opacity hover:opacity-70"
+                style={{ color: homeStyles.colors.textMuted }}
                 title="Se deconnecter"
+                aria-label="Se deconnecter"
               >
-                <span className="inline-flex items-center gap-2">
-                  <LogOut className="h-4 w-4" />
-                  Sortir
-                </span>
+                <LogOut className="h-3.5 w-3.5" />
               </button>
             </nav>
           </div>
         </div>
       </header>
 
+      {/* Acces rapides : Stadium | Agora + Boite */}
       <section className="relative overflow-hidden">
         <div
           className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 35%), radial-gradient(circle at top right, rgba(63, 127, 121, 0.14), transparent 32%), linear-gradient(180deg, #fbfaf9 0%, #f6efe4 100%)',
+              'radial-gradient(circle at top left, rgba(245, 158, 11, 0.16), transparent 38%), radial-gradient(circle at top right, rgba(63, 127, 121, 0.12), transparent 34%), linear-gradient(180deg, #fbfaf9 0%, #f6efe4 100%)',
           }}
         />
-        <div className="relative container mx-auto grid gap-10 px-4 py-12 md:py-18 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="max-w-3xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm" style={{ borderColor: '#f2d3a1', backgroundColor: '#fff8ed', color: '#9a3412' }}>
-              <Sparkles className="h-4 w-4" />
-              Nouveau cap : concours, familles de tests et entrainement competif mieux organises
-            </div>
-            <h1
-              className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl"
-              style={{ color: homeStyles.colors.text }}
-            >
-              Une page d&apos;accueil qui te fait entrer par la bonne porte, pas une simple liste de tests.
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed md:text-xl" style={{ color: homeStyles.colors.textMuted }}>
-              Commence par ton concours, bifurque par famille d&apos;epreuves, puis accelere avec le Stadium. L&apos;organisation est pensee pour entrainer plus vite, avec moins de friction.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button
-                size="lg"
-                onClick={() => scrollToId('concours')}
-                className="rounded-full px-6"
-                style={{ backgroundColor: homeStyles.colors.text, color: homeStyles.colors.background }}
+        <div className="relative container mx-auto px-4 py-8 md:py-10">
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
+            {/* Stadium — hauteur de reference */}
+            <Link href="/stadium" className="block h-full min-h-[280px] lg:min-h-[340px]">
+              <div
+                className="flex h-full flex-col justify-between rounded-[28px] p-6 text-white md:p-7"
+                style={{
+                  background: `linear-gradient(140deg, ${homeStyles.colors.stadiumStart} 0%, #d97706 45%, ${homeStyles.colors.stadiumEnd} 100%)`,
+                  boxShadow: homeStyles.shadows.stadium,
+                }}
               >
-                Choisir mon concours
-              </Button>
-              <Button
-                size="lg"
-                onClick={() => scrollToId('parcours')}
-                className="rounded-full px-6"
-                style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-              >
-                Explorer les familles de tests
-              </Button>
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              {[
-                { label: 'PSY0', href: '/concours/psy0-cadets-air-france' },
-                { label: 'PSY1', href: '/concours/psy1-cadets-air-france' },
-                { label: 'ENAC EPL', href: '/concours/psy1-enac-epl' },
-                { label: 'Tous les exercices', action: () => scrollToId('bibliotheque') },
-                { label: 'Progression', href: '/progression' },
-              ].map((item) =>
-                item.href ? (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="rounded-full px-4 py-2 text-sm font-medium"
-                    style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-                  >
-                    {item.label}
-                  </Link>
-                ) : (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    className="rounded-full px-4 py-2 text-sm font-medium"
-                    style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}
-                  >
-                    {item.label}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-
-          <aside className="grid gap-4">
-            <div
-              className="rounded-[30px] p-6 text-white"
-              style={{
-                background: `linear-gradient(140deg, ${homeStyles.colors.stadiumStart} 0%, #d97706 45%, ${homeStyles.colors.stadiumEnd} 100%)`,
-                boxShadow: homeStyles.shadows.stadium,
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <Badge className="border-0 bg-white/15 text-white">Priorite du moment</Badge>
-                <Trophy className="h-6 w-6" />
-              </div>
-              <h2 className="mt-5 text-2xl font-semibold">Stadium</h2>
-              <p className="mt-3 text-sm leading-relaxed text-white/85">
-                L&apos;espace a mettre au centre : competition, repetition, objectif clair et rythme plus heroique.
-              </p>
-              <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs">
-                <div className="rounded-2xl bg-white/12 px-3 py-3">
-                  <p className="text-lg font-semibold">{readyExercises.length}</p>
-                  <p className="mt-1 text-white/80">tests</p>
-                </div>
-                <div className="rounded-2xl bg-white/12 px-3 py-3">
-                  <p className="text-lg font-semibold">{competitions.length}</p>
-                  <p className="mt-1 text-white/80">concours</p>
-                </div>
-                <div className="rounded-2xl bg-white/12 px-3 py-3">
-                  <p className="text-lg font-semibold">Live</p>
-                  <p className="mt-1 text-white/80">entrainement</p>
-                </div>
-              </div>
-              <Link
-                href="/stadium"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold"
-                style={{ color: '#9a3412' }}
-              >
-                Entrer dans le Stadium
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-              <Link href="/agora" className="block">
-                <div
-                  className="rounded-[26px] p-5 transition-transform hover:scale-[1.01]"
-                  style={{
-                    background: `linear-gradient(140deg, ${homeStyles.colors.agoraStart} 0%, ${homeStyles.colors.agoraEnd} 100%)`,
-                    color: '#ffffff',
-                  }}
-                >
+                <div>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Agora</h3>
-                    <Landmark className="h-5 w-5" />
+                    <Badge className="border-0 bg-white/15 text-white">Competition</Badge>
+                    <Trophy className="h-6 w-6" />
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-white/82">
-                    Place utile pour les missives, les retours et les priorites collectives.
+                  <h2 className="mt-5 text-3xl font-semibold">Stadium</h2>
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 md:text-base">
+                    Affronte d autres candidats en temps reel : meme epreuve, meme chrono, classement a la
+                    cle. Ideal pour mesurer ta progression.
                   </p>
                 </div>
-              </Link>
-              <Link href="/boite" className="block">
+                <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-2xl bg-white/12 px-3 py-3">
+                      <p className="text-lg font-semibold">{readyExercises.length}</p>
+                      <p className="mt-1 text-white/80">tests</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/12 px-3 py-3">
+                      <p className="text-lg font-semibold">{competitions.length}</p>
+                      <p className="mt-1 text-white/80">concours</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/12 px-3 py-3">
+                      <p className="text-lg font-semibold">Live</p>
+                      <p className="mt-1 text-white/80">sessions</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#9a3412]">
+                    Entrer
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Agora (plus grand) + Boite — meme hauteur que Stadium */}
+            <div className="grid h-full min-h-[280px] grid-rows-[1.55fr_1fr] gap-4 lg:min-h-[340px]">
+              <Link href="/agora" className="block min-h-0">
                 <div
-                  className="rounded-[26px] p-5 transition-transform hover:scale-[1.01]"
+                  className="flex h-full flex-col justify-between rounded-[26px] p-5 text-white md:p-6"
+                  style={{
+                    background: `linear-gradient(140deg, ${homeStyles.colors.agoraStart} 0%, ${homeStyles.colors.agoraEnd} 100%)`,
+                  }}
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-semibold md:text-2xl">Agora</h3>
+                      <Landmark className="h-5 w-5" />
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-white/85 md:text-base">
+                      Les demandes publiees par la communaute. Donne ton accord aux idees les plus utiles
+                      : celles qui ont le plus de votes sont traitees en priorite.
+                    </p>
+                  </div>
+                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white/95">
+                    Voir l Agora
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </Link>
+
+              <Link href="/boite" className="block min-h-0">
+                <div
+                  className="flex h-full flex-col justify-between rounded-[26px] p-5 md:p-6"
                   style={{
                     background: `linear-gradient(140deg, ${homeStyles.colors.boiteStart} 0%, ${homeStyles.colors.boiteEnd} 100%)`,
                     color: homeStyles.colors.text,
                     border: `1px solid ${homeStyles.colors.border}`,
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Boite</h3>
-                    <MessageSquare className="h-5 w-5" />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold md:text-xl">Boite</h3>
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+                      Signale un bug, envoie une missive ou une idee. Tu peux ensuite publier une missive
+                      dans l Agora pour recueillir des accords.
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                    Espace plus discret pour signaler, proposer, remonter un bug ou laisser une idee.
-                  </p>
+                  <span
+                    className="mt-3 inline-flex items-center gap-2 text-sm font-medium"
+                    style={{ color: homeStyles.colors.text }}
+                  >
+                    Ouvrir la Boite
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
                 </div>
               </Link>
             </div>
-          </aside>
-        </div>
-      </section>
-
-      <section id="concours" className="container mx-auto px-4 py-12">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.24em]" style={{ color: homeStyles.colors.textMuted }}>
-              Porte d&apos;entree
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-              Commence par ton concours
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-              Au lieu de plonger dans une liste interminable, tu choisis d&apos;abord la batterie qui te concerne. C&apos;est plus proche de la realite de preparation.
-            </p>
           </div>
-          <Link href="/concours" className="text-sm font-medium" style={{ color: homeStyles.colors.text }}>
-            Voir tous les parcours concours
-          </Link>
-        </div>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {competitions.map((competition) => (
-            <CompetitionHeroCard
-              key={competition.id}
-              competition={competition}
-              exerciseCount={getExercisesByCompetition(competition.id).length}
-              hook={heroHooks[competition.id]}
-            />
-          ))}
         </div>
       </section>
 
-      <section id="parcours" className="container mx-auto px-4 py-14">
-        <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.24em]" style={{ color: homeStyles.colors.textMuted }}>
-            Deuxieme entree
+      {/* Comment ca marche */}
+      <section className="container mx-auto px-4 pb-4 pt-2">
+        <div
+          className="rounded-[24px] px-5 py-5 md:px-7 md:py-6"
+          style={{
+            backgroundColor: '#ffffff',
+            border: `1px solid ${homeStyles.colors.border}`,
+            boxShadow: homeStyles.shadows.soft,
+          }}
+        >
+          <h2 className="text-xl font-semibold md:text-2xl" style={{ color: homeStyles.colors.text }}>
+            Comment fonctionne AviaTest ?
+          </h2>
+          <ol className="mt-4 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                step: '1',
+                title: 'Choisis ton concours',
+                body: 'PSY0 / PSY1 Cadets Air France, ou ENAC EPL. Chaque parcours regroupe les tests utiles a ta selection.',
+              },
+              {
+                step: '2',
+                title: 'Entraine-toi',
+                body: 'Lance un exercice, regle le mode examen si tu veux, et suis ta progression dans ton profil.',
+              },
+              {
+                step: '3',
+                title: 'Passe en competition',
+                body: 'Rejoins le Stadium pour te comparer aux autres, ou utilise l Agora / la Boite pour faire remonter une idee.',
+              },
+            ].map((item) => (
+              <li key={item.step} className="flex gap-3">
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                  style={{ backgroundColor: homeStyles.colors.backgroundWarm, color: homeStyles.colors.text }}
+                >
+                  {item.step}
+                </span>
+                <div>
+                  <p className="font-medium" style={{ color: homeStyles.colors.text }}>
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+                    {item.body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Concours : Cadets AF regroupes, ENAC separe */}
+      <section id="concours" className="container mx-auto px-4 py-10 md:py-12">
+        <div className="mb-6">
+          <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
+            Concours
           </p>
           <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-            Naviguer par familles d&apos;epreuves
+            Par ou commencer ?
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+            Selectionne le concours que tu prepares. Tu retrouveras ensuite tous les exercices rattaches,
+            ranges pour t y entrainer sans te perdre.
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {(psy0 || psy1) && (
+            <div
+              className="rounded-[28px] p-4 md:p-5"
+              style={{
+                backgroundColor: 'rgba(255, 248, 237, 0.65)',
+                border: `1px solid ${homeStyles.colors.border}`,
+              }}
+            >
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2 px-1">
+                <div>
+                  <p
+                    className="text-xs uppercase tracking-[0.2em]"
+                    style={{ color: homeStyles.colors.textMuted }}
+                  >
+                    Cadets Air France
+                  </p>
+                  <p className="mt-1 text-sm" style={{ color: homeStyles.colors.textMuted }}>
+                    Deux etapes du meme parcours de selection — PSY0 puis PSY1.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+                {psy0 && (
+                  <CompetitionHeroCard
+                    competition={psy0}
+                    exerciseCount={getExercisesByCompetition('psy0').length}
+                    hook={heroHooks.psy0}
+                    compact
+                  />
+                )}
+                {psy1 && (
+                  <CompetitionHeroCard
+                    competition={psy1}
+                    exerciseCount={getExercisesByCompetition('psy1').length}
+                    hook={heroHooks.psy1}
+                    compact
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {enac && (
+            <div className="pt-2">
+              <p
+                className="mb-3 px-1 text-xs uppercase tracking-[0.2em]"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
+                Autre concours
+              </p>
+              <div className="max-w-xl">
+                <CompetitionHeroCard
+                  competition={enac}
+                  exerciseCount={getExercisesByCompetition('enac-epl').length}
+                  hook={heroHooks['enac-epl']}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section id="parcours" className="container mx-auto px-4 py-10 md:py-12">
+        <div className="mb-8">
+          <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
+            Families de tests
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
+            Entraine une competence precise
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-            Organisation plus utile qu&apos;une simple taxonomie brute : chaque bloc correspond a une sensation de travail concrete. Tu sais plus vite ou aller selon ton besoin du jour.
+            Tu preferes cibler un point faible ? Choisis une famille (attention, spatial, calcul...) puis
+            lance les exercices proposes.
           </p>
         </div>
         <div className="grid gap-5 xl:grid-cols-3">
@@ -776,7 +825,7 @@ function HomeContent() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-10">
+      <section className="container mx-auto px-4 py-8 md:py-10">
         <div
           className="rounded-[30px] p-6 md:p-8"
           style={{
@@ -787,14 +836,15 @@ function HomeContent() {
         >
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm uppercase tracking-[0.24em]" style={{ color: homeStyles.colors.textMuted }}>
-                Vue batterie
+              <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
+                Batterie d exercices
               </p>
               <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-                Voir un concours comme une batterie complete
+                Apercu d un concours
               </h2>
               <p className="mt-3 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                Cette vue est utile quand tu veux simuler un vrai programme d&apos;entrainement. Choisis le concours, puis navigue dans ses exercices les plus pertinents sans te disperser.
+                Change d onglet pour voir les tests rattaches a chaque selection. Clique sur un exercice
+                pour l ouvrir dans un nouvel onglet.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -804,9 +854,15 @@ function HomeContent() {
                   onClick={() => setActiveCompetition(competition.id)}
                   className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-85"
                   style={{
-                    backgroundColor: activeCompetition === competition.id ? homeStyles.colors.text : '#ffffff',
-                    color: activeCompetition === competition.id ? '#fbfaf9' : homeStyles.colors.text,
-                    border: `1px solid ${activeCompetition === competition.id ? homeStyles.colors.text : homeStyles.colors.border}`,
+                    backgroundColor:
+                      activeCompetition === competition.id ? homeStyles.colors.text : '#ffffff',
+                    color:
+                      activeCompetition === competition.id ? '#fbfaf9' : homeStyles.colors.text,
+                    border: `1px solid ${
+                      activeCompetition === competition.id
+                        ? homeStyles.colors.text
+                        : homeStyles.colors.border
+                    }`,
                   }}
                 >
                   {competition.name}
@@ -852,20 +908,28 @@ function HomeContent() {
         </div>
       </section>
 
-      <section id="bibliotheque" className="container mx-auto px-4 py-14">
+      <section id="bibliotheque" className="container mx-auto px-4 py-10 md:py-12">
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em]" style={{ color: homeStyles.colors.textMuted }}>
+            <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
               Bibliotheque
             </p>
             <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-              Tous les exercices, mais dans une section secondaire
+              Tous les exercices
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-              La liste complete existe toujours, mais elle ne domine plus toute la page. Elle vient apres les meilleures portes d&apos;entree.
+              Liste complete si tu veux chercher un test precis. Sinon, passe plutot par un concours ou
+              une famille ci-dessus.
             </p>
           </div>
-          <div className="rounded-full px-4 py-2 text-sm font-medium" style={{ backgroundColor: '#ffffff', color: homeStyles.colors.text, border: `1px solid ${homeStyles.colors.border}` }}>
+          <div
+            className="rounded-full px-4 py-2 text-sm font-medium"
+            style={{
+              backgroundColor: '#ffffff',
+              color: homeStyles.colors.text,
+              border: `1px solid ${homeStyles.colors.border}`,
+            }}
+          >
             {readyExercises.length} exercices disponibles
           </div>
         </div>
@@ -887,23 +951,41 @@ function HomeContent() {
                 </span>
               </div>
               <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                Plateforme d&apos;entrainement structuree autour des vraies facons d&apos;entrer dans la preparation : concours, familles d&apos;epreuves, repetition et competition.
+                Entrainement gratuit aux tests psychotechniques pour les selections pilote : Cadets Air
+                France (PSY0 / PSY1) et ENAC EPL.
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: homeStyles.colors.textMuted }}>
+              <h3
+                className="text-sm font-semibold uppercase tracking-[0.18em]"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
                 Acces rapides
               </h3>
               <div className="mt-4 flex flex-col gap-2 text-sm">
-                <Link href="/stadium" style={{ color: homeStyles.colors.text }}>Stadium</Link>
-                <Link href="/agora" style={{ color: homeStyles.colors.text }}>Agora</Link>
-                <Link href="/boite" style={{ color: homeStyles.colors.text }}>Boite</Link>
-                <Link href="/concours" style={{ color: homeStyles.colors.text }}>Tous les concours</Link>
+                <Link href="/stadium" style={{ color: homeStyles.colors.text }}>
+                  Stadium
+                </Link>
+                <Link href="/agora" style={{ color: homeStyles.colors.text }}>
+                  Agora
+                </Link>
+                <Link href="/boite" style={{ color: homeStyles.colors.text }}>
+                  Boite
+                </Link>
+                <Link href="/compte" style={{ color: homeStyles.colors.text }}>
+                  Profil
+                </Link>
+                <Link href="/telephone" style={{ color: homeStyles.colors.text }}>
+                  Mode telephone
+                </Link>
               </div>
             </div>
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: homeStyles.colors.textMuted }}>
-                Families clees
+              <h3
+                className="text-sm font-semibold uppercase tracking-[0.18em]"
+                style={{ color: homeStyles.colors.textMuted }}
+              >
+                Families
               </h3>
               <div className="mt-4 flex flex-col gap-2 text-sm" style={{ color: homeStyles.colors.text }}>
                 <span>Attention & vitesse</span>
