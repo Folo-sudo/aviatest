@@ -6,6 +6,7 @@ import {
   getDifficultyLabel,
   getAllCompetitions,
   getExercisesByCompetition,
+  type ExerciseType,
 } from '@/lib/data/exercises';
 import { isPhoneRequest } from '@/lib/device';
 import {
@@ -18,6 +19,8 @@ import { generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
 import AuthGate from '@/components/AuthGate';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://psychotech-training.fr';
+
+const VALID_TYPES = new Set<string>(Object.keys(EXERCISE_TYPES));
 
 export const metadata: Metadata = {
   title: 'Exercices Psychotechniques - Entrainement Pilote',
@@ -40,10 +43,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function ExercicesPage() {
-  const readyExercises = EXERCISES.filter((e) => e.ready);
+type Props = {
+  searchParams: Promise<{ types?: string }>;
+};
+
+export default async function ExercicesPage({ searchParams }: Props) {
+  const { types: typesParam } = await searchParams;
+  const filterTypes = (typesParam ?? '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t): t is ExerciseType => VALID_TYPES.has(t));
+
+  const readyExercises = EXERCISES.filter((e) => e.ready).filter((e) =>
+    filterTypes.length === 0
+      ? true
+      : e.types.some((type) => filterTypes.includes(type))
+  );
   const isPhone = await isPhoneRequest();
   const competitions = getAllCompetitions();
+  const filterLabels = filterTypes.map((t) => EXERCISE_TYPES[t].label);
 
   const breadcrumbData = generateBreadcrumbStructuredData([
     { name: 'Accueil', url: BASE_URL },
@@ -65,12 +83,24 @@ export default async function ExercicesPage() {
 
           <section className="rounded-[30px] border border-[#e0dedb] bg-[linear-gradient(180deg,#fffaf3_0%,#ffffff_100%)] p-8 shadow-[0_12px_34px_rgba(55,50,47,0.08)]">
             <h1 className="max-w-3xl text-4xl font-bold leading-tight text-[#37322f] md:text-5xl">
-              La bibliotheque complete des exercices, apres les bonnes portes d&apos;entree.
+              {filterTypes.length > 0
+                ? `Categorie : ${filterLabels.join(' · ')}`
+                : 'La bibliotheque complete des exercices, apres les bonnes portes d\'entree.'}
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#605a57]">
-              Cette page sert quand tu sais deja ce que tu veux chercher. Pour une preparation plus guidee, passe d&apos;abord par les concours ou le Stadium.
+              {filterTypes.length > 0
+                ? `${readyExercises.length} exercice${readyExercises.length > 1 ? 's' : ''} dans cette categorie.`
+                : 'Cette page sert quand tu sais deja ce que tu veux chercher. Pour une preparation plus guidee, passe d\'abord par les concours ou le Stadium.'}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
+              {filterTypes.length > 0 && (
+                <Link
+                  href="/exercices"
+                  className="rounded-full border border-[#e0dedb] bg-white px-5 py-3 text-sm font-medium text-[#37322f]"
+                >
+                  Voir tous les tests
+                </Link>
+              )}
               <Link
                 href="/concours"
                 className="rounded-full border border-[#e0dedb] bg-white px-5 py-3 text-sm font-medium text-[#37322f]"
@@ -86,29 +116,36 @@ export default async function ExercicesPage() {
             </div>
           </section>
 
-          <section className="mt-10 grid gap-4 md:grid-cols-3">
-            {competitions.map((competition) => (
-              <Link
-                key={competition.id}
-                href={`/concours/${competition.slug}`}
-                className="rounded-[24px] border border-[#e0dedb] bg-white p-5 shadow-[0_10px_30px_rgba(55,50,47,0.08)]"
-              >
-                <p className="text-xs uppercase tracking-[0.24em] text-[#605a57]">{competition.organization}</p>
-                <h2 className="mt-3 text-2xl font-semibold text-[#37322f]">{competition.name}</h2>
-                <p className="mt-2 text-sm text-[#605a57]">
-                  {getExercisesByCompetition(competition.id).length} exercices disponibles
-                </p>
-              </Link>
-            ))}
-          </section>
+          {filterTypes.length === 0 && (
+            <section className="mt-10 grid gap-4 md:grid-cols-3">
+              {competitions.map((competition) => (
+                <Link
+                  key={competition.id}
+                  href={`/concours/${competition.slug}`}
+                  className="rounded-[24px] border border-[#e0dedb] bg-white p-5 shadow-[0_10px_30px_rgba(55,50,47,0.08)]"
+                >
+                  <p className="text-xs uppercase tracking-[0.24em] text-[#605a57]">{competition.organization}</p>
+                  <h2 className="mt-3 text-2xl font-semibold text-[#37322f]">{competition.name}</h2>
+                  <p className="mt-2 text-sm text-[#605a57]">
+                    {getExercisesByCompetition(competition.id).length} exercices disponibles
+                  </p>
+                </Link>
+              ))}
+            </section>
+          )}
 
-          <div className="mb-8 mt-12">
-            <h2 className="text-3xl font-semibold text-[#37322f]">
-              Tous les exercices
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#605a57]">
-              {readyExercises.length} exercices couvrant l&apos;ensemble des competences evaluees lors des selections pilote de ligne.
-            </p>
+          <div className="mb-8 mt-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-3xl font-semibold text-[#37322f]">
+                {filterTypes.length > 0 ? 'Exercices de la categorie' : 'Tous les exercices'}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#605a57]">
+                {readyExercises.length} exercice{readyExercises.length > 1 ? 's' : ''}
+                {filterTypes.length === 0
+                  ? ' couvrant l\'ensemble des competences evaluees lors des selections pilote de ligne.'
+                  : '.'}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
