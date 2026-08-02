@@ -34,7 +34,7 @@ interface GaugeConfig {
   offset: () => number;
 }
 interface BoardState { values: Record<InstrumentId, number>; active: Set<InstrumentId> }
-interface RowChoice { values: Record<InstrumentId, string>; isCorrect: boolean }
+interface ColumnOptions { options: string[]; correct: string }
 
 /* ================================================================
    Geometry helpers
@@ -268,7 +268,7 @@ const ALL: InstrumentId[] = CFGS.map(c => c.id);
 /* ================================================================
    ArcGauge — renders all non-clock gauges
    ================================================================ */
-function ArcGauge({ cfg, value, off }: { cfg: GaugeConfig; value: number; off?: boolean }) {
+function ArcGauge({ cfg, value }: { cfg: GaugeConfig; value: number }) {
   const cx = 100, cy = 108, R = 74;
   const { min, max, startAngle: SA, endAngle: EA } = cfg;
   const cv = Math.max(min, Math.min(max, value));
@@ -288,7 +288,7 @@ function ArcGauge({ cfg, value, off }: { cfg: GaugeConfig; value: number; off?: 
   }
 
   return (
-    <svg viewBox="0 0 200 220" className="w-full h-auto" style={{ opacity: off ? 0.2 : 1 }}>
+    <svg viewBox="0 0 200 220" className="w-full h-auto">
       {/* Outer ring */}
       <circle cx={cx} cy={cy} r={R + 5} fill="#f1f5f9" stroke="#1e293b" strokeWidth={2.5} />
 
@@ -340,17 +340,12 @@ function ArcGauge({ cfg, value, off }: { cfg: GaugeConfig; value: number; off?: 
         );
       })}
 
-      {/* Needle */}
-      {!off && (
-        <>
-          <line x1={cx} y1={cy} x2={np.x} y2={np.y} stroke="#1e40af" strokeWidth={2.5} strokeLinecap="round" />
-          {/* Needle tail (short opposite) */}
-          {(() => {
-            const tail = pt(cx, cy, 10, na + 180);
-            return <line x1={cx} y1={cy} x2={tail.x} y2={tail.y} stroke="#1e40af" strokeWidth={2.5} strokeLinecap="round" />;
-          })()}
-        </>
-      )}
+      {/* Needle — always visible (inactive gauges sit at 0, not grayed out) */}
+      <line x1={cx} y1={cy} x2={np.x} y2={np.y} stroke="#1e40af" strokeWidth={2.5} strokeLinecap="round" />
+      {(() => {
+        const tail = pt(cx, cy, 10, na + 180);
+        return <line x1={cx} y1={cy} x2={tail.x} y2={tail.y} stroke="#1e40af" strokeWidth={2.5} strokeLinecap="round" />;
+      })()}
 
       {/* Center dot */}
       <circle cx={cx} cy={cy} r={5} fill="#0f172a" />
@@ -373,7 +368,7 @@ function ArcGauge({ cfg, value, off }: { cfg: GaugeConfig; value: number; off?: 
 /* ================================================================
    ClockGauge — analog clock with hour/minute hands
    ================================================================ */
-function ClockGauge({ mod, off }: { mod: number; off?: boolean }) {
+function ClockGauge({ mod }: { mod: number }) {
   const cx = 100, cy = 108, R = 74;
   const h = Math.floor(mod / 60), m = mod % 60, h12 = h % 12;
   const ha = 90 - (h12 + m / 60) * 30;
@@ -389,7 +384,7 @@ function ClockGauge({ mod, off }: { mod: number; off?: boolean }) {
   ];
 
   return (
-    <svg viewBox="0 0 200 220" className="w-full h-auto" style={{ opacity: off ? 0.2 : 1 }}>
+    <svg viewBox="0 0 200 220" className="w-full h-auto">
       <circle cx={cx} cy={cy} r={R + 5} fill="#f1f5f9" stroke="#1e293b" strokeWidth={2.5} />
 
       {/* Minute dots */}
@@ -423,18 +418,16 @@ function ClockGauge({ mod, off }: { mod: number; off?: boolean }) {
       })}
 
       {/* Hour hand */}
-      {!off && <line x1={cx} y1={cy} x2={hp.x} y2={hp.y} stroke="#0f172a" strokeWidth={4.5} strokeLinecap="round" />}
+      <line x1={cx} y1={cy} x2={hp.x} y2={hp.y} stroke="#0f172a" strokeWidth={4.5} strokeLinecap="round" />
       {/* Minute hand */}
-      {!off && <line x1={cx} y1={cy} x2={mp.x} y2={mp.y} stroke="#1e40af" strokeWidth={2.5} strokeLinecap="round" />}
+      <line x1={cx} y1={cy} x2={mp.x} y2={mp.y} stroke="#1e40af" strokeWidth={2.5} strokeLinecap="round" />
 
       <circle cx={cx} cy={cy} r={5} fill="#0f172a" />
 
       {/* AM/PM indicator */}
-      {!off && (
-        <text x={cx} y={cy + 25} textAnchor="middle" fontSize={11} fill="#475569" fontWeight="bold" fontFamily="Inter, Arial, sans-serif">
-          {h < 12 ? 'AM' : 'PM'}
-        </text>
-      )}
+      <text x={cx} y={cy + 25} textAnchor="middle" fontSize={11} fill="#475569" fontWeight="bold" fontFamily="Inter, Arial, sans-serif">
+        {h < 12 ? 'AM' : 'PM'}
+      </text>
 
       <text x={cx} y={206} textAnchor="middle" fontSize={11} fill="#1e293b" fontWeight="bold" fontFamily="Inter, Arial, sans-serif">
         Horloge
@@ -444,7 +437,7 @@ function ClockGauge({ mod, off }: { mod: number; off?: boolean }) {
 }
 
 /* ================================================================
-   Board & row generation
+   Board & column options
    ================================================================ */
 function makeBoard(): BoardState {
   const nOff = rI(2, 3);
@@ -456,52 +449,46 @@ function makeBoard(): BoardState {
   return { values, active };
 }
 
-function makeRows(board: BoardState): RowChoice[] {
-  const correct = {} as Record<InstrumentId, string>;
-  for (const c of CFGS) correct[c.id] = board.active.has(c.id) ? c.format(board.values[c.id]) : '0';
-
-  const rows: RowChoice[] = [{ values: { ...correct }, isCorrect: true }];
-  const actArr = [...board.active];
-  let tries = 0;
-  while (rows.length < 6 && tries < 80) {
-    tries++;
-    const wr: Record<string, string> = { ...correct };
-    const nc = Math.min(actArr.length, rI(1, 3));
-    const ids = [...actArr].sort(() => Math.random() - 0.5).slice(0, nc);
-    for (const id of ids) {
-      const c = CMAP[id];
-      let wv = board.values[id] + c.offset();
-      if (id === 'horloge') wv = ((wv % 1440) + 1440) % 1440;
-      else wv = Math.max(c.min, Math.min(c.max, wv));
-      wr[id] = c.format(wv);
-    }
-    if (!rows.some(r => JSON.stringify(r.values) === JSON.stringify(wr))) {
-      rows.push({ values: wr as Record<InstrumentId, string>, isCorrect: false });
-    }
-  }
-  while (rows.length < 6) {
-    const wr: Record<string, string> = { ...correct };
-    const id = actArr[rI(0, actArr.length - 1)];
-    const c = CMAP[id];
-    let wv = board.values[id] + c.offset() * 2;
-    if (id === 'horloge') wv = ((wv % 1440) + 1440) % 1440;
-    else wv = Math.max(c.min, Math.min(c.max, wv));
-    wr[id] = c.format(wv);
-    rows.push({ values: wr as Record<InstrumentId, string>, isCorrect: false });
-  }
-  for (let i = rows.length - 1; i > 0; i--) {
+function shuffleInPlace<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [rows[i], rows[j]] = [rows[j], rows[i]];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return rows;
+  return arr;
+}
+
+/** Per-column options (Pilotest: pick one cell per column, not a whole row). */
+function makeColumnOptions(board: BoardState): Record<InstrumentId, ColumnOptions> {
+  const out = {} as Record<InstrumentId, ColumnOptions>;
+  for (const c of CFGS) {
+    if (!board.active.has(c.id)) {
+      out[c.id] = { options: Array(6).fill('0'), correct: '0' };
+      continue;
+    }
+    const correct = c.format(board.values[c.id]);
+    const opts = new Set<string>([correct]);
+    let tries = 0;
+    while (opts.size < 6 && tries < 100) {
+      tries++;
+      let wv = board.values[c.id] + c.offset() * (tries % 3 === 0 ? 2 : 1);
+      if (c.id === 'horloge') wv = ((wv % 1440) + 1440) % 1440;
+      else wv = Math.max(c.min, Math.min(c.max, wv));
+      opts.add(c.format(wv));
+    }
+    while (opts.size < 6) {
+      opts.add(c.format(Math.max(c.min, Math.min(c.max, board.values[c.id] + opts.size))));
+    }
+    out[c.id] = { options: shuffleInPlace([...opts]), correct };
+  }
+  return out;
 }
 
 /* ================================================================
    Gauge dispatcher
    ================================================================ */
-function Gauge({ id, value, off }: { id: InstrumentId; value: number; off?: boolean }) {
-  if (id === 'horloge') return <ClockGauge mod={value} off={off} />;
-  return <ArcGauge cfg={CMAP[id]} value={value} off={off} />;
+function Gauge({ id, value }: { id: InstrumentId; value: number }) {
+  if (id === 'horloge') return <ClockGauge mod={value} />;
+  return <ArcGauge cfg={CMAP[id]} value={value} />;
 }
 
 /* ================================================================
@@ -514,9 +501,11 @@ export function CompteurTest() {
   const [scorer] = useState(() => new Scorer());
   const [qNum, setQNum] = useState(0);
   const [board, setBoard] = useState<BoardState | null>(null);
-  const [rows, setRows] = useState<RowChoice[]>([]);
-  const [sel, setSel] = useState<number | null>(null);
+  const [columns, setColumns] = useState<Record<InstrumentId, ColumnOptions> | null>(null);
+  /** Selected value per active instrument column */
+  const [selection, setSelection] = useState<Partial<Record<InstrumentId, string>>>({});
   const [answered, setAnswered] = useState(false);
+  const [lastCorrect, setLastCorrect] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const perfSavedRef = useRef(false);
@@ -524,9 +513,10 @@ export function CompteurTest() {
   const nextQ = useCallback(() => {
     const b = makeBoard();
     setBoard(b);
-    setRows(makeRows(b));
-    setSel(null);
+    setColumns(makeColumnOptions(b));
+    setSelection({});
     setAnswered(false);
+    setLastCorrect(false);
   }, []);
 
   const startGame = useCallback(() => {
@@ -549,12 +539,22 @@ export function CompteurTest() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [gs]);
 
-  const pick = useCallback((i: number) => {
-    if (answered) return;
-    setSel(i);
-    setAnswered(true);
-    scorer.recordAnswer(rows[i].isCorrect);
-  }, [answered, rows, scorer]);
+  const pickCell = useCallback((id: InstrumentId, value: string) => {
+    if (answered || !board || !columns) return;
+    if (!board.active.has(id)) return;
+
+    setSelection(prev => {
+      const next = { ...prev, [id]: value };
+      const activeIds = [...board.active];
+      if (activeIds.every(aid => next[aid] != null)) {
+        const ok = activeIds.every(aid => next[aid] === columns[aid].correct);
+        setAnswered(true);
+        setLastCorrect(ok);
+        scorer.recordAnswer(ok);
+      }
+      return next;
+    });
+  }, [answered, board, columns, scorer]);
 
   const advance = useCallback(() => {
     const n = qNum + 1;
@@ -591,7 +591,7 @@ export function CompteurTest() {
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
               <p className="font-semibold mb-1">Regles</p>
-              <p>8 compteurs cockpit sont affiches. Un tableau de 6 lignes propose des lectures differentes. Identifiez la ligne qui correspond aux valeurs reelles des compteurs. Les colonnes a 0 sont inactives.</p>
+              <p>8 compteurs cockpit sont affiches. Pour chaque colonne active, choisissez la case qui correspond a la valeur reelle. Les compteurs a 0 ne sont pas evalues (pas besoin de les lire). Selectionnez une valeur par colonne active.</p>
             </div>
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}><Play className="mr-2 h-5 w-5" />Jouer</Button>
@@ -676,10 +676,10 @@ export function CompteurTest() {
   }
 
   /* ─── PLAYING ─── */
-  if (!board) return null;
+  if (!board || !columns) return null;
   const tPct = timeLeft / settings.totalTime;
   const tColor = tPct > 0.5 ? 'bg-green-500' : tPct > 0.2 ? 'bg-amber-500' : 'bg-red-500';
-  const correctIdx = rows.findIndex(r => r.isCorrect);
+  const optionCount = columns[CFGS[0].id]?.options.length ?? 6;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4">
@@ -694,47 +694,69 @@ export function CompteurTest() {
           <div className={`h-full ${tColor} transition-all duration-1000`} style={{ width: `${tPct * 100}%` }} />
         </div>
 
-        {/* Gauge grid — 4×2 */}
+        {/* Gauge grid — 4×2 ; inactive stay fully visible at 0 */}
         <div className="grid grid-cols-4 gap-1 sm:gap-2 mb-3">
           {ALL.map(id => (
             <div key={id} className="flex justify-center">
-              <Gauge id={id} value={board.values[id]} off={!board.active.has(id)} />
+              <Gauge id={id} value={board.values[id]} />
             </div>
           ))}
         </div>
 
-        {/* Answer table */}
+        {/* Answer table — one clickable cell per column (not whole row) */}
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="bg-slate-100 border-b border-slate-200">
                 <th className="p-1.5 sm:p-2 text-center text-slate-400 w-8">#</th>
                 {CFGS.map(c => (
-                  <th key={c.id} className={`p-1.5 sm:p-2 text-center font-semibold whitespace-nowrap ${board.active.has(c.id) ? 'text-slate-700' : 'text-slate-300'}`}>
+                  <th key={c.id} className="p-1.5 sm:p-2 text-center font-semibold whitespace-nowrap text-slate-700">
                     {c.label}
+                    {!board.active.has(c.id) && (
+                      <span className="block text-[10px] font-normal text-slate-400">non evalue</span>
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => {
-                let cls = 'cursor-pointer hover:bg-blue-50';
-                if (answered) {
-                  if (row.isCorrect) cls = 'bg-green-100 border-l-4 border-l-green-500 font-semibold';
-                  else if (i === sel) cls = 'bg-red-100 border-l-4 border-l-red-500';
-                  else cls = 'opacity-40';
-                }
-                return (
-                  <tr key={i} className={`border-b border-slate-100 transition-colors ${cls}`} onClick={() => pick(i)}>
-                    <td className="p-1.5 sm:p-2 text-center font-mono text-slate-400">{i + 1}</td>
-                    {CFGS.map(c => (
-                      <td key={c.id} className={`p-1.5 sm:p-2 text-center font-mono whitespace-nowrap ${board.active.has(c.id) ? 'text-slate-700' : 'text-slate-300'}`}>
-                        {row.values[c.id]}
+              {Array.from({ length: optionCount }, (_, rowIdx) => (
+                <tr key={rowIdx} className="border-b border-slate-100">
+                  <td className="p-1.5 sm:p-2 text-center font-mono text-slate-400">{rowIdx + 1}</td>
+                  {CFGS.map(c => {
+                    const col = columns[c.id];
+                    const value = col.options[rowIdx];
+                    const active = board.active.has(c.id);
+                    const selected = selection[c.id] === value;
+                    const isCorrectValue = value === col.correct;
+
+                    let cls = 'p-1.5 sm:p-2 text-center font-mono whitespace-nowrap text-slate-700';
+                    if (!active) {
+                      cls += ' text-slate-500';
+                    } else if (!answered) {
+                      cls += selected
+                        ? ' bg-blue-100 ring-2 ring-inset ring-blue-400 cursor-pointer'
+                        : ' cursor-pointer hover:bg-blue-50';
+                    } else if (isCorrectValue) {
+                      cls += ' bg-green-100 font-semibold text-green-800';
+                    } else if (selected) {
+                      cls += ' bg-red-100 text-red-800';
+                    } else {
+                      cls += ' text-slate-500';
+                    }
+
+                    return (
+                      <td
+                        key={c.id}
+                        className={cls}
+                        onClick={() => active && pickCell(c.id, value)}
+                      >
+                        {value}
                       </td>
-                    ))}
-                  </tr>
-                );
-              })}
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -743,9 +765,9 @@ export function CompteurTest() {
         {answered && (
           <div className="flex items-center justify-between mt-3">
             <div className="text-sm">
-              {sel !== null && rows[sel].isCorrect
+              {lastCorrect
                 ? <span className="text-green-600 font-bold">Correct !</span>
-                : <span className="text-red-600 font-bold">Incorrect — bonne reponse : ligne {correctIdx + 1}</span>}
+                : <span className="text-red-600 font-bold">Incorrect — les cases vertes indiquent les bonnes valeurs</span>}
             </div>
             <Button onClick={advance}>Suivant <ChevronRight className="ml-1 h-4 w-4" /></Button>
           </div>

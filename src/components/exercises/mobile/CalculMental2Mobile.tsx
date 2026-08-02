@@ -448,40 +448,56 @@ export default function CalculMental2Mobile() {
         </div>
 
         {showCorrection ? (
-          <Card className="text-center py-6">
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap justify-center gap-1 text-sm font-mono text-slate-500">
-                {currentQ.terms.map((term, i) => (
-                  <span key={i}>{term}</span>
-                ))}
-              </div>
-              <p className="text-sm text-slate-400">Resultat : {currentQ.answer}</p>
-              {results[results.length - 1]?.isCorrect ? (
-                <div>
-                  <p className="text-2xl font-bold text-green-600">{'\u2713'} Correct !</p>
-                  <p className="text-base text-slate-600 mt-1">
-                    [{currentQ.choices[currentQ.correctIndex].lower}, {currentQ.choices[currentQ.correctIndex].upper}]
-                  </p>
+          <div className="space-y-3">
+            <Card className="py-4">
+              <CardContent className="space-y-3 text-center">
+                <div className="flex flex-wrap justify-center gap-1 text-sm font-mono text-slate-500">
+                  {currentQ.terms.map((term, i) => (
+                    <span key={i}>{term}</span>
+                  ))}
                 </div>
-              ) : (
-                <>
+                <p className="text-sm text-slate-400">Resultat : {currentQ.answer}</p>
+                {results[results.length - 1]?.isCorrect ? (
+                  <p className="text-2xl font-bold text-green-600">{'\u2713'} Correct !</p>
+                ) : (
                   <p className="text-2xl font-bold text-red-600">
                     {'\u2717'}{' '}
                     {results[results.length - 1]?.selectedIndex !== null
-                      ? `[${currentQ.choices[results[results.length - 1]!.selectedIndex!].lower}, ${currentQ.choices[results[results.length - 1]!.selectedIndex!].upper}]`
+                      ? 'Mauvaise reponse'
                       : '?'}
                   </p>
-                  <p className="text-lg text-green-600">
-                    Reponse : [{currentQ.choices[currentQ.correctIndex].lower}, {currentQ.choices[currentQ.correctIndex].upper}]
-                  </p>
-                </>
-              )}
-              <Button size="lg" className="w-full h-12" onClick={nextQuestion}>
-                {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-2">
+              {currentQ.choices.map((choice, i) => {
+                const last = results[results.length - 1];
+                const isCorrect = i === currentQ.correctIndex;
+                const isSelected = last?.selectedIndex === i;
+                let cls =
+                  'text-left px-3 py-3 rounded-lg border-2 text-sm font-mono min-h-[48px] cursor-default ';
+                if (isCorrect) {
+                  cls += 'border-green-500 bg-green-50 text-green-800';
+                } else if (isSelected) {
+                  cls += 'border-red-500 bg-red-50 text-red-800';
+                } else {
+                  cls += 'border-slate-200 bg-white text-slate-500';
+                }
+                return (
+                  <div key={i} className={cls}>
+                    <span className="text-slate-400 mr-1">{i + 1})</span>
+                    [{choice.lower}, {choice.upper}]
+                  </div>
+                );
+              })}
+            </div>
+
+            <Button size="lg" className="w-full h-12" onClick={nextQuestion}>
+              {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
         ) : (
           <div className="space-y-3">
             {/* Expression */}

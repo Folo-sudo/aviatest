@@ -591,38 +591,67 @@ export default function CalculMental2Test() {
         </div>
 
         {showCorrection ? (
-          <Card className="text-center py-10 mr-6">
-            <CardContent className="space-y-6">
-              <p className="text-lg text-slate-500 font-mono">{currentQ.expression}</p>
-              <p className="text-sm text-slate-400">Resultat : {currentQ.answer}</p>
-              <div className="space-y-2">
+          <div className="mr-6 space-y-4">
+            <Card className="text-center py-6">
+              <CardContent className="space-y-3">
+                <p className="text-sm text-slate-500 mb-2">
+                  Selectionnez le plus petit intervalle contenant le resultat de l&apos;operation ci-dessous :
+                </p>
+                <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-800 font-mono tracking-wide break-words text-center leading-relaxed">
+                  {currentQ.expression}
+                </p>
+                <p className="text-sm text-slate-400">Resultat : {currentQ.answer}</p>
                 {results[results.length - 1]?.isCorrect ? (
-                  <div>
-                    <p className="text-3xl font-bold text-green-600">{'\u2713'} Correct !</p>
-                    <p className="text-lg text-slate-600 mt-2">
-                      [{currentQ.choices[currentQ.correctIndex].lower}, {currentQ.choices[currentQ.correctIndex].upper}]
-                    </p>
-                  </div>
+                  <p className="text-2xl font-bold text-green-600">{'\u2713'} Correct !</p>
                 ) : (
-                  <>
-                    <p className="text-3xl font-bold text-red-600">
-                      {'\u2717'}{' '}
-                      {results[results.length - 1]?.selectedIndex !== null
-                        ? `[${currentQ.choices[results[results.length - 1]!.selectedIndex!].lower}, ${currentQ.choices[results[results.length - 1]!.selectedIndex!].upper}]`
-                        : 'Pas de reponse'}
-                    </p>
-                    <p className="text-xl text-green-600">
-                      Reponse : [{currentQ.choices[currentQ.correctIndex].lower}, {currentQ.choices[currentQ.correctIndex].upper}]
-                    </p>
-                  </>
+                  <p className="text-2xl font-bold text-red-600">
+                    {'\u2717'}{' '}
+                    {results[results.length - 1]?.selectedIndex !== null
+                      ? 'Mauvaise reponse'
+                      : 'Pas de reponse'}
+                  </p>
                 )}
-              </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="py-4">
+                <div className="space-y-2">
+                  {currentQ.choices.map((choice, i) => {
+                    const last = results[results.length - 1];
+                    const isCorrect = i === currentQ.correctIndex;
+                    const isSelected = last?.selectedIndex === i;
+                    let cls =
+                      'w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-base font-mono cursor-default ';
+                    if (isCorrect) {
+                      cls += 'border-green-500 bg-green-50 text-green-800';
+                    } else if (isSelected) {
+                      cls += 'border-red-500 bg-red-50 text-red-800';
+                    } else {
+                      cls += 'border-slate-200 bg-white text-slate-500';
+                    }
+                    return (
+                      <div key={i} className={cls}>
+                        <span className="text-slate-400 mr-3">{i + 1})</span>
+                        [{choice.lower}, {choice.upper}]
+                        {isCorrect && <span className="ml-2 text-sm font-sans">Bonne reponse</span>}
+                        {isSelected && !isCorrect && (
+                          <span className="ml-2 text-sm font-sans">Votre choix</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
               <Button size="lg" onClick={nextQuestion}>
                 {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
                 <ChevronRight className="ml-2 h-5 w-5" />
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <div className="mr-6 space-y-4">
             {/* Question */}

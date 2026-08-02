@@ -599,9 +599,9 @@ export const EXERCISES: ExerciseConfig[] = [
     id: 'compteurs',
     slug: 'compteurs',
     title: 'Test des Compteurs',
-    description: 'Lisez les valeurs de 8 compteurs cockpit et identifiez la bonne ligne de lecture',
+    description: 'Lisez les valeurs de 8 compteurs cockpit et choisissez la bonne valeur par colonne',
     longDescription:
-      'Test d\'observation spatiale et numerique. 8 compteurs cockpit (fuel, temperatures, pressions, horloge, vitesse, compte-tours) sont affiches simultanement. Un tableau de 6 lignes propose des lectures differentes. Identifiez la ligne correspondant aux valeurs reelles. 20 planches en 10 minutes.',
+      'Test d\'observation spatiale et numerique. 8 compteurs cockpit (fuel, temperatures, pressions, horloge, vitesse, compte-tours) sont affiches simultanement. Pour chaque colonne active, choisissez parmi 6 propositions la valeur correspondant a l\'instrument. Les compteurs a 0 ne sont pas evalues. 20 planches en 10 minutes.',
     types: ['attention', 'numerique'],
     primaryType: 'attention',
     competitions: ['psy0', 'psy1', 'enac-epl'],
@@ -700,9 +700,9 @@ export const EXERCISES: ExerciseConfig[] = [
     slug: 'airways',
     title: 'Airways',
     description:
-      'Deroutez le moins d\'avions possible tout en respectant les criteres de fluidite',
+      'Fermez des lignes pour derouter le moins d\'avions possible tout en respectant les criteres de fluidite',
     longDescription:
-      'Des avions bleus et violets circulent sur des airways. Deroutez-les via les boutons de couleur pour eviter plus de 2 bleus ou 4 avions dans chaque zone grise. 10 series.',
+      'Des avions bleus et violets circulent sur des airways. Fermez une ligne a la fois (ou tout un cote) via les boutons de couleur pour eviter plus de 2 bleus ou 4 avions dans chaque zone grise. 10 series.',
     types: ['intellectuel', 'attention'],
     primaryType: 'intellectuel',
     competitions: ['psy0'],

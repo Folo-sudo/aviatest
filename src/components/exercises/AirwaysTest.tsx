@@ -54,6 +54,9 @@ const BLUE = 'rgb(111, 196, 230)';
 const GREY_ZONE = 'rgba(169,169,169,0.5)';
 const ACCIDENT = 'orange';
 const SERIES_STEPS = 48;
+/** White ✕ on colored line buttons — same idea as Pilotest background_cross */
+const CROSS_BG =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cline x1='28' y1='28' x2='72' y2='72' stroke='white' stroke-width='10' stroke-linecap='round'/%3E%3Cline x1='72' y1='28' x2='28' y2='72' stroke='white' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E\")";
 
 const LINES = 12;
 const COLS = 27;
@@ -121,6 +124,10 @@ export default function AirwaysTest() {
   const [seriesStats, setSeriesStats] = useState<SeriesStats[]>([]);
   const [greyTop, setGreyTop] = useState<GreyRange>([10, 15]);
   const [greyBot, setGreyBot] = useState<GreyRange>([10, 15]);
+  /** Lines closed for the current series (Pilotest: small/big btn one-shot clear). */
+  const [closedLines, setClosedLines] = useState<boolean[]>(() =>
+    Array(LINES).fill(false),
+  );
   const planesRef = useRef<Plane[]>([]);
   const divertedRef = useRef(0);
   const accidentRef = useRef(false);
@@ -134,6 +141,7 @@ export default function AirwaysTest() {
   const seriesStatsRef = useRef<SeriesStats[]>([]);
   const greyTopRef = useRef<GreyRange>([10, 15]);
   const greyBotRef = useRef<GreyRange>([10, 15]);
+  const closedLinesRef = useRef<boolean[]>(Array(LINES).fill(false));
   const perfSavedRef = useRef(false);
 
   useEffect(() => {
@@ -191,6 +199,9 @@ export default function AirwaysTest() {
       accidentRef.current = false;
       planesRef.current = [];
       setPlanes([]);
+      const opened = Array(LINES).fill(false);
+      closedLinesRef.current = opened;
+      setClosedLines(opened);
       seriesDivertedStartRef.current = divertedRef.current;
       stepsRef.current = 0;
       // Move grey zones each series (AviaTest upgrade over fixed Pilotest patterns)
@@ -224,8 +235,13 @@ export default function AirwaysTest() {
       })
       .filter((p) => p.col >= 0 && p.col < COLS);
 
-    if (Math.random() < 0.55) {
-      const line = Math.floor(Math.random() * LINES);
+    const trySpawn = (prob: number) => {
+      if (Math.random() >= prob) return;
+      const openLines = Array.from({ length: LINES }, (_, i) => i).filter(
+        (l) => !closedLinesRef.current[l],
+      );
+      if (openLines.length === 0) return;
+      const line = openLines[Math.floor(Math.random() * openLines.length)];
       const color = lineColor(line);
       const col = color === 'blue' ? COLS - 1 : 0;
       if (!list.some((p) => p.line === line && p.col === col)) {
@@ -236,20 +252,9 @@ export default function AirwaysTest() {
           color,
         });
       }
-    }
-    if (Math.random() < 0.25) {
-      const line = Math.floor(Math.random() * LINES);
-      const color = lineColor(line);
-      const col = color === 'blue' ? COLS - 1 : 0;
-      if (!list.some((p) => p.line === line && p.col === col)) {
-        list.push({
-          id: planeIdRef.current++,
-          line,
-          col,
-          color,
-        });
-      }
-    }
+    };
+    trySpawn(0.55);
+    trySpawn(0.25);
 
     planesRef.current = list;
     setPlanes(list);
@@ -287,33 +292,53 @@ export default function AirwaysTest() {
     };
   }, [gameState, accident, tick]);
 
-  const divertLine = useCallback((line: number) => {
+  const closeLine = useCallback((line: number) => {
+    // Pilotest onPressSmallBtn: clear entire line trajectory + disable button for series
     if (accidentRef.current || !playingRef.current) return;
-    const color = lineColor(line);
+    if (closedLinesRef.current[line]) return;
+
+    const nextClosed = closedLinesRef.current.slice();
+    nextClosed[line] = true;
+    closedLinesRef.current = nextClosed;
+    setClosedLines(nextClosed);
+
     const before = planesRef.current.length;
-    const next = planesRef.current.filter(
-      (p) => !(p.line === line && p.color === color)
-    );
+    const next = planesRef.current.filter((p) => p.line !== line);
     const removed = before - next.length;
     if (removed > 0) {
       divertedRef.current += removed;
       setDiverted(divertedRef.current);
-      planesRef.current = next;
-      setPlanes(next);
     }
+    planesRef.current = next;
+    setPlanes(next);
   }, []);
 
-  const divertAll = useCallback((color: 'blue' | 'purple') => {
+  const closeAllColor = useCallback((color: 'blue' | 'purple') => {
+    // Pilotest onPressBigBtn: clear all lines of that color for the series
     if (accidentRef.current || !playingRef.current) return;
+
+    const nextClosed = closedLinesRef.current.slice();
+    let anyNew = false;
+    for (let line = 0; line < LINES; line++) {
+      if (lineColor(line) === color && !nextClosed[line]) {
+        nextClosed[line] = true;
+        anyNew = true;
+      }
+    }
+    if (!anyNew) return;
+
+    closedLinesRef.current = nextClosed;
+    setClosedLines(nextClosed);
+
     const before = planesRef.current.length;
     const next = planesRef.current.filter((p) => p.color !== color);
     const removed = before - next.length;
     if (removed > 0) {
       divertedRef.current += removed;
       setDiverted(divertedRef.current);
-      planesRef.current = next;
-      setPlanes(next);
     }
+    planesRef.current = next;
+    setPlanes(next);
   }, []);
 
   const startGame = useCallback(() => {
@@ -359,9 +384,10 @@ export default function AirwaysTest() {
           <CardHeader>
             <CardTitle>Airways</CardTitle>
             <CardDescription>
-              Deroutez le moins d&apos;avions possible tout en respectant la
-              fluidite (max 2 bleus / 4 avions dans chaque zone grise).{' '}
-              {settings.numSeries} series.
+              Fermez des lignes (boutons colores) pour derouter les avions.
+              Deroutez le moins possible tout en respectant la fluidite (max 2
+              bleus / 4 avions dans chaque zone grise). {settings.numSeries}{' '}
+              series.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -491,6 +517,14 @@ export default function AirwaysTest() {
 
   // ---- PLAYING ----
   const cellW = `${100 / COLS}%`;
+  /** Pilotest small btn width ≈ (2 * 100) / COLS % of the grid */
+  const lineBtnW = `${(200) / COLS}%`;
+  const allPurpleClosed = Array.from({ length: LINES }, (_, i) => i).every(
+    (l) => lineColor(l) !== 'purple' || closedLines[l],
+  );
+  const allBlueClosed = Array.from({ length: LINES }, (_, i) => i).every(
+    (l) => lineColor(l) !== 'blue' || closedLines[l],
+  );
   const topCriteriaStyle = {
     marginLeft: `${(100 * greyTop[0]) / COLS}%`,
     marginRight: `${100 * (1 - (greyTop[1] + 1) / COLS)}%`,
@@ -536,11 +570,11 @@ export default function AirwaysTest() {
         <div className="flex w-[min(96vw,1100px)] items-stretch" style={{ height: '70vmin' }}>
           <button
             type="button"
-            disabled={accident}
-            onClick={() => divertAll('purple')}
+            disabled={accident || allPurpleClosed}
+            onClick={() => closeAllColor('purple')}
             className="flex w-[6%] shrink-0 items-center justify-center rounded-l-2xl shadow disabled:cursor-not-allowed disabled:opacity-65"
             style={{ backgroundColor: PURPLE }}
-            title="Derouter tous les violets"
+            title="Fermer toutes les lignes violettes"
           >
             <span className="text-2xl text-white">✕</span>
           </button>
@@ -552,6 +586,7 @@ export default function AirwaysTest() {
                   const line = area * 6 + i;
                   const color = lineColor(line);
                   const range = area === 0 ? greyTop : greyBot;
+                  const isClosed = closedLines[line];
                   return (
                     <div
                       key={line}
@@ -561,25 +596,41 @@ export default function AirwaysTest() {
                       {color === 'purple' ? (
                         <button
                           type="button"
-                          disabled={accident}
-                          onClick={() => divertLine(line)}
-                          className="absolute bottom-0 left-0 top-0 z-10 w-[3.2%] disabled:opacity-65"
-                          style={{ backgroundColor: PURPLE }}
+                          disabled={accident || isClosed}
+                          onClick={() => closeLine(line)}
+                          className="absolute bottom-0 left-0 top-0 z-20 flex items-center justify-center border-2 border-transparent text-white disabled:cursor-not-allowed disabled:opacity-65"
+                          style={{
+                            width: lineBtnW,
+                            backgroundColor: PURPLE,
+                            backgroundImage: CROSS_BG,
+                            backgroundSize: 'contain',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center',
+                          }}
+                          title={isClosed ? 'Ligne fermee' : 'Fermer cette ligne'}
                         />
                       ) : (
                         <button
                           type="button"
-                          disabled={accident}
-                          onClick={() => divertLine(line)}
-                          className="absolute bottom-0 right-0 top-0 z-10 w-[3.2%] disabled:opacity-65"
-                          style={{ backgroundColor: BLUE }}
+                          disabled={accident || isClosed}
+                          onClick={() => closeLine(line)}
+                          className="absolute bottom-0 right-0 top-0 z-20 flex items-center justify-center border-2 border-transparent text-white disabled:cursor-not-allowed disabled:opacity-65"
+                          style={{
+                            width: lineBtnW,
+                            backgroundColor: BLUE,
+                            backgroundImage: CROSS_BG,
+                            backgroundSize: 'contain',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center',
+                          }}
+                          title={isClosed ? 'Ligne fermee' : 'Fermer cette ligne'}
                         />
                       )}
                       {Array.from({ length: COLS }, (_, col) => {
                         const grey = inGrey(col, range);
-                        const plane = planes.find(
-                          (p) => p.line === line && p.col === col
-                        );
+                        const plane =
+                          !isClosed &&
+                          planes.find((p) => p.line === line && p.col === col);
                         const bg =
                           accident && grey
                             ? ACCIDENT
@@ -623,11 +674,11 @@ export default function AirwaysTest() {
 
           <button
             type="button"
-            disabled={accident}
-            onClick={() => divertAll('blue')}
+            disabled={accident || allBlueClosed}
+            onClick={() => closeAllColor('blue')}
             className="flex w-[6%] shrink-0 items-center justify-center rounded-r-2xl shadow disabled:cursor-not-allowed disabled:opacity-65"
             style={{ backgroundColor: BLUE }}
-            title="Derouter tous les bleus"
+            title="Fermer toutes les lignes bleues"
           >
             <span className="text-2xl text-white">✕</span>
           </button>
