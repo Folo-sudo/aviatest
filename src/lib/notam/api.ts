@@ -121,3 +121,13 @@ export async function adminCloseNotam(id: string): Promise<void> {
     throw error;
   }
 }
+
+export async function adminDeleteNotam(id: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('admin_delete_notam', { p_id: id });
+  if (error) {
+    if (/not_admin/i.test(error.message)) throw new Error('not_admin');
+    if (/not_found/i.test(error.message)) throw new Error('not_found');
+    throw error;
+  }
+}

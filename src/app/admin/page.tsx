@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Inbox } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
+import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
 import { Button } from '@/components/ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
@@ -12,6 +13,7 @@ import { EXERCISES } from '@/lib/data/exercises';
 import {
   BUG_STATUS_COLOR,
   BUG_STATUS_LABEL,
+  adminDeleteMissive,
   adminReplyBug,
   adminReplyMissive,
   adminSetBugStatus,
@@ -21,6 +23,7 @@ import {
   type BugStatus,
   type Missive,
 } from '@/lib/feedback/api';
+import { adminDeleteNotam, listNotams, type NotamItem } from '@/lib/notam/api';
 import { listSiteTexts, upsertSiteText } from '@/lib/site-texts/api';
 import { SITE_TEXT_DEFAULTS, SITE_TEXT_GROUPS } from '@/lib/site-texts/defaults';
 
@@ -58,14 +61,20 @@ function AdminContent() {
   const [loading, setLoading] = useState(true);
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [missives, setMissives] = useState<Missive[]>([]);
+  const [notams, setNotams] = useState<NotamItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const reload = async () => {
-    const [b, m] = await Promise.all([listBugsAdmin(), listMissivesAdmin()]);
+    const [b, m, n] = await Promise.all([
+      listBugsAdmin(),
+      listMissivesAdmin(),
+      listNotams(),
+    ]);
     setBugs(b);
     setMissives(m);
+    setNotams(n);
   };
 
   useEffect(() => {
@@ -126,6 +135,34 @@ function AdminContent() {
       await reload();
     } catch {
       setError('Reponse missive impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteMissive = async (id: string) => {
+    setBusyId(id);
+    setError(null);
+    try {
+      await adminDeleteMissive(id);
+      await reload();
+    } catch {
+      setError('Suppression missive impossible.');
+      throw new Error('delete_failed');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteNotam = async (id: string) => {
+    setBusyId(id);
+    setError(null);
+    try {
+      await adminDeleteNotam(id);
+      await reload();
+    } catch {
+      setError('Suppression NOTAM impossible.');
+      throw new Error('delete_failed');
     } finally {
       setBusyId(null);
     }
@@ -278,6 +315,7 @@ function AdminContent() {
               >
                 <p className="text-xs" style={{ color: styles.textMuted }}>
                   {m.email} · {new Date(m.created_at).toLocaleString('fr-FR')}
+                  {m.in_agora ? ' · Dans l Agora' : ''}
                 </p>
                 <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
                   {m.body}
@@ -305,16 +343,66 @@ function AdminContent() {
                       setReplyDrafts((d) => ({ ...d, [m.id]: e.target.value }))
                     }
                   />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={busyId === m.id || !(replyDrafts[m.id] || '').trim()}
-                    onClick={() => sendMissiveReply(m.id)}
-                    style={{ backgroundColor: styles.text, color: styles.background }}
-                  >
-                    Envoyer la reponse
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busyId === m.id || !(replyDrafts[m.id] || '').trim()}
+                      onClick={() => sendMissiveReply(m.id)}
+                      style={{ backgroundColor: styles.text, color: styles.background }}
+                    >
+                      Envoyer la reponse
+                    </Button>
+                    <AdminDangerConfirm
+                      title="Supprimer cette missive ?"
+                      description="Suppression definitive (Agora + Aeropostale). Irreversible."
+                      preview={m.body}
+                      disabled={busyId === m.id}
+                      onConfirm={() => deleteMissive(m.id)}
+                    />
+                  </div>
                 </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-3" style={{ color: styles.text }}>
+            NOTAM ({notams.length})
+          </h2>
+          <div className="space-y-3">
+            {notams.length === 0 && (
+              <p className="text-sm" style={{ color: styles.textMuted }}>
+                Aucun NOTAM.
+              </p>
+            )}
+            {notams.map((n) => (
+              <article
+                key={n.id}
+                className="rounded-xl p-4 space-y-3"
+                style={{
+                  backgroundColor: styles.cardBg,
+                  border: `1px solid ${styles.border}`,
+                  boxShadow: styles.shadow,
+                  opacity: n.closed_at ? 0.75 : 1,
+                }}
+              >
+                <p className="text-xs" style={{ color: styles.textMuted }}>
+                  {n.author_username} · {new Date(n.created_at).toLocaleString('fr-FR')}
+                  {n.closed_at ? ' · Clos' : ''} · score {n.score} · {n.replies.length} reponse
+                  {n.replies.length === 1 ? '' : 's'}
+                </p>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
+                  {n.body}
+                </p>
+                <AdminDangerConfirm
+                  title="Supprimer ce NOTAM ?"
+                  description="Suppression definitive du NOTAM, reponses et votes."
+                  preview={n.body}
+                  disabled={busyId === n.id}
+                  onConfirm={() => deleteNotam(n.id)}
+                />
               </article>
             ))}
           </div>

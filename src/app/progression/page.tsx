@@ -104,7 +104,7 @@ function ProgressionContent() {
             setPseudo(viewPseudo);
             setError('Pseudo introuvable.');
             setAllStats([]);
-          } else if (!profile.progression_public) {
+          } else if (!profile.can_view) {
             setPseudo(profile.username);
             setError('Cette progression est privee.');
             setAllStats([]);

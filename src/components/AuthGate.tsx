@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import AuthForms from '@/components/AuthForms';
+import DuelInviteHost from '@/components/DuelInviteHost';
 import {
   getSupabaseBrowserClient,
   isSupabaseConfigured,
@@ -84,5 +85,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     return <AuthForms onSuccess={() => {/* session via onAuthStateChange */}} />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <DuelInviteHost />
+    </>
+  );
 }

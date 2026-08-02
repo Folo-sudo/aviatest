@@ -171,6 +171,18 @@ export function savePerformanceResult(
         .catch(() => { /* ignore network / auth errors */ });
     }
   } catch { /* ignore */ }
+
+  // Duel score (fire-and-forget)
+  try {
+    const duelId = sessionStorage.getItem('aviatest-duel-id');
+    if (duelId) {
+      void import('@/lib/duels/api')
+        .then(({ submitDuelScore }) =>
+          submitDuelScore(duelId, correct, total, avgTimeMs),
+        )
+        .catch(() => { /* ignore */ });
+    }
+  } catch { /* ignore */ }
 }
 
 /**

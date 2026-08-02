@@ -1,10 +1,12 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import AuthGate from '@/components/AuthGate';
 import StadiumBanner from '@/components/StadiumBanner';
 import StadiumPlayGate from '@/components/StadiumPlayGate';
+import DuelBanner from '@/components/DuelBanner';
+import DuelPlayGate from '@/components/DuelPlayGate';
 import {
   desktopComponents,
   getComponentLookupKey,
@@ -13,7 +15,27 @@ import {
   mobileComponents,
   type ExerciseVariant,
 } from '@/components/exercises/exerciseRegistry';
+import {
+  startExercisePresence,
+  stopExercisePresence,
+} from '@/lib/presence/exercisePresence';
 
+function ExercisePresence({ slug }: { slug: string }) {
+  const searchParams = useSearchParams();
+  const createMode =
+    searchParams.get('stadiumCreate') === '1' ||
+    searchParams.get('duelCreate') === '1';
+  const duelId = searchParams.get('duelId');
+  const competitionId = searchParams.get('competitionId');
+
+  useEffect(() => {
+    if (createMode || duelId || competitionId) return;
+    startExercisePresence();
+    return () => stopExercisePresence();
+  }, [slug, createMode, duelId, competitionId]);
+
+  return null;
+}
 function ExerciseLoader({
   slug,
   variant,
@@ -96,9 +118,13 @@ export default function ExerciseClient({
           </div>
         }
       >
+        <ExercisePresence slug={slug} />
         <StadiumBanner slug={slug} />
+        <DuelBanner slug={slug} />
         <StadiumPlayGate slug={slug}>
-          <ExerciseLoader slug={slug} variant={variant} isPhone={isPhone} />
+          <DuelPlayGate slug={slug}>
+            <ExerciseLoader slug={slug} variant={variant} isPhone={isPhone} />
+          </DuelPlayGate>
         </StadiumPlayGate>
       </Suspense>
     </AuthGate>

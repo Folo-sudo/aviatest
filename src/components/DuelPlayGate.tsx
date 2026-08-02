@@ -4,19 +4,20 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getExerciseBySlug, EXERCISES } from '@/lib/data/exercises';
-import { getCompetition } from '@/lib/stadium/competitions';
-import {
-  writeExerciseSettings,
-  setActiveCompetitionId,
-} from '@/lib/stadium/settingsKeys';
+import { getDuel, setActiveDuelId } from '@/lib/duels/api';
+import { writeExerciseSettings, setActiveCompetitionId } from '@/lib/stadium/settingsKeys';
 import {
   ensureStadiumTimerPatch,
   nativeClearTimeout,
   nativeSetTimeout,
   setStadiumHold,
 } from '@/lib/stadium/hold';
+import {
+  startExercisePresence,
+  stopExercisePresence,
+} from '@/lib/presence/exercisePresence';
 
-type Phase = 'idle' | 'loading' | 'countdown' | 'go' | 'error';
+type Phase = 'idle' | 'loading' | 'waiting' | 'countdown' | 'go' | 'error';
 
 function isPlayButton(el: HTMLButtonElement): boolean {
   const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -41,9 +42,9 @@ function clickPlayButton(): boolean {
 }
 
 /**
- * Stadium play: pre-mount test under countdown with timers held, then reveal.
+ * Duel play: sync countdown to duel.launch_at, then start like Stadium.
  */
-export default function StadiumPlayGate({
+export default function DuelPlayGate({
   slug,
   children,
 }: {
@@ -51,15 +52,16 @@ export default function StadiumPlayGate({
   children: ReactNode;
 }) {
   const searchParams = useSearchParams();
-  const competitionId = searchParams.get('competitionId');
-  const stadiumCreate = searchParams.get('stadiumCreate') === '1';
+  const duelId = searchParams.get('duelId');
+  const duelCreate = searchParams.get('duelCreate') === '1';
 
   const [phase, setPhase] = useState<Phase>(() =>
-    competitionId && !stadiumCreate ? 'loading' : 'idle',
+    duelId && !duelCreate ? 'loading' : 'idle',
   );
   const [count, setCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
+  const [waitLabel, setWaitLabel] = useState('Synchronisation...');
 
   const exercise =
     getExerciseBySlug(slug) ||
@@ -67,7 +69,7 @@ export default function StadiumPlayGate({
     null;
 
   useEffect(() => {
-    if (!competitionId || stadiumCreate) {
+    if (!duelId || duelCreate) {
       setStadiumHold(false);
       setPhase('idle');
       return;
@@ -83,26 +85,41 @@ export default function StadiumPlayGate({
     setStadiumHold(true);
     setPhase('loading');
     setStarted(false);
+    setActiveCompetitionId(null);
 
     (async () => {
       try {
-        const competition = await getCompetition(competitionId);
+        const duel = await getDuel(duelId);
         if (cancelled) return;
-        if (!competition) {
-          setError('Competition introuvable.');
+        if (duel.status !== 'active' && duel.status !== 'completed') {
+          setError('Ce duel n est pas encore actif.');
           setPhase('error');
           return;
         }
-        writeExerciseSettings(
-          competition.exercise_id,
-          competition.settings || {},
-        );
-        setActiveCompetitionId(competition.id);
-        setCount(3);
+        writeExerciseSettings(duel.exercise_id, duel.settings || {});
+        setActiveDuelId(duel.id);
+
+        const launchAt = duel.launch_at ? new Date(duel.launch_at).getTime() : Date.now();
+        const waitMs = Math.max(0, launchAt - Date.now() - 3000);
+
+        if (waitMs > 200) {
+          setPhase('waiting');
+          setWaitLabel('Duel synchronise — demarrage imminent...');
+          await new Promise<void>((resolve) => {
+            const t = nativeSetTimeout(() => resolve(), waitMs);
+            if (cancelled) nativeClearTimeout(t);
+          });
+          if (cancelled) return;
+        }
+
+        // Align countdown so "go" hits near launch_at
+        const remaining = Math.max(0, launchAt - Date.now());
+        const startCount = remaining > 2500 ? 3 : remaining > 1500 ? 2 : 1;
+        setCount(startCount);
         setPhase('countdown');
       } catch {
         if (!cancelled) {
-          setError('Impossible de charger la competition.');
+          setError('Impossible de charger le duel.');
           setPhase('error');
         }
       }
@@ -111,19 +128,13 @@ export default function StadiumPlayGate({
     return () => {
       cancelled = true;
       setStadiumHold(false);
-      void import('@/lib/presence/exercisePresence').then(({ stopExercisePresence }) =>
-        stopExercisePresence(),
-      );
     };
-  }, [competitionId, stadiumCreate, exercise]);
+  }, [duelId, duelCreate, exercise]);
 
-  // Pre-start the test as soon as it mounts (timers held / paused).
   useEffect(() => {
     if (phase !== 'countdown' || started) return;
-
     const begin = Date.now();
     let cancelled = false;
-
     const tick = () => {
       if (cancelled) return;
       if (clickPlayButton()) {
@@ -134,13 +145,11 @@ export default function StadiumPlayGate({
       nativeSetTimeout(tick, 80);
     };
     tick();
-
     return () => {
       cancelled = true;
     };
   }, [phase, started]);
 
-  // Heroic countdown (uses native timers, not affected by hold).
   useEffect(() => {
     if (phase !== 'countdown') return;
     if (count > 0) {
@@ -149,8 +158,6 @@ export default function StadiumPlayGate({
         nativeClearTimeout(t);
       };
     }
-
-    // Count finished: wait until play has started (or timeout), then reveal.
     const begin = Date.now();
     let cancelled = false;
     const reveal = () => {
@@ -158,9 +165,7 @@ export default function StadiumPlayGate({
       if (started || Date.now() - begin > 4000) {
         setStadiumHold(false);
         setPhase('go');
-        void import('@/lib/presence/exercisePresence').then(({ startExercisePresence }) =>
-          startExercisePresence(),
-        );
+        startExercisePresence();
         return;
       }
       nativeSetTimeout(reveal, 50);
@@ -171,21 +176,30 @@ export default function StadiumPlayGate({
     };
   }, [phase, count, started]);
 
+  useEffect(() => {
+    return () => {
+      if (duelId) {
+        stopExercisePresence();
+      }
+    };
+  }, [duelId]);
+
   if (phase === 'idle') return <>{children}</>;
 
   if (phase === 'error') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#fbfaf9] px-4">
         <p className="text-[#37322f]">{error}</p>
-        <Link href="/stadium" className="text-sm underline text-[#605a57]">
-          Retour Stadium
+        <Link href="/stadium?tab=duels" className="text-sm underline text-[#605a57]">
+          Retour Duels
         </Link>
       </div>
     );
   }
 
   const mountTest = phase === 'countdown' || phase === 'go';
-  const showOverlay = phase === 'loading' || phase === 'countdown';
+  const showOverlay =
+    phase === 'loading' || phase === 'waiting' || phase === 'countdown';
 
   return (
     <>
@@ -216,19 +230,12 @@ export default function StadiumPlayGate({
               'radial-gradient(ellipse at 50% 30%, #4a4038 0%, #1a1614 55%, #0c0a09 100%)',
           }}
         >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-30"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(251,250,249,0.03) 2px, rgba(251,250,249,0.03) 4px)',
-            }}
-          />
-          {phase === 'loading' ? (
+          {phase === 'loading' || phase === 'waiting' ? (
             <p
               className="relative text-sm tracking-[0.3em] uppercase"
               style={{ color: 'rgba(251,250,249,0.55)' }}
             >
-              Chargement...
+              {phase === 'waiting' ? waitLabel : 'Chargement duel...'}
             </p>
           ) : (
             <div className="relative flex flex-col items-center gap-10 px-6 text-center">
@@ -236,29 +243,23 @@ export default function StadiumPlayGate({
                 className="text-xs sm:text-sm tracking-[0.45em] uppercase"
                 style={{ color: 'rgba(251,250,249,0.45)' }}
               >
-                Stadium
+                Duel
               </p>
               <h1
-                className="text-4xl sm:text-6xl md:text-7xl font-bold leading-tight max-w-3xl animate-in fade-in zoom-in-95 duration-700"
+                className="text-4xl sm:text-6xl font-bold leading-tight max-w-3xl"
                 style={{
                   fontFamily: 'var(--font-playfair), Georgia, serif',
                   color: '#fbfaf9',
-                  textShadow:
-                    '0 0 40px rgba(251,250,249,0.15), 0 4px 24px rgba(0,0,0,0.5)',
-                  letterSpacing: '0.02em',
                 }}
               >
-                Prepare toi
-                <br />
-                champion
+                En garde
               </h1>
               <div
                 key={count}
-                className="text-8xl sm:text-9xl font-bold tabular-nums animate-in fade-in zoom-in-50 duration-500"
+                className="text-8xl sm:text-9xl font-bold tabular-nums"
                 style={{
                   fontFamily: 'var(--font-playfair), Georgia, serif',
                   color: '#fbfaf9',
-                  textShadow: '0 0 60px rgba(251,250,249,0.25)',
                 }}
               >
                 {count > 0 ? count : '!'}
@@ -266,12 +267,12 @@ export default function StadiumPlayGate({
             </div>
           )}
           <Link
-            href="/stadium"
+            href="/stadium?tab=duels"
             className="absolute bottom-8 text-xs tracking-wide uppercase"
             style={{ color: 'rgba(251,250,249,0.4)' }}
-            onClick={() => setActiveCompetitionId(null)}
+            onClick={() => setActiveDuelId(null)}
           >
-            Retour Stadium
+            Retour Duels
           </Link>
         </div>
       )}

@@ -2,14 +2,23 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { setPseudo, getPseudo } from '@/lib/core/PerformanceTracker';
 import type { PerformanceEntry } from '@/lib/core/PerformanceTracker';
 
+export type ProgressionVisibility = 'public' | 'friends' | 'private';
+
 export type UserProfile = {
   id: string;
   username: string;
   progression_public: boolean;
+  progression_visibility: ProgressionVisibility;
+  duel_wins: number;
   email: string | null;
 };
 
 const KEY_PREFIX = 'aviatest-perf:';
+
+function normalizeVisibility(raw: unknown): ProgressionVisibility {
+  if (raw === 'public' || raw === 'friends' || raw === 'private') return raw;
+  return 'private';
+}
 
 /** Move local performance keys from one pseudo to another. */
 export function migrateLocalPseudoKeys(from: string, to: string): void {
@@ -48,16 +57,19 @@ export async function fetchMyProfile(): Promise<UserProfile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, progression_public')
+    .select('id, username, progression_public, progression_visibility, duel_wins')
     .eq('id', user.id)
     .maybeSingle();
 
   if (error || !data) return null;
 
+  const visibility = normalizeVisibility(data.progression_visibility);
   return {
     id: data.id as string,
     username: data.username as string,
-    progression_public: Boolean(data.progression_public),
+    progression_public: visibility === 'public' || Boolean(data.progression_public),
+    progression_visibility: visibility,
+    duel_wins: Number(data.duel_wins) || 0,
     email: user.email ?? null,
   };
 }
@@ -74,19 +86,19 @@ export async function syncPseudoFromProfile(): Promise<string | null> {
   return profile.username;
 }
 
-export async function setProgressionPublic(value: boolean): Promise<void> {
+export async function setProgressionVisibility(
+  visibility: ProgressionVisibility,
+): Promise<void> {
   const supabase = getSupabaseBrowserClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('not_authenticated');
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ progression_public: value })
-    .eq('id', user.id);
-
+  const { error } = await supabase.rpc('set_progression_visibility', {
+    p_visibility: visibility,
+  });
   if (error) throw error;
+}
+
+/** @deprecated use setProgressionVisibility */
+export async function setProgressionPublic(value: boolean): Promise<void> {
+  await setProgressionVisibility(value ? 'public' : 'private');
 }
 
 export async function upsertPerformanceCloud(
@@ -161,6 +173,9 @@ export type PseudoLookup = {
   id: string;
   username: string;
   progression_public: boolean;
+  progression_visibility: ProgressionVisibility;
+  duel_wins: number;
+  can_view: boolean;
 };
 
 export async function lookupPseudo(
@@ -173,19 +188,29 @@ export async function lookupPseudo(
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) return null;
+  const visibility = normalizeVisibility(row.progression_visibility);
   return {
     id: row.id as string,
     username: row.username as string,
-    progression_public: Boolean(row.progression_public),
+    progression_public: visibility === 'public',
+    progression_visibility: visibility,
+    duel_wins: Number(row.duel_wins) || 0,
+    can_view: Boolean(row.can_view),
   };
 }
 
 export async function searchPublicPseudos(query: string): Promise<string[]> {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc('search_public_pseudos', {
+  const { data, error } = await supabase.rpc('search_visible_pseudos', {
     p_query: query.trim(),
   });
-  if (error) throw error;
+  if (error) {
+    const fallback = await supabase.rpc('search_public_pseudos', {
+      p_query: query.trim(),
+    });
+    if (fallback.error) throw error;
+    return ((fallback.data || []) as { username: string }[]).map((r) => r.username);
+  }
   return ((data || []) as { username: string }[]).map((r) => r.username);
 }
 

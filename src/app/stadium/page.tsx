@@ -1,19 +1,31 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Trophy, ArrowLeft, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
+import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
+import { CrossedSwordsIcon } from '@/components/icons/CrossedSwordsIcon';
 import { Button } from '@/components/ui/button';
 import { EXERCISES } from '@/lib/data/exercises';
 import {
+  adminDeleteCompetition,
   listCompetitions,
   listTopScoresGrouped,
   type Competition,
   type CompetitionScore,
 } from '@/lib/stadium/competitions';
-import { setActiveCompetitionId } from '@/lib/stadium/settingsKeys';
+import { ADMIN_EMAIL, setActiveCompetitionId } from '@/lib/stadium/settingsKeys';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { listFriends, type Friend } from '@/lib/friends/api';
+import {
+  cancelDuel,
+  listMyDuels,
+  openDuelTab,
+  respondDuel,
+  type Duel,
+} from '@/lib/duels/api';
 
 const styles = {
   background: '#fbfaf9',
@@ -253,12 +265,24 @@ function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
 }
 
 function StadiumContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'duels' ? 'duels' : 'competitions';
+  const [tab, setTab] = useState<'competitions' | 'duels'>(initialTab);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [scores, setScores] = useState<Record<string, CompetitionScore[]>>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Duels
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [duels, setDuels] = useState<Duel[]>([]);
+  const [duelCreating, setDuelCreating] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
+  const [duelMsg, setDuelMsg] = useState<string | null>(null);
 
   const readyExercises = EXERCISES.filter((e) => e.ready);
 
@@ -271,6 +295,7 @@ function StadiumContent() {
         data: { user },
       } = await supabase.auth.getUser();
       setUserId(user?.id ?? null);
+      setIsAdmin(user?.email === ADMIN_EMAIL);
       const list = await listCompetitions();
       setCompetitions(list);
       const grouped = await listTopScoresGrouped(list.map((c) => c.id));
@@ -284,9 +309,27 @@ function StadiumContent() {
     }
   };
 
+  const reloadDuels = async () => {
+    try {
+      const [f, d] = await Promise.all([listFriends(), listMyDuels()]);
+      setFriends(f);
+      setDuels(d);
+    } catch {
+      setDuelMsg('Duels indisponibles — execute schema-friends-duels.sql.');
+    }
+  };
+
   useEffect(() => {
     void reload();
   }, []);
+
+  useEffect(() => {
+    if (tab === 'duels') void reloadDuels();
+  }, [tab]);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   const exerciseTitle = (id: string) =>
     EXERCISES.find((e) => e.id === id)?.title || id;
@@ -300,6 +343,25 @@ function StadiumContent() {
     const idx = list.findIndex((s) => s.user_id === userId);
     return idx >= 0 ? idx + 1 : null;
   };
+
+  const onDeleteCompetition = async (id: string) => {
+    setBusyId(id);
+    setError(null);
+    try {
+      await adminDeleteCompetition(id);
+      await reload();
+    } catch {
+      setError('Suppression competition impossible.');
+      throw new Error('delete_failed');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const activeDuels = duels.filter(
+    (d) => d.status === 'pending' || d.status === 'active',
+  );
+  const recentDuels = duels.filter((d) => d.status === 'completed').slice(0, 8);
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: styles.background }}>
@@ -319,80 +381,68 @@ function StadiumContent() {
               Stadium
             </h1>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setCreating((v) => !v)}
-            style={{ backgroundColor: styles.text, color: styles.background }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Ouvrir une competition
-          </Button>
+          {tab === 'competitions' ? (
+            <Button
+              size="sm"
+              onClick={() => setCreating((v) => !v)}
+              style={{ backgroundColor: styles.text, color: styles.background }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Ouvrir une competition
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => setDuelCreating((v) => !v)}
+              style={{ backgroundColor: styles.text, color: styles.background }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Provoquer en duel
+            </Button>
+          )}
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <p className="text-sm" style={{ color: styles.textMuted }}>
-          Classements publics par competition. Une competition = un test + des
-          reglages precis. Impossible d&apos;ouvrir un doublon avec les memes
-          parametres.
-        </p>
-
-        {creating && (
-          <section
-            className="rounded-xl p-5"
-            style={{
-              backgroundColor: styles.cardBg,
-              border: `1px solid ${styles.border}`,
-              boxShadow: styles.shadow,
-            }}
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={tab === 'competitions' ? 'default' : 'outline'}
+            onClick={() => setTab('competitions')}
+            style={
+              tab === 'competitions'
+                ? { backgroundColor: styles.text, color: styles.background }
+                : undefined
+            }
           >
-            <h2 className="font-semibold mb-3" style={{ color: styles.text }}>
-              Choisir un test
-            </h2>
-            <p className="text-sm mb-4" style={{ color: styles.textMuted }}>
-              Tu seras envoye sur le test : regle les Parametres, puis clique
-              &quot;Ouvrir la competition&quot;.
+            <Trophy className="h-3.5 w-3.5 mr-1" />
+            Competitions
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={tab === 'duels' ? 'default' : 'outline'}
+            onClick={() => setTab('duels')}
+            style={
+              tab === 'duels'
+                ? { backgroundColor: styles.text, color: styles.background }
+                : undefined
+            }
+          >
+            <CrossedSwordsIcon size={16} className="mr-1" />
+            Duels
+          </Button>
+        </div>
+
+        {tab === 'competitions' && (
+          <>
+            <p className="text-sm" style={{ color: styles.textMuted }}>
+              Classements publics par competition. Une competition = un test + des
+              reglages precis. Impossible d&apos;ouvrir un doublon avec les memes
+              parametres.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {readyExercises.map((ex) => (
-                <Link
-                  key={ex.id}
-                  href={`/exercices/${ex.slug}?stadiumCreate=1`}
-                  onClick={() => setActiveCompetitionId(null)}
-                  className="rounded-lg px-4 py-3 text-sm font-medium transition-transform hover:scale-[1.01]"
-                  style={{
-                    backgroundColor: styles.cardBg,
-                    border: `1px solid ${styles.border}`,
-                    color: styles.text,
-                    boxShadow: styles.shadow,
-                  }}
-                >
-                  {ex.title}
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
 
-        {loading && (
-          <p className="text-sm" style={{ color: styles.textMuted }}>
-            Chargement...
-          </p>
-        )}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        {!loading && !error && competitions.length === 0 && (
-          <p className="text-sm" style={{ color: styles.textMuted }}>
-            Aucune competition pour le moment. Ouvre-en une !
-          </p>
-        )}
-
-        <div className="space-y-4">
-          {competitions.map((c) => {
-            const top = scores[c.id] || [];
-            const rank = myRank(c.id);
-            return (
-              <article
-                key={c.id}
+            {creating && (
+              <section
                 className="rounded-xl p-5"
                 style={{
                   backgroundColor: styles.cardBg,
@@ -400,56 +450,333 @@ function StadiumContent() {
                   boxShadow: styles.shadow,
                 }}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-                  <div>
-                    <h3 className="font-semibold" style={{ color: styles.text }}>
-                      {exerciseTitle(c.exercise_id)}
-                    </h3>
-                    <p className="text-xs mt-1" style={{ color: styles.textMuted }}>
-                      Hash reglages : {c.settings_hash.slice(0, 10)}…
-                    </p>
-                  </div>
-                  <Link
-                    href={`/exercices/${exerciseSlug(c.exercise_id)}?competitionId=${c.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setActiveCompetitionId(c.id)}
-                  >
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: styles.text, color: styles.background }}
+                <h2 className="font-semibold mb-3" style={{ color: styles.text }}>
+                  Choisir un test
+                </h2>
+                <p className="text-sm mb-4" style={{ color: styles.textMuted }}>
+                  Tu seras envoye sur le test : regle les Parametres, puis clique
+                  &quot;Ouvrir la competition&quot;.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {readyExercises.map((ex) => (
+                    <Link
+                      key={ex.id}
+                      href={`/exercices/${ex.slug}?stadiumCreate=1`}
+                      onClick={() => setActiveCompetitionId(null)}
+                      className="rounded-lg px-4 py-3 text-sm font-medium transition-transform hover:scale-[1.01]"
+                      style={{
+                        backgroundColor: styles.cardBg,
+                        border: `1px solid ${styles.border}`,
+                        color: styles.text,
+                        boxShadow: styles.shadow,
+                      }}
                     >
-                      Jouer
-                    </Button>
-                  </Link>
+                      {ex.title}
+                    </Link>
+                  ))}
                 </div>
+              </section>
+            )}
 
-                <div
-                  className="mb-4 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
-                  style={{
-                    backgroundColor: '#fbfaf9',
-                    border: `1px solid ${styles.border}`,
-                  }}
-                >
-                  <span
-                    className="text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: styles.textMuted }}
-                  >
-                    Mon rang
-                  </span>
-                  <span
-                    className="text-sm font-semibold"
-                    style={{ color: rank ? styles.text : styles.textMuted }}
-                  >
-                    {rank ? `#${rank}` : 'Pas encore joue'}
-                  </span>
-                </div>
+            {loading && (
+              <p className="text-sm" style={{ color: styles.textMuted }}>
+                Chargement...
+              </p>
+            )}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
-                <CompetitionPodium scores={top} />
-              </article>
-            );
-          })}
-        </div>
+            {!loading && !error && competitions.length === 0 && (
+              <p className="text-sm" style={{ color: styles.textMuted }}>
+                Aucune competition pour le moment. Ouvre-en une !
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {competitions.map((c) => {
+                const top = scores[c.id] || [];
+                const rank = myRank(c.id);
+                return (
+                  <article
+                    key={c.id}
+                    className="rounded-xl p-5"
+                    style={{
+                      backgroundColor: styles.cardBg,
+                      border: `1px solid ${styles.border}`,
+                      boxShadow: styles.shadow,
+                    }}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                      <div>
+                        <h3 className="font-semibold" style={{ color: styles.text }}>
+                          {exerciseTitle(c.exercise_id)}
+                        </h3>
+                        <p className="text-xs mt-1" style={{ color: styles.textMuted }}>
+                          Hash reglages : {c.settings_hash.slice(0, 10)}…
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/exercices/${exerciseSlug(c.exercise_id)}?competitionId=${c.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setActiveCompetitionId(c.id)}
+                        >
+                          <Button
+                            size="sm"
+                            style={{ backgroundColor: styles.text, color: styles.background }}
+                          >
+                            Jouer
+                          </Button>
+                        </Link>
+                        {isAdmin && (
+                          <AdminDangerConfirm
+                            title="Supprimer cette competition ?"
+                            description="Suppression definitive de la competition Stadium et de tous ses scores."
+                            preview={`${exerciseTitle(c.exercise_id)} · ${c.settings_hash.slice(0, 10)}…`}
+                            disabled={busyId === c.id}
+                            onConfirm={() => onDeleteCompetition(c.id)}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div
+                      className="mb-4 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
+                      style={{
+                        backgroundColor: '#fbfaf9',
+                        border: `1px solid ${styles.border}`,
+                      }}
+                    >
+                      <span
+                        className="text-xs font-semibold uppercase tracking-wide"
+                        style={{ color: styles.textMuted }}
+                      >
+                        Mon rang
+                      </span>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{ color: rank ? styles.text : styles.textMuted }}
+                      >
+                        {rank ? `#${rank}` : 'Pas encore joue'}
+                      </span>
+                    </div>
+
+                    <CompetitionPodium scores={top} />
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {tab === 'duels' && (
+          <>
+            <p className="text-sm" style={{ color: styles.textMuted }}>
+              Defie un ami : meme test et reglages pour vous deux. Apres
+              acceptation, un nouvel onglet s ouvre chez les deux joueurs. Le
+              meilleur pourcentage gagne.
+            </p>
+            {duelMsg && (
+              <p className="text-sm" style={{ color: styles.textMuted }}>
+                {duelMsg}
+              </p>
+            )}
+
+            {duelCreating && (
+              <section
+                className="rounded-xl p-5 space-y-4"
+                style={{
+                  backgroundColor: styles.cardBg,
+                  border: `1px solid ${styles.border}`,
+                  boxShadow: styles.shadow,
+                }}
+              >
+                <h2 className="font-semibold" style={{ color: styles.text }}>
+                  1. Choisir un ami
+                </h2>
+                {friends.length === 0 ? (
+                  <p className="text-sm" style={{ color: styles.textMuted }}>
+                    Aucun ami.{' '}
+                    <Link href="/compte" className="underline">
+                      Ajoute-en dans Compte
+                    </Link>
+                    .
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {friends.map((f) => (
+                      <Button
+                        key={f.user_id}
+                        type="button"
+                        size="sm"
+                        variant={selectedFriend === f.user_id ? 'default' : 'outline'}
+                        onClick={() => setSelectedFriend(f.user_id)}
+                        style={
+                          selectedFriend === f.user_id
+                            ? { backgroundColor: styles.text, color: styles.background }
+                            : undefined
+                        }
+                      >
+                        {f.username}
+                        {f.in_exercise ? ' (en test)' : ''}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedFriend && (
+                  <>
+                    <h2 className="font-semibold" style={{ color: styles.text }}>
+                      2. Choisir un test
+                    </h2>
+                    <p className="text-sm" style={{ color: styles.textMuted }}>
+                      Tu regleras les parametres sur la page du test, puis tu
+                      enverras le defi.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {readyExercises.map((ex) => (
+                        <Link
+                          key={ex.id}
+                          href={`/exercices/${ex.slug}?duelCreate=1&opponentId=${selectedFriend}`}
+                          className="rounded-lg px-4 py-3 text-sm font-medium transition-transform hover:scale-[1.01]"
+                          style={{
+                            backgroundColor: styles.cardBg,
+                            border: `1px solid ${styles.border}`,
+                            color: styles.text,
+                            boxShadow: styles.shadow,
+                          }}
+                        >
+                          {ex.title}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+            )}
+
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: styles.textMuted }}>
+                En cours ({activeDuels.length})
+              </h2>
+              {activeDuels.length === 0 && (
+                <p className="text-sm" style={{ color: styles.textMuted }}>
+                  Aucun duel actif.
+                </p>
+              )}
+              {activeDuels.map((d) => {
+                const other =
+                  userId === d.challenger_id
+                    ? d.opponent_username
+                    : d.challenger_username;
+                const iAmOpponent = userId === d.opponent_id;
+                return (
+                  <article
+                    key={d.id}
+                    className="rounded-xl p-4 space-y-2"
+                    style={{
+                      backgroundColor: styles.cardBg,
+                      border: `1px solid ${styles.border}`,
+                      boxShadow: styles.shadow,
+                    }}
+                  >
+                    <p className="text-sm font-medium" style={{ color: styles.text }}>
+                      vs {other} · {exerciseTitle(d.exercise_id)}
+                    </p>
+                    <p className="text-xs" style={{ color: styles.textMuted }}>
+                      {d.status === 'pending' &&
+                        (iAmOpponent
+                          ? 'Invitation recue'
+                          : d.opponent_in_exercise
+                            ? 'En attente — adversaire en test'
+                            : 'En attente d acceptation')}
+                      {d.status === 'active' && 'Duel en cours'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {d.status === 'pending' && iAmOpponent && (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() =>
+                              void respondDuel(d.id, true).then((updated) => {
+                                openDuelTab(exerciseSlug(updated.exercise_id), updated.id);
+                                void reloadDuels();
+                              })
+                            }
+                            style={{ backgroundColor: styles.text, color: styles.background }}
+                          >
+                            Accepter
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              void respondDuel(d.id, false).then(reloadDuels)
+                            }
+                          >
+                            Refuser
+                          </Button>
+                        </>
+                      )}
+                      {d.status === 'pending' && !iAmOpponent && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void cancelDuel(d.id).then(reloadDuels)}
+                        >
+                          Annuler
+                        </Button>
+                      )}
+                      {d.status === 'active' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => openDuelTab(exerciseSlug(d.exercise_id), d.id)}
+                          style={{ backgroundColor: styles.text, color: styles.background }}
+                        >
+                          Rejoindre
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: styles.textMuted }}>
+                Recents
+              </h2>
+              {recentDuels.length === 0 && (
+                <p className="text-sm" style={{ color: styles.textMuted }}>
+                  Pas encore de duel termine.
+                </p>
+              )}
+              {recentDuels.map((d) => {
+                const other =
+                  userId === d.challenger_id
+                    ? d.opponent_username
+                    : d.challenger_username;
+                const result = !d.winner_id
+                  ? 'Nul'
+                  : d.winner_id === userId
+                    ? 'Victoire'
+                    : 'Defaite';
+                return (
+                  <p key={d.id} className="text-sm" style={{ color: styles.textMuted }}>
+                    vs {other} · {exerciseTitle(d.exercise_id)} · {result}
+                  </p>
+                );
+              })}
+              <Link href="/compte" className="text-sm underline" style={{ color: styles.text }}>
+                Historique complet et revanches dans Compte
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
@@ -458,7 +785,18 @@ function StadiumContent() {
 export default function StadiumPage() {
   return (
     <AuthGate>
-      <StadiumContent />
+      <Suspense
+        fallback={
+          <div
+            className="min-h-screen flex items-center justify-center text-sm"
+            style={{ backgroundColor: styles.background, color: styles.textMuted }}
+          >
+            Chargement...
+          </div>
+        }
+      >
+        <StadiumContent />
+      </Suspense>
     </AuthGate>
   );
 }

@@ -71,6 +71,16 @@ export async function getCompetition(id: string): Promise<Competition | null> {
   return data as Competition | null;
 }
 
+export async function adminDeleteCompetition(id: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('admin_delete_competition', { p_id: id });
+  if (error) {
+    if (/not_admin/i.test(error.message)) throw new Error('not_admin');
+    if (/not_found/i.test(error.message)) throw new Error('not_found');
+    throw error;
+  }
+}
+
 export async function createCompetition(
   exerciseId: string,
   settings: Record<string, unknown>,

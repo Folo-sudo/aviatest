@@ -146,3 +146,13 @@ export async function adminReplyMissive(
   });
   if (error) throw error;
 }
+
+export async function adminDeleteMissive(id: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('admin_delete_missive', { p_id: id });
+  if (error) {
+    if (/not_admin/i.test(error.message)) throw new Error('not_admin');
+    if (/not_found/i.test(error.message)) throw new Error('not_found');
+    throw error;
+  }
+}

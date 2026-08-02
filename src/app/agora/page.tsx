@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, Landmark, Megaphone, ThumbsUp } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
+import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
 import { Button } from '@/components/ui/button';
 import { NotamScoreVotes } from '@/components/notam/NotamScoreVotes';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
 import {
   adminCloseAgoraMissive,
+  adminDeleteMissive,
   listAgora,
   myAgoraVoteCount,
   unvoteAgoraMissive,
@@ -19,6 +21,7 @@ import {
 } from '@/lib/agora/api';
 import {
   adminCloseNotam,
+  adminDeleteNotam,
   listNotams,
   replyNotam,
   type NotamItem,
@@ -86,6 +89,13 @@ function MissivesSection({
   };
 
   const onAdminClose = async (id: string) => {
+    if (
+      !window.confirm(
+        'Retirer cette missive de l Agora ? Les accords seront liberes (la missive reste dans Aeropostale).',
+      )
+    ) {
+      return;
+    }
     setBusyId(id);
     setMessage(null);
     try {
@@ -94,6 +104,21 @@ function MissivesSection({
       await reload();
     } catch {
       setMessage('Cloture admin impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onAdminDelete = async (id: string) => {
+    setBusyId(id);
+    setMessage(null);
+    try {
+      await adminDeleteMissive(id);
+      setMessage('Missive supprimee.');
+      await reload();
+    } catch {
+      setMessage('Suppression missive impossible.');
+      throw new Error('delete_failed');
     } finally {
       setBusyId(null);
     }
@@ -181,16 +206,25 @@ function MissivesSection({
               </Button>
 
               {isAdmin && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={busyId === item.id}
-                  onClick={() => onAdminClose(item.id)}
-                  className="text-emerald-700 border-emerald-200"
-                >
-                  Marquer comme repondue
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId === item.id}
+                    onClick={() => onAdminClose(item.id)}
+                    className="text-emerald-700 border-emerald-200"
+                  >
+                    Marquer comme repondue
+                  </Button>
+                  <AdminDangerConfirm
+                    title="Supprimer cette missive ?"
+                    description="Suppression definitive : retiree de l Agora et d Aeropostale. Les accords sont liberes."
+                    preview={item.body}
+                    disabled={busyId === item.id}
+                    onConfirm={() => onAdminDelete(item.id)}
+                  />
+                </>
               )}
             </div>
           </article>
@@ -245,6 +279,13 @@ function NotamSection({
   };
 
   const onClose = async (id: string) => {
+    if (
+      !window.confirm(
+        'Fermer ce NOTAM ? Plus de nouvelles reponses (le fil reste visible).',
+      )
+    ) {
+      return;
+    }
     setBusyId(id);
     try {
       await adminCloseNotam(id);
@@ -252,6 +293,20 @@ function NotamSection({
       await reload();
     } catch {
       setMessage('Cloture impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onDelete = async (id: string) => {
+    setBusyId(id);
+    try {
+      await adminDeleteNotam(id);
+      setMessage('NOTAM supprime.');
+      await reload();
+    } catch {
+      setMessage('Suppression NOTAM impossible.');
+      throw new Error('delete_failed');
     } finally {
       setBusyId(null);
     }
@@ -317,17 +372,28 @@ function NotamSection({
               {item.body}
             </p>
 
-            {isAdmin && !item.closed_at && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busyId === item.id}
-                onClick={() => onClose(item.id)}
-                className="text-emerald-700 border-emerald-200"
-              >
-                Fermer le NOTAM
-              </Button>
+            {isAdmin && (
+              <div className="flex flex-wrap gap-2">
+                {!item.closed_at && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId === item.id}
+                    onClick={() => onClose(item.id)}
+                    className="text-emerald-700 border-emerald-200"
+                  >
+                    Fermer le NOTAM
+                  </Button>
+                )}
+                <AdminDangerConfirm
+                  title="Supprimer ce NOTAM ?"
+                  description="Suppression definitive du NOTAM, de toutes ses reponses et des votes associes."
+                  preview={item.body}
+                  disabled={busyId === item.id}
+                  onConfirm={() => onDelete(item.id)}
+                />
+              </div>
             )}
 
             <div className="space-y-3 border-t pt-3" style={{ borderColor: styles.border }}>
