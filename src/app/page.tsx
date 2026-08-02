@@ -26,7 +26,6 @@ import {
   LayoutGrid,
   Library,
   LogOut,
-  MessageSquare,
   Plane,
   RotateCcw,
   Route,
@@ -40,6 +39,8 @@ import {
   Variable,
   X,
 } from 'lucide-react';
+import { LatecoerePlaneIcon } from '@/components/icons/LatecoerePlaneIcon';
+import { FichesIcon } from '@/components/icons/FichesIcon';
 import {
   EXERCISES,
   EXERCISE_TYPES,
@@ -57,6 +58,7 @@ import { syncPseudoFromProfile } from '@/lib/account/profile';
 import AuthGate from '@/components/AuthGate';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
+import { useSiteTexts } from '@/lib/site-texts/useSiteTexts';
 
 const homeStyles = {
   colors: {
@@ -394,6 +396,7 @@ function ExerciseLibraryCard({ exercise }: { exercise: ExerciseConfig }) {
 }
 
 function HomeContent() {
+  const { t } = useSiteTexts();
   const [pseudo, setPseudoState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -507,6 +510,19 @@ function HomeContent() {
                 <span className="hidden sm:inline">Agora</span>
               </Link>
               <Link
+                href="/fiches"
+                className={navLinkClass}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: homeStyles.colors.text,
+                  border: `1px solid ${homeStyles.colors.border}`,
+                }}
+                title="Fiches d entrainement"
+              >
+                <FichesIcon className="h-4 w-5" />
+                <span className="hidden sm:inline">Fiches</span>
+              </Link>
+              <Link
                 href="/compte"
                 className={navLinkClass}
                 style={{
@@ -555,7 +571,7 @@ function HomeContent() {
         </div>
       </header>
 
-      {/* Acces rapides : Stadium | Agora + Boite */}
+      {/* Acces rapides : Stadium | Agora + Aeropostale */}
       <section className="relative overflow-hidden">
         <div
           className="absolute inset-0"
@@ -569,7 +585,7 @@ function HomeContent() {
             {/* Stadium — hauteur de reference */}
             <Link href="/stadium" className="block h-full min-h-[280px] lg:min-h-[340px]">
               <div
-                className="flex h-full flex-col justify-between rounded-[28px] p-6 text-white md:p-7"
+                className="flex h-full flex-col justify-between rounded-[28px] p-6 text-white transition-transform hover:scale-[1.01] md:p-7"
                 style={{
                   background: `linear-gradient(140deg, ${homeStyles.colors.stadiumStart} 0%, #d97706 45%, ${homeStyles.colors.stadiumEnd} 100%)`,
                   boxShadow: homeStyles.shadows.stadium,
@@ -577,67 +593,55 @@ function HomeContent() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <Badge className="border-0 bg-white/15 text-white">Competition</Badge>
+                    <Badge className="border-0 bg-white/15 text-white">{t('home.stadium.badge')}</Badge>
                     <Trophy className="h-6 w-6" />
                   </div>
-                  <h2 className="mt-5 text-3xl font-semibold">Stadium</h2>
+                  <h2 className="mt-5 text-3xl font-semibold">{t('home.stadium.title')}</h2>
                   <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 md:text-base">
-                    Affronte d autres candidats en temps reel : meme epreuve, meme chrono, classement a la
-                    cle. Ideal pour mesurer ta progression.
+                    {t('home.stadium.body')}
                   </p>
                 </div>
-                <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div className="rounded-2xl bg-white/12 px-3 py-3">
-                      <p className="text-lg font-semibold">{readyExercises.length}</p>
-                      <p className="mt-1 text-white/80">tests</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/12 px-3 py-3">
-                      <p className="text-lg font-semibold">{competitions.length}</p>
-                      <p className="mt-1 text-white/80">concours</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/12 px-3 py-3">
-                      <p className="text-lg font-semibold">Live</p>
-                      <p className="mt-1 text-white/80">sessions</p>
-                    </div>
+                <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-2xl bg-white/12 px-3 py-3">
+                    <p className="text-lg font-semibold">{readyExercises.length}</p>
+                    <p className="mt-1 text-white/80">tests</p>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#9a3412]">
-                    Entrer
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
+                  <div className="rounded-2xl bg-white/12 px-3 py-3">
+                    <p className="text-lg font-semibold">{competitions.length}</p>
+                    <p className="mt-1 text-white/80">concours</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/12 px-3 py-3">
+                    <p className="text-lg font-semibold">Live</p>
+                    <p className="mt-1 text-white/80">sessions</p>
+                  </div>
                 </div>
               </div>
             </Link>
 
-            {/* Agora (plus grand) + Boite — meme hauteur que Stadium */}
+            {/* Agora (plus grand) + Aeropostale — meme hauteur que Stadium */}
             <div className="grid h-full min-h-[280px] grid-rows-[1.55fr_1fr] gap-4 lg:min-h-[340px]">
               <Link href="/agora" className="block min-h-0">
                 <div
-                  className="flex h-full flex-col justify-between rounded-[26px] p-5 text-white md:p-6"
+                  className="flex h-full flex-col justify-between rounded-[26px] p-5 text-white transition-transform hover:scale-[1.01] md:p-6"
                   style={{
                     background: `linear-gradient(140deg, ${homeStyles.colors.agoraStart} 0%, ${homeStyles.colors.agoraEnd} 100%)`,
                   }}
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-semibold md:text-2xl">Agora</h3>
+                      <h3 className="text-xl font-semibold md:text-2xl">{t('home.agora.title')}</h3>
                       <Landmark className="h-5 w-5" />
                     </div>
                     <p className="mt-2 text-sm leading-relaxed text-white/85 md:text-base">
-                      Les demandes publiees par la communaute. Donne ton accord aux idees les plus utiles
-                      : celles qui ont le plus de votes sont traitees en priorite.
+                      {t('home.agora.body')}
                     </p>
                   </div>
-                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white/95">
-                    Voir l Agora
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
                 </div>
               </Link>
 
               <Link href="/boite" className="block min-h-0">
                 <div
-                  className="flex h-full flex-col justify-between rounded-[26px] p-5 md:p-6"
+                  className="flex h-full flex-col justify-between rounded-[26px] p-5 transition-transform hover:scale-[1.01] md:p-6"
                   style={{
                     background: `linear-gradient(140deg, ${homeStyles.colors.boiteStart} 0%, ${homeStyles.colors.boiteEnd} 100%)`,
                     color: homeStyles.colors.text,
@@ -646,21 +650,13 @@ function HomeContent() {
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold md:text-xl">Boite</h3>
-                      <MessageSquare className="h-5 w-5" />
+                      <h3 className="text-lg font-semibold md:text-xl">{t('home.aeropostale.title')}</h3>
+                      <LatecoerePlaneIcon className="h-6 w-9" />
                     </div>
                     <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                      Signale un bug, envoie une missive ou une idee. Tu peux ensuite publier une missive
-                      dans l Agora pour recueillir des accords.
+                      {t('home.aeropostale.body')}
                     </p>
                   </div>
-                  <span
-                    className="mt-3 inline-flex items-center gap-2 text-sm font-medium"
-                    style={{ color: homeStyles.colors.text }}
-                  >
-                    Ouvrir la Boite
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
                 </div>
               </Link>
             </div>
@@ -679,24 +675,24 @@ function HomeContent() {
           }}
         >
           <h2 className="text-xl font-semibold md:text-2xl" style={{ color: homeStyles.colors.text }}>
-            Comment fonctionne AviaTest ?
+            {t('home.how.title')}
           </h2>
           <ol className="mt-4 grid gap-4 md:grid-cols-3">
             {[
               {
                 step: '1',
-                title: 'Choisis ton concours',
-                body: 'PSY0 / PSY1 Cadets Air France, ou ENAC EPL. Chaque parcours regroupe les tests utiles a ta selection.',
+                title: t('home.how.step1.title'),
+                body: t('home.how.step1.body'),
               },
               {
                 step: '2',
-                title: 'Entraine-toi',
-                body: 'Lance un exercice, regle le mode examen si tu veux, et suis ta progression dans ton profil.',
+                title: t('home.how.step2.title'),
+                body: t('home.how.step2.body'),
               },
               {
                 step: '3',
-                title: 'Passe en competition',
-                body: 'Rejoins le Stadium pour te comparer aux autres, ou utilise l Agora / la Boite pour faire remonter une idee.',
+                title: t('home.how.step3.title'),
+                body: t('home.how.step3.body'),
               },
             ].map((item) => (
               <li key={item.step} className="flex gap-3">
@@ -724,14 +720,13 @@ function HomeContent() {
       <section id="concours" className="container mx-auto px-4 py-10 md:py-12">
         <div className="mb-6">
           <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-            Concours
+            {t('home.concours.eyebrow')}
           </p>
           <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-            Par ou commencer ?
+            {t('home.concours.title')}
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-            Selectionne le concours que tu prepares. Tu retrouveras ensuite tous les exercices rattaches,
-            ranges pour t y entrainer sans te perdre.
+            {t('home.concours.body')}
           </p>
         </div>
 
@@ -750,10 +745,10 @@ function HomeContent() {
                     className="text-xs uppercase tracking-[0.2em]"
                     style={{ color: homeStyles.colors.textMuted }}
                   >
-                    Cadets Air France
+                    {t('home.concours.cadets_label')}
                   </p>
                   <p className="mt-1 text-sm" style={{ color: homeStyles.colors.textMuted }}>
-                    Deux etapes du meme parcours de selection — PSY0 puis PSY1.
+                    {t('home.concours.cadets_hint')}
                   </p>
                 </div>
               </div>
@@ -784,7 +779,7 @@ function HomeContent() {
                 className="mb-3 px-1 text-xs uppercase tracking-[0.2em]"
                 style={{ color: homeStyles.colors.textMuted }}
               >
-                Autre concours
+                {t('home.concours.other_label')}
               </p>
               <div className="max-w-xl">
                 <CompetitionHeroCard
@@ -801,14 +796,13 @@ function HomeContent() {
       <section id="parcours" className="container mx-auto px-4 py-10 md:py-12">
         <div className="mb-8">
           <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-            Families de tests
+            {t('home.lanes.eyebrow')}
           </p>
           <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-            Entraine une competence precise
+            {t('home.lanes.title')}
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-            Tu preferes cibler un point faible ? Choisis une famille (attention, spatial, calcul...) puis
-            lance les exercices proposes.
+            {t('home.lanes.body')}
           </p>
         </div>
         <div className="grid gap-5 xl:grid-cols-3">
@@ -837,14 +831,13 @@ function HomeContent() {
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-2xl">
               <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-                Batterie d exercices
+                {t('home.battery.eyebrow')}
               </p>
               <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-                Apercu d un concours
+                {t('home.battery.title')}
               </h2>
               <p className="mt-3 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                Change d onglet pour voir les tests rattaches a chaque selection. Clique sur un exercice
-                pour l ouvrir dans un nouvel onglet.
+                {t('home.battery.body')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -912,14 +905,13 @@ function HomeContent() {
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-              Bibliotheque
+              {t('home.library.eyebrow')}
             </p>
             <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-              Tous les exercices
+              {t('home.library.title')}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-              Liste complete si tu veux chercher un test precis. Sinon, passe plutot par un concours ou
-              une famille ci-dessus.
+              {t('home.library.body')}
             </p>
           </div>
           <div
@@ -951,8 +943,7 @@ function HomeContent() {
                 </span>
               </div>
               <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                Entrainement gratuit aux tests psychotechniques pour les selections pilote : Cadets Air
-                France (PSY0 / PSY1) et ENAC EPL.
+                {t('home.footer.blurb')}
               </p>
             </div>
             <div>
@@ -969,8 +960,11 @@ function HomeContent() {
                 <Link href="/agora" style={{ color: homeStyles.colors.text }}>
                   Agora
                 </Link>
+                <Link href="/fiches" style={{ color: homeStyles.colors.text }}>
+                  Fiches
+                </Link>
                 <Link href="/boite" style={{ color: homeStyles.colors.text }}>
-                  Boite
+                  Aeropostale
                 </Link>
                 <Link href="/compte" style={{ color: homeStyles.colors.text }}>
                   Profil

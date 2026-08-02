@@ -21,6 +21,8 @@ import {
   type BugStatus,
   type Missive,
 } from '@/lib/feedback/api';
+import { listSiteTexts, upsertSiteText } from '@/lib/site-texts/api';
+import { SITE_TEXT_DEFAULTS, SITE_TEXT_GROUPS } from '@/lib/site-texts/defaults';
 
 const styles = {
   background: '#fbfaf9',
@@ -156,7 +158,7 @@ function AdminContent() {
           </Link>
           <Inbox className="h-5 w-5" style={{ color: styles.text }} />
           <h1 className="text-lg font-bold" style={{ color: styles.text }}>
-            Boite admin
+            Aeropostale admin
           </h1>
         </div>
       </header>
@@ -317,8 +319,122 @@ function AdminContent() {
             ))}
           </div>
         </section>
+
+        <SiteTextsSection onError={setError} />
       </div>
     </main>
+  );
+}
+
+function SiteTextsSection({ onError }: { onError: (msg: string | null) => void }) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [saved, setSaved] = useState<Record<string, string>>({});
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await listSiteTexts();
+        const map: Record<string, string> = {};
+        rows.forEach((r) => {
+          map[r.key] = r.value;
+        });
+        setSaved(map);
+        setDrafts({ ...SITE_TEXT_DEFAULTS, ...map });
+      } catch {
+        setDrafts({ ...SITE_TEXT_DEFAULTS });
+        onError('Textes : schema-notam-and-texts.sql manquant ?');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [onError]);
+
+  const save = async (key: string) => {
+    setBusyKey(key);
+    setOkMsg(null);
+    onError(null);
+    try {
+      const value = drafts[key] ?? '';
+      await upsertSiteText(key, value);
+      setSaved((s) => ({ ...s, [key]: value }));
+      setOkMsg(`Enregistre : ${key}`);
+    } catch {
+      onError('Enregistrement texte impossible.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold" style={{ color: styles.text }}>
+          Textes du site
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: styles.textMuted }}>
+          Modifie les textes vitrine. Champ vide + enregistre = garde le fallback code au prochain
+          chargement si tu mets une valeur ; pour revenir au defaut, colle le texte par defaut puis
+          enregistre (ou laisse le fallback en ne mettant rien d utile — les valeurs vides sont
+          ignorees cote lecteur).
+        </p>
+        {okMsg && <p className="mt-2 text-sm text-emerald-600">{okMsg}</p>}
+      </div>
+
+      {loading ? (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Chargement des textes...
+        </p>
+      ) : (
+        SITE_TEXT_GROUPS.map((group) => (
+          <div key={group.id} className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: styles.textMuted }}>
+              {group.label}
+            </h3>
+            {group.keys.map((key) => (
+              <article
+                key={key}
+                className="rounded-xl p-4 space-y-2"
+                style={{
+                  backgroundColor: styles.cardBg,
+                  border: `1px solid ${styles.border}`,
+                  boxShadow: styles.shadow,
+                }}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <code className="text-xs" style={{ color: styles.textMuted }}>
+                    {key}
+                  </code>
+                  {saved[key] !== undefined && saved[key] !== '' && (
+                    <span className="text-[11px] text-emerald-700">Personnalise</span>
+                  )}
+                </div>
+                <p className="text-[11px]" style={{ color: styles.textMuted }}>
+                  Defaut : {SITE_TEXT_DEFAULTS[key]}
+                </p>
+                <textarea
+                  className="w-full min-h-[72px] rounded-lg border px-3 py-2 text-sm"
+                  style={{ borderColor: styles.border, color: styles.text }}
+                  value={drafts[key] ?? SITE_TEXT_DEFAULTS[key] ?? ''}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={busyKey === key}
+                  onClick={() => save(key)}
+                  style={{ backgroundColor: styles.text, color: styles.background }}
+                >
+                  {busyKey === key ? '...' : 'Enregistrer'}
+                </Button>
+              </article>
+            ))}
+          </div>
+        ))
+      )}
+    </section>
   );
 }
 

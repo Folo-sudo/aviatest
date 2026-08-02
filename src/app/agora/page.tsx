@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Landmark, ThumbsUp } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Landmark, Megaphone, ThumbsUp } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
 import { Button } from '@/components/ui/button';
+import { NotamScoreVotes } from '@/components/notam/NotamScoreVotes';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
 import {
@@ -15,6 +17,13 @@ import {
   voteAgoraMissive,
   type AgoraItem,
 } from '@/lib/agora/api';
+import {
+  adminCloseNotam,
+  listNotams,
+  replyNotam,
+  type NotamItem,
+} from '@/lib/notam/api';
+import { useSiteTexts } from '@/lib/site-texts/useSiteTexts';
 
 const VOTE_LIMIT = 3;
 const styles = {
@@ -26,13 +35,22 @@ const styles = {
   shadow: '0 8px 24px rgba(55, 50, 47, 0.08)',
 };
 
-function AgoraContent() {
+type AgoraTab = 'missives' | 'notam';
+
+function MissivesSection({
+  isAdmin,
+  message,
+  setMessage,
+}: {
+  isAdmin: boolean;
+  message: string | null;
+  setMessage: (m: string | null) => void;
+}) {
+  const { t } = useSiteTexts();
   const [items, setItems] = useState<AgoraItem[]>([]);
   const [votesUsed, setVotesUsed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   const reload = async () => {
     const [list, count] = await Promise.all([listAgora(), myAgoraVoteCount()]);
@@ -41,21 +59,10 @@ function AgoraContent() {
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setIsAdmin(user?.email === ADMIN_EMAIL);
-        await reload();
-      } catch {
-        setMessage('Impossible de charger l Agora. Verifie schema-agora.sql.');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    void reload()
+      .catch(() => setMessage('Impossible de charger les missives. Verifie schema-agora.sql.'))
+      .finally(() => setLoading(false));
+  }, [setMessage]);
 
   const remaining = Math.max(0, VOTE_LIMIT - votesUsed);
 
@@ -93,6 +100,327 @@ function AgoraContent() {
   };
 
   return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          {t('agora.intro')}
+        </p>
+        <p className="text-sm shrink-0" style={{ color: styles.textMuted }}>
+          Accords :{' '}
+          <span className="font-semibold" style={{ color: styles.text }}>
+            {remaining}/{VOTE_LIMIT}
+          </span>
+        </p>
+      </div>
+
+      {message && (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          {message}
+        </p>
+      )}
+
+      {loading && (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Chargement...
+        </p>
+      )}
+
+      {!loading && items.length === 0 && (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Aucune missive dans l Agora pour le moment.
+        </p>
+      )}
+
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <article
+            key={item.id}
+            className="rounded-xl p-5 space-y-3"
+            style={{
+              backgroundColor: styles.cardBg,
+              border: `1px solid ${styles.border}`,
+              boxShadow: styles.shadow,
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="text-xs" style={{ color: styles.textMuted }}>
+                #{index + 1} · {item.author_username}
+                {item.is_mine ? ' (toi)' : ''}
+                {item.agora_published_at
+                  ? ` · ${new Date(item.agora_published_at).toLocaleString('fr-FR')}`
+                  : ''}
+              </p>
+              <span
+                className="inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: '#f3f2f1', color: styles.text }}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+                {item.vote_count}
+              </span>
+            </div>
+
+            <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
+              {item.body}
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={item.my_vote ? 'default' : 'outline'}
+                disabled={busyId === item.id || (!item.my_vote && remaining <= 0)}
+                onClick={() => onVote(item.id, item.my_vote)}
+                style={
+                  item.my_vote
+                    ? { backgroundColor: styles.text, color: styles.background }
+                    : undefined
+                }
+              >
+                <ThumbsUp className="h-3.5 w-3.5 mr-1" />
+                {item.my_vote ? 'Retirer mon accord' : 'Donner mon accord'}
+              </Button>
+
+              {isAdmin && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busyId === item.id}
+                  onClick={() => onAdminClose(item.id)}
+                  className="text-emerald-700 border-emerald-200"
+                >
+                  Marquer comme repondue
+                </Button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotamSection({
+  isAdmin,
+  message,
+  setMessage,
+}: {
+  isAdmin: boolean;
+  message: string | null;
+  setMessage: (m: string | null) => void;
+}) {
+  const { t } = useSiteTexts();
+  const [items, setItems] = useState<NotamItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const reload = async () => {
+    const list = await listNotams();
+    setItems(list.filter((n) => !n.closed_at || isAdmin || n.is_mine));
+  };
+
+  useEffect(() => {
+    void reload()
+      .catch(() => setMessage('Impossible de charger les NOTAM. Verifie schema-notam-and-texts.sql.'))
+      .finally(() => setLoading(false));
+  }, [setMessage]);
+
+  const onReply = async (notamId: string) => {
+    const body = (replyDrafts[notamId] || '').trim();
+    if (body.length < 2) return;
+    setBusyId(notamId);
+    setMessage(null);
+    try {
+      await replyNotam(notamId, body);
+      setReplyDrafts((d) => ({ ...d, [notamId]: '' }));
+      await reload();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'notam_closed') setMessage('Ce NOTAM est clos.');
+      else setMessage('Reponse impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onClose = async (id: string) => {
+    setBusyId(id);
+    try {
+      await adminCloseNotam(id);
+      setMessage('NOTAM clos.');
+      await reload();
+    } catch {
+      setMessage('Cloture impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm" style={{ color: styles.textMuted }}>
+        {t('agora.notam.intro')}{' '}
+        <Link href="/boite?tab=notam" className="underline">
+          Poser un NOTAM
+        </Link>
+      </p>
+
+      {message && (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          {message}
+        </p>
+      )}
+
+      {loading && (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Chargement...
+        </p>
+      )}
+
+      {!loading && items.filter((n) => !n.closed_at).length === 0 && (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Aucun NOTAM ouvert pour le moment.
+        </p>
+      )}
+
+      <div className="space-y-4">
+        {items.map((item) => (
+          <article
+            key={item.id}
+            className="rounded-xl p-5 space-y-4"
+            style={{
+              backgroundColor: styles.cardBg,
+              border: `1px solid ${styles.border}`,
+              boxShadow: styles.shadow,
+              opacity: item.closed_at ? 0.72 : 1,
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="text-xs" style={{ color: styles.textMuted }}>
+                {item.author_username}
+                {item.is_mine ? ' (toi)' : ''}
+                {` · ${new Date(item.created_at).toLocaleString('fr-FR')}`}
+                {item.closed_at ? ' · Clos' : ''}
+              </p>
+              <NotamScoreVotes
+                targetType="notam"
+                targetId={item.id}
+                score={item.score}
+                myVote={item.my_vote}
+                disabled={Boolean(item.closed_at)}
+                onChanged={reload}
+              />
+            </div>
+
+            <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
+              {item.body}
+            </p>
+
+            {isAdmin && !item.closed_at && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busyId === item.id}
+                onClick={() => onClose(item.id)}
+                className="text-emerald-700 border-emerald-200"
+              >
+                Fermer le NOTAM
+              </Button>
+            )}
+
+            <div className="space-y-3 border-t pt-3" style={{ borderColor: styles.border }}>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: styles.textMuted }}>
+                Reponses ({item.replies.length})
+              </p>
+
+              {item.replies.map((reply) => (
+                <div
+                  key={reply.id}
+                  className="rounded-lg p-3 space-y-2"
+                  style={{ backgroundColor: '#f6efe4' }}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-xs" style={{ color: styles.textMuted }}>
+                      {reply.author_username}
+                      {reply.is_mine ? ' (toi)' : ''}
+                      {` · ${new Date(reply.created_at).toLocaleString('fr-FR')}`}
+                    </p>
+                    <NotamScoreVotes
+                      targetType="reply"
+                      targetId={reply.id}
+                      score={reply.score}
+                      myVote={reply.my_vote}
+                      disabled={Boolean(item.closed_at)}
+                      onChanged={reload}
+                    />
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
+                    {reply.body}
+                  </p>
+                </div>
+              ))}
+
+              {!item.closed_at && (
+                <div className="space-y-2">
+                  <textarea
+                    value={replyDrafts[item.id] || ''}
+                    onChange={(e) =>
+                      setReplyDrafts((d) => ({ ...d, [item.id]: e.target.value }))
+                    }
+                    rows={2}
+                    placeholder="Ta reponse..."
+                    className="w-full rounded-xl border px-3 py-2 text-sm"
+                    style={{ borderColor: styles.border, color: styles.text }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      busyId === item.id || (replyDrafts[item.id] || '').trim().length < 2
+                    }
+                    onClick={() => onReply(item.id)}
+                    style={{ backgroundColor: styles.text, color: styles.background }}
+                  >
+                    Repondre
+                  </Button>
+                </div>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AgoraContent() {
+  const searchParams = useSearchParams();
+  const initial: AgoraTab = searchParams.get('tab') === 'notam' ? 'notam' : 'missives';
+  const [tab, setTab] = useState<AgoraTab>(initial);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTab(searchParams.get('tab') === 'notam' ? 'notam' : 'missives');
+  }, [searchParams]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setIsAdmin(user?.email === ADMIN_EMAIL);
+      } catch {
+        setIsAdmin(false);
+      }
+    })();
+  }, []);
+
+  return (
     <main className="min-h-screen" style={{ backgroundColor: styles.background }}>
       <header
         className="sticky top-0 z-40 border-b"
@@ -110,111 +438,47 @@ function AgoraContent() {
               Agora
             </h1>
           </div>
-          <p className="text-sm" style={{ color: styles.textMuted }}>
-            Accords restants :{' '}
-            <span className="font-semibold" style={{ color: styles.text }}>
-              {remaining}/{VOTE_LIMIT}
-            </span>
-          </p>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
-        <p className="text-sm" style={{ color: styles.textMuted }}>
-          Les missives publiees ici recueillent des accords (max {VOTE_LIMIT} par personne).
-          Plus une missive a d&apos;accords, plus elle est urgente pour l&apos;admin.
-          Publie les tiennes depuis l&apos;onglet Missives de la{' '}
-          <Link href="/boite?tab=missives" className="underline">
-            Boite
-          </Link>
-          .
-        </p>
-
-        {message && (
-          <p className="text-sm" style={{ color: styles.textMuted }}>
-            {message}
-          </p>
-        )}
-
-        {loading && (
-          <p className="text-sm" style={{ color: styles.textMuted }}>
-            Chargement...
-          </p>
-        )}
-
-        {!loading && items.length === 0 && (
-          <p className="text-sm" style={{ color: styles.textMuted }}>
-            Aucune missive dans l Agora pour le moment.
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {items.map((item, index) => (
-            <article
-              key={item.id}
-              className="rounded-xl p-5 space-y-3"
-              style={{
-                backgroundColor: styles.cardBg,
-                border: `1px solid ${styles.border}`,
-                boxShadow: styles.shadow,
-              }}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs" style={{ color: styles.textMuted }}>
-                    #{index + 1} · {item.author_username}
-                    {item.is_mine ? ' (toi)' : ''}
-                    {item.agora_published_at
-                      ? ` · ${new Date(item.agora_published_at).toLocaleString('fr-FR')}`
-                      : ''}
-                  </p>
-                </div>
-                <span
-                  className="inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: '#f3f2f1', color: styles.text }}
-                >
-                  <ThumbsUp className="h-3.5 w-3.5" />
-                  {item.vote_count}
-                </span>
-              </div>
-
-              <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
-                {item.body}
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={item.my_vote ? 'default' : 'outline'}
-                  disabled={busyId === item.id || (!item.my_vote && remaining <= 0)}
-                  onClick={() => onVote(item.id, item.my_vote)}
-                  style={
-                    item.my_vote
-                      ? { backgroundColor: styles.text, color: styles.background }
-                      : undefined
-                  }
-                >
-                  <ThumbsUp className="h-3.5 w-3.5 mr-1" />
-                  {item.my_vote ? 'Retirer mon accord' : 'Donner mon accord'}
-                </Button>
-
-                {isAdmin && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={busyId === item.id}
-                    onClick={() => onAdminClose(item.id)}
-                    className="text-emerald-700 border-emerald-200"
-                  >
-                    Marquer comme repondue
-                  </Button>
-                )}
-              </div>
-            </article>
-          ))}
+        <div
+          className="flex rounded-xl p-1 gap-1"
+          style={{
+            backgroundColor: styles.cardBg,
+            border: `1px solid ${styles.border}`,
+            boxShadow: styles.shadow,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setTab('missives')}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
+            style={{
+              backgroundColor: tab === 'missives' ? styles.text : 'transparent',
+              color: tab === 'missives' ? styles.background : styles.textMuted,
+            }}
+          >
+            <ThumbsUp className="h-4 w-4" /> Missives
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('notam')}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
+            style={{
+              backgroundColor: tab === 'notam' ? styles.text : 'transparent',
+              color: tab === 'notam' ? styles.background : styles.textMuted,
+            }}
+          >
+            <Megaphone className="h-4 w-4" /> NOTAM
+          </button>
         </div>
+
+        {tab === 'missives' ? (
+          <MissivesSection isAdmin={isAdmin} message={message} setMessage={setMessage} />
+        ) : (
+          <NotamSection isAdmin={isAdmin} message={message} setMessage={setMessage} />
+        )}
       </div>
     </main>
   );
@@ -223,7 +487,18 @@ function AgoraContent() {
 export default function AgoraPage() {
   return (
     <AuthGate>
-      <AgoraContent />
+      <Suspense
+        fallback={
+          <div
+            className="min-h-screen flex items-center justify-center text-sm"
+            style={{ backgroundColor: styles.background, color: styles.textMuted }}
+          >
+            Chargement...
+          </div>
+        }
+      >
+        <AgoraContent />
+      </Suspense>
     </AuthGate>
   );
 }

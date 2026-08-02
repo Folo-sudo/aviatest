@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { ArrowLeft, Bug, Mail, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Bug, Megaphone, ScrollText } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
+import { LatecoerePlaneIcon } from '@/components/icons/LatecoerePlaneIcon';
 import { Button } from '@/components/ui/button';
 import { EXERCISES } from '@/lib/data/exercises';
 import {
@@ -22,6 +23,8 @@ import {
   type Missive,
 } from '@/lib/feedback/api';
 import { publishMissiveToAgora, unpublishMissiveFromAgora } from '@/lib/agora/api';
+import { listMyNotams, submitNotam, type MyNotam } from '@/lib/notam/api';
+import { useSiteTexts } from '@/lib/site-texts/useSiteTexts';
 
 const BUG_LIMIT = 10;
 const MISSIVE_LIMIT = 2;
@@ -35,7 +38,7 @@ const styles = {
   shadow: '0 8px 24px rgba(55, 50, 47, 0.08)',
 };
 
-type Tab = 'beugs' | 'missives';
+type Tab = 'beugs' | 'missives' | 'notam';
 
 function StatusBadge({ status }: { status: BugStatus }) {
   const c = BUG_STATUS_COLOR[status] || BUG_STATUS_COLOR.envoye;
@@ -397,14 +400,130 @@ function MissivesPanel() {
   );
 }
 
+function NotamPanel() {
+  const { t } = useSiteTexts();
+  const [body, setBody] = useState('');
+  const [items, setItems] = useState<MyNotam[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const reload = async () => {
+    const list = await listMyNotams();
+    setItems(list);
+  };
+
+  useEffect(() => {
+    void reload().catch(() => setItems([]));
+  }, []);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    try {
+      await submitNotam(body);
+      setBody('');
+      setMessage('NOTAM publie dans l Agora.');
+      await reload();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'body_too_short') setMessage('Question trop courte (10 caracteres min).');
+      else setMessage('Envoi impossible. Verifie schema-notam-and-texts.sql.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div
+        className="rounded-2xl p-5 space-y-4"
+        style={{
+          backgroundColor: styles.cardBg,
+          border: `1px solid ${styles.border}`,
+          boxShadow: styles.shadow,
+        }}
+      >
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          {t('aeropostale.notam.intro')}
+        </p>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={4}
+            required
+            minLength={10}
+            placeholder="Ta question a la communaute..."
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+            style={{ borderColor: styles.border, color: styles.text }}
+          />
+          {message && (
+            <p
+              className={`text-sm ${
+                message.includes('publie') ? 'text-emerald-600' : 'text-red-500'
+              }`}
+            >
+              {message}
+            </p>
+          )}
+          <Button
+            type="submit"
+            disabled={busy || body.trim().length < 10}
+            style={{ backgroundColor: styles.text, color: styles.background }}
+          >
+            {busy ? 'Envoi...' : 'Publier le NOTAM'}
+          </Button>
+        </form>
+      </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold" style={{ color: styles.text }}>
+          Mes NOTAM ({items.length})
+        </h2>
+        {items.length === 0 && (
+          <p className="text-sm" style={{ color: styles.textMuted }}>
+            Aucun NOTAM pour le moment.
+          </p>
+        )}
+        {items.map((n) => (
+          <article
+            key={n.id}
+            className="rounded-xl p-4 space-y-2"
+            style={{
+              backgroundColor: styles.cardBg,
+              border: `1px solid ${styles.border}`,
+              boxShadow: styles.shadow,
+            }}
+          >
+            <p className="text-xs" style={{ color: styles.textMuted }}>
+              {new Date(n.created_at).toLocaleString('fr-FR')}
+              {n.closed_at ? ' · Clos' : ''}
+              {` · Score ${n.score} · ${n.reply_count} reponse${n.reply_count > 1 ? 's' : ''}`}
+            </p>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: styles.text }}>
+              {n.body}
+            </p>
+            <Link href="/agora?tab=notam" className="text-xs underline" style={{ color: styles.textMuted }}>
+              Voir dans l Agora
+            </Link>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
+}
+
 function BoiteContent() {
   const searchParams = useSearchParams();
-  const initial =
-    searchParams.get('tab') === 'missives' ? 'missives' : ('beugs' as Tab);
+  const tabParam = searchParams.get('tab');
+  const initial: Tab =
+    tabParam === 'missives' ? 'missives' : tabParam === 'notam' ? 'notam' : 'beugs';
   const [tab, setTab] = useState<Tab>(initial);
 
   useEffect(() => {
-    setTab(searchParams.get('tab') === 'missives' ? 'missives' : 'beugs');
+    const next = searchParams.get('tab');
+    setTab(next === 'missives' ? 'missives' : next === 'notam' ? 'notam' : 'beugs');
   }, [searchParams]);
 
   return (
@@ -419,9 +538,9 @@ function BoiteContent() {
               <ArrowLeft className="h-4 w-4 mr-1" /> Accueil
             </Button>
           </Link>
-          <MessageSquare className="h-5 w-5" style={{ color: styles.text }} />
+          <LatecoerePlaneIcon className="h-5 w-8" style={{ color: styles.text }} />
           <h1 className="text-lg font-bold" style={{ color: styles.text }}>
-            Boite
+            Aeropostale
           </h1>
         </div>
       </header>
@@ -455,11 +574,22 @@ function BoiteContent() {
               color: tab === 'missives' ? styles.background : styles.textMuted,
             }}
           >
-            <Mail className="h-4 w-4" /> Missives
+            <ScrollText className="h-4 w-4" /> Missives
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('notam')}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: tab === 'notam' ? styles.text : 'transparent',
+              color: tab === 'notam' ? styles.background : styles.textMuted,
+            }}
+          >
+            <Megaphone className="h-4 w-4" /> NOTAM
           </button>
         </div>
 
-        {tab === 'beugs' ? <BeugsPanel /> : <MissivesPanel />}
+        {tab === 'beugs' ? <BeugsPanel /> : tab === 'missives' ? <MissivesPanel /> : <NotamPanel />}
       </div>
     </main>
   );
