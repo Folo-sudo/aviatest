@@ -1,3 +1,7 @@
+# Netlify (historique / secours pendant la migration vers Vercel)
+# Ne pas supprimer tant que le site Netlify n'est pas decommissionne.
+# Workflow actuel : docs/vercel-workflow.md
+
 [build]
   command = "npm run build"
   publish = ".next"

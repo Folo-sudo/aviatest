@@ -1,6 +1,13 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { EXERCISES, getExerciseBySlug } from '@/lib/data/exercises';
+import { getExerciseBySlug } from '@/lib/data/exercises';
+import { isPhoneRequest } from '@/lib/device';
+import {
+  getAllExerciseSlugs,
+  getCanonicalExerciseSlug,
+  getExerciseConfigForSlug,
+  isKnownExerciseSlug,
+} from '@/lib/exercises/mobile';
 import { generateExerciseStructuredData, generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
 import StructuredData from '@/components/seo/StructuredData';
 import ExerciseClient from './ExerciseClient';
@@ -13,15 +20,13 @@ interface Props {
 
 // Generate static params for all exercises
 export async function generateStaticParams() {
-  return EXERCISES.filter((e) => e.ready).map((exercise) => ({
-    slug: exercise.slug,
-  }));
+  return getAllExerciseSlugs().map((slug) => ({ slug }));
 }
 
 // Dynamic metadata generation
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const exercise = getExerciseBySlug(slug);
+  const exercise = getExerciseConfigForSlug(slug);
 
   if (!exercise) {
     return { title: 'Exercice non trouve' };
@@ -56,16 +61,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ExercisePage({ params }: Props) {
   const { slug } = await params;
-
-  // Handle m-back special case - it's served at /exercices/m-back with query params
-  // The slug 'm-back' is valid but doesn't have an exercise config
-  const validSlugs = ['m-back', ...EXERCISES.map(e => e.slug)];
-
-  if (!validSlugs.includes(slug)) {
+  if (!isKnownExerciseSlug(slug)) {
     notFound();
   }
 
-  const exercise = getExerciseBySlug(slug);
+  const exercise = getExerciseBySlug(getCanonicalExerciseSlug(slug));
+  const isPhone = await isPhoneRequest();
 
   // For m-back, we don't have a direct slug match, so we skip structured data
   const structuredData = exercise ? [
@@ -80,7 +81,7 @@ export default async function ExercisePage({ params }: Props) {
   return (
     <>
       {structuredData.length > 0 && <StructuredData data={structuredData} />}
-      <ExerciseClient slug={slug} />
+      <ExerciseClient slug={slug} isPhone={isPhone} />
     </>
   );
 }

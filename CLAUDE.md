@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**AviaTest** (package: `next_psycho`) — a Next.js 16 / React 19 site offering free psychotechnical practice tests for French pilot selection exams (PSY0, PSY1 Cadets Air France, ENAC EPL). This is a **personal fork** owned by `Folo-sudo`, intended for Netlify deploy and future SaaS work. The original upstream is `Duflosth/mach320` (aviatest.fr on Vercel). UI and content are in French.
+**AviaTest** (package: `next_psycho`) — a Next.js 16 / React 19 site offering free psychotechnical practice tests for French pilot selection exams (PSY0, PSY1 Cadets Air France, ENAC EPL). This is a **personal fork** owned by `Folo-sudo`, migrating deploy from Netlify to **Vercel**. The original upstream is `Duflosth/mach320` (aviatest.fr). UI and content are in French.
+
+Deploy / Git workflow (source of truth): `docs/vercel-workflow.md`.
 
 ## Commands
 
@@ -19,10 +21,12 @@ No test runner is configured.
 
 ## Workflow rules
 
-- Prefer committing to `main`. Deploy happens via Netlify when the GitHub repo is connected.
+- **`main` = production** (Vercel Production). Prefer day-to-day work on **`dev`** (or feature branches); merge to `main` only when ready.
+- Preview deployments come from non-`main` branches on Vercel — use them to test before merge.
 - Do **not** push to `upstream` (`Duflosth/mach320`) unless explicitly asked.
 - Commit messages: short, conventional style, in the repo's existing tone.
 - If a change is risky or destructive (history rewrite, force-push, secret rotation, deleting whole directories), pause and ask first.
+- Keep `netlify.toml` until Netlify is fully decommissioned; do not delete it casually.
 
 ## Architecture
 

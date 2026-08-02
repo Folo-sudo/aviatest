@@ -7,19 +7,21 @@ alwaysApply: true
 
 Checklist à appliquer après chaque changement visible (deploy, merge, “ça ne marche pas”, “rien n’a changé”) :
 
-## 1. Branche vs prod Netlify
-- Netlify déploie **`main`** uniquement.
-- Un commit seulement sur une feature branch (`cursor/...`) **n’apparaît pas** en prod.
-- Avant de dire “c’est live” : vérifier que le commit est sur `origin/main` (merge/push faits).
+## 1. Branche vs prod (Vercel)
+- Vercel Production déploie **`main`** uniquement.
+- Un commit seulement sur `dev` / feature (`cursor/...`) → **preview**, pas la prod.
+- Avant de dire “c’est live” : commit sur `origin/main` + deploy Production **Ready**.
+- Workflow détaillé : `docs/vercel-workflow.md`.
 
-## 2. URL Netlify figée
-- **Prod** : `https://gleeful-creponne-71552a.netlify.app/`
-- **Interdit pour vérifier un update** : `https://HASH--gleeful-creponne-71552a.netlify.app/` (deploy preview figé).
+## 2. URL de vérification
+- Vérifier sur l’URL **Production** Vercel (ou le domaine custom une fois branché).
+- **Interdit pour vérifier un update prod** : une preview Vercel (`*.vercel.app` de branche) ou une ancienne preview Netlify `HASH--….netlify.app`.
+- Pendant la migration : ne pas confondre l’ancien site Netlify (`gleeful-creponne-71552a.netlify.app`) avec la nouvelle prod Vercel.
 - Si l’utilisateur “ne voit rien” : contrôler l’URL ouverte en premier.
 
 ## 3. Cache navigateur
-- Après un deploy : hard refresh (`Cmd+Shift+R`) sur l’URL prod ci-dessus.
-- Attendre la fin du build Netlify (souvent 1–2 min) avant de conclure à un échec.
+- Après un deploy : hard refresh (`Cmd+Shift+R`) sur l’URL prod.
+- Attendre le statut Ready Vercel (souvent 1–2 min) avant de conclure à un échec.
 
 ## 4. `savePerformanceResult`
 - Signature réelle : `savePerformanceResult(exerciseId, correct, total, avgTimeMs?)`.
@@ -42,6 +44,6 @@ Vérifier les 4 branchements :
 4. couleur dans `PerformanceChart.tsx` (+ icône `page.tsx` si besoin)
 
 ## Réponse type si “rien n’a changé”
-1. URL = prod sans hash ?
+1. URL = Production (pas preview / pas vieux hash Netlify) ?
 2. Commit sur `origin/main` ?
-3. Deploy Netlify terminé + hard refresh ?
+3. Deploy Vercel Ready + hard refresh ?

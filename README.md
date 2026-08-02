@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AviaTest
 
-## Getting Started
+Site Next.js pour l'entrainement aux tests psychotechniques pilote.
 
-First, run the development server:
+**Hebergement cible : Vercel.**  
+`main` = production. Les tests se font en local + sur une branche `dev` (preview Vercel), jamais directement en prod.
+
+Guide detaille : **[docs/vercel-workflow.md](docs/vercel-workflow.md)**
+
+## Developpement local
+
+### 1. Installer les dependances
+
+```bash
+npm install
+```
+
+### 2. Configurer les variables d'environnement
+
+Minimum requis :
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Partir de [`supabase/env.example`](supabase/env.example) et renseigner `.env.local` (jamais committe).
+
+Option utile en local :
+
+- `NEXT_PUBLIC_BASE_URL=http://localhost:3000`
+
+Exemple :
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+Les memes cles doivent exister dans Vercel (Production + Preview).
+
+### 3. Lancer le site
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Verifier la build avant de publier
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Workflow recommande
 
-To learn more about Next.js, take a look at the following resources:
+Detail et checklist : [docs/vercel-workflow.md](docs/vercel-workflow.md)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Resume :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Travailler sur `dev` (ou une feature branchee depuis `dev` / `main`).
+2. Coder en local (`npm run dev`), valider avec `npm run build`.
+3. `git push` sur la branche de test → **preview Vercel**.
+4. Tester la preview.
+5. Merger sur **`main` seulement quand c'est pret** → deploy **Production**.
+6. Verifier l'URL Production (hard refresh).
 
-## Deploy on Vercel
+Ne pas pousser du WIP experimental sur `main`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Branches
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Branche | Role |
+| --- | --- |
+| `main` | Production (Vercel Production) |
+| `dev` | Integration / tests (preview Vercel) |
+| autres | Features / essais (preview Vercel) |
+
+## Supabase
+
+Vercel (ou local) et Supabase sont separes. Le site se connecte au projet Supabase via les variables `NEXT_PUBLIC_SUPABASE_*`.
+
+Option simple : **dev local + Supabase distant** (celle utilisee aujourd'hui).
+
+## Migration Netlify → Vercel
+
+Pendant la bascule :
+
+- **Garder** `netlify.toml` et le site Netlify en secours.
+- **Utiliser** Vercel pour les previews et, une fois pret, pour la production.
+- **Ignorer** les deploys Netlify au quotidien si Vercel est branche.
+- **Supprimer plus tard** la connexion Netlify / `netlify.toml` seulement quand le domaine pointe definitivement sur Vercel.
+
+Voir la section complete dans [docs/vercel-workflow.md](docs/vercel-workflow.md).
+
+## Cursor / agents
+
+- Coder en local, controler les diffs Git.
+- Pas de push automatique vers `main` sans demande explicite.
+- Garder `.env.local` hors commit.
+- Eviter de modifier le meme fichier en parallele depuis plusieurs sessions.
+
+## Commandes utiles
+
+```bash
+npm run dev
+npm run build
+npm start
+npm run lint
+```
+
+## Note
+
+Le lint global peut encore remonter des erreurs historiques. Avant un merge sur `main`, la verification critique reste `npm run build` + preview Vercel OK.

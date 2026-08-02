@@ -1,57 +1,49 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Smartphone, Calculator, Target, TriangleRight, X } from 'lucide-react';
+import { ArrowLeft, Smartphone, Target, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EXERCISES } from '@/lib/data/exercises';
+import {
+  getExerciseMobileProfile,
+  hasDedicatedMobileVariant,
+} from '@/lib/exercises/mobile';
 
-const mobileExercises = [
-  {
-    slug: 'calcul-mental',
-    title: 'Calcul Mental 1',
-    description: 'Chaine d\'additions et soustractions avec multiplication optionnelle',
-    icon: Calculator,
-    color: '#2563EB',
-    bgColor: '#EFF6FF',
-  },
-  {
-    slug: 'calcul-mental-2',
-    title: 'Calcul Mental 2',
-    description: 'Estimez le resultat et trouvez le plus petit intervalle',
-    icon: Target,
-    color: '#7C3AED',
-    bgColor: '#F5F3FF',
-  },
-  {
-    slug: 'calcul-mental-3',
-    title: 'Calcul Mental 3',
-    description: 'Systemes de 3 equations lineaires par substitution',
-    icon: Calculator,
-    color: '#DC2626',
-    bgColor: '#FEF2F2',
-  },
-  {
-    slug: 'fiche-angles',
-    title: 'Fiche Angles',
-    description: 'Estimez l\'angle entre deux aiguilles sur un cercle',
-    icon: TriangleRight,
-    color: '#D97706',
-    bgColor: '#FFFBEB',
-  },
-  {
-    slug: 'fiche-calcul',
-    title: 'Fiche Calcul',
-    description: 'Entrainement continu aux multiplications ab x cd',
-    icon: X,
-    color: '#0891B2',
-    bgColor: '#ECFEFF',
-  },
-];
+const mobileExercises = EXERCISES.filter((exercise) => exercise.ready).map((exercise) => {
+  const mobileProfile = getExerciseMobileProfile(exercise.slug);
+
+  return {
+    slug: exercise.slug,
+    title: exercise.title,
+    description: mobileProfile.note,
+    dedicated: hasDedicatedMobileVariant(exercise.slug),
+    icon: mobileProfile.experience === 'dedicated'
+      ? Smartphone
+      : mobileProfile.experience === 'responsive'
+        ? Target
+        : X,
+    color: mobileProfile.experience === 'dedicated'
+      ? '#2563EB'
+      : mobileProfile.experience === 'responsive'
+        ? '#0891B2'
+        : '#D97706',
+    bgColor: mobileProfile.experience === 'dedicated'
+      ? '#EFF6FF'
+      : mobileProfile.experience === 'responsive'
+        ? '#ECFEFF'
+        : '#FFFBEB',
+    badgeLabel: mobileProfile.experience === 'dedicated'
+      ? 'Optimise mobile'
+      : mobileProfile.experience === 'responsive'
+        ? 'Compatible'
+        : 'A optimiser',
+  };
+});
 
 export default function TelephonePage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#fbfaf9' }}>
-      {/* Header */}
       <header
         className="sticky top-0 z-50"
         style={{
@@ -79,24 +71,47 @@ export default function TelephonePage() {
         </div>
       </header>
 
-      {/* Content */}
       <div className="px-4 py-6">
-        <div className="max-w-lg mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold mb-2" style={{ color: '#37322f' }}>
-              Exercices Mobile
+        <div className="mx-auto max-w-5xl">
+          <section
+            className="mb-8 rounded-[28px] border p-6 shadow-[0_10px_30px_rgba(55,50,47,0.08)]"
+            style={{ background: 'linear-gradient(180deg, #fffaf3 0%, #ffffff 100%)', borderColor: '#e0dedb' }}
+          >
+            <h1 className="text-3xl font-bold mb-3" style={{ color: '#37322f' }}>
+              Version telephone
             </h1>
-            <p className="text-sm" style={{ color: '#605a57' }}>
-              Versions optimisees pour votre telephone
+            <p className="max-w-2xl text-sm leading-relaxed" style={{ color: '#605a57' }}>
+              Cette page n&apos;est plus une simple liste mobile. Elle sert de tableau de bord ergonomique : tu vois immédiatement quels tests sont deja optimises, simplement compatibles, ou encore a repenser.
             </p>
+          </section>
+
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-[22px] bg-white p-5 shadow-[0_8px_26px_rgba(55,50,47,0.08)]" style={{ border: '1px solid #e0dedb' }}>
+              <p className="text-sm font-medium" style={{ color: '#37322f' }}>Optimises mobile</p>
+              <p className="mt-2 text-3xl font-semibold" style={{ color: '#2563EB' }}>
+                {mobileExercises.filter((exercise) => exercise.badgeLabel === 'Optimise mobile').length}
+              </p>
+            </div>
+            <div className="rounded-[22px] bg-white p-5 shadow-[0_8px_26px_rgba(55,50,47,0.08)]" style={{ border: '1px solid #e0dedb' }}>
+              <p className="text-sm font-medium" style={{ color: '#37322f' }}>Compatibles</p>
+              <p className="mt-2 text-3xl font-semibold" style={{ color: '#0891B2' }}>
+                {mobileExercises.filter((exercise) => exercise.badgeLabel === 'Compatible').length}
+              </p>
+            </div>
+            <div className="rounded-[22px] bg-white p-5 shadow-[0_8px_26px_rgba(55,50,47,0.08)]" style={{ border: '1px solid #e0dedb' }}>
+              <p className="text-sm font-medium" style={{ color: '#37322f' }}>A optimiser</p>
+              <p className="mt-2 text-3xl font-semibold" style={{ color: '#D97706' }}>
+                {mobileExercises.filter((exercise) => exercise.badgeLabel === 'A optimiser').length}
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid gap-4 lg:grid-cols-2">
             {mobileExercises.map((exercise) => {
               const Icon = exercise.icon;
               return (
                 <Link key={exercise.slug} href={`/telephone/${exercise.slug}`} target="_blank">
-                  <Card className="mb-3 hover:scale-[1.01] transition-transform cursor-pointer" style={{ borderLeft: `4px solid ${exercise.color}` }}>
+                  <Card className="h-full hover:scale-[1.01] transition-transform cursor-pointer" style={{ borderLeft: `4px solid ${exercise.color}`, boxShadow: '0 8px 24px rgba(55,50,47,0.08)' }}>
                     <CardContent className="py-4 px-4">
                       <div className="flex items-start gap-3">
                         <div
@@ -114,7 +129,7 @@ export default function TelephonePage() {
                           </p>
                         </div>
                         <Badge variant="secondary" className="shrink-0 text-xs" style={{ backgroundColor: '#e0dedb', color: '#37322f' }}>
-                          Mobile
+                          {exercise.badgeLabel}
                         </Badge>
                       </div>
                     </CardContent>

@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import {
+  EXERCISE_TYPES,
   getAllCompetitions,
   getExercisesByCompetition,
-  EXERCISE_TYPES,
 } from '@/lib/data/exercises';
 import StructuredData from '@/components/seo/StructuredData';
 import { generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
-import { ChevronRight, Plane } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plane, Trophy } from 'lucide-react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
@@ -33,6 +33,12 @@ export const metadata: Metadata = {
   },
 };
 
+const hooks = {
+  psy0: 'La meilleure entree pour travailler la vitesse, l attention et les formats psychotechniques les plus nerveux.',
+  psy1: 'La bonne porte si tu veux du calcul, de la logique et des exercices cognitifs plus exigeants.',
+  'enac-epl': 'Le parcours le plus large pour couvrir une preparation plus academique et tres equilibree.',
+};
+
 export default function ConcoursPage() {
   const competitions = getAllCompetitions();
 
@@ -46,101 +52,124 @@ export default function ConcoursPage() {
       <StructuredData data={breadcrumbData} />
       <main className="min-h-screen bg-[#fbfaf9]">
         <div className="container mx-auto px-4 py-12">
-          {/* Breadcrumb */}
-          <nav className="mb-8 text-sm text-[#605a57]">
-            <Link href="/" className="hover:underline">
-              Accueil
-            </Link>
-            <span className="mx-2">/</span>
+          <nav className="mb-8 flex items-center gap-2 text-sm text-[#605a57]">
+            <Link href="/" className="hover:underline">Accueil</Link>
+            <span>/</span>
             <span className="text-[#37322f]">Concours</span>
           </nav>
 
-          <div className="flex items-center gap-3 mb-4">
-            <Plane className="h-8 w-8 text-[#37322f]" />
-            <h1 className="text-3xl font-bold text-[#37322f]">
-              Concours Pilote de Ligne
+          <section className="rounded-[30px] border border-[#e0dedb] bg-[linear-gradient(180deg,#fffaf3_0%,#f6efe4_100%)] p-8 shadow-[0_12px_34px_rgba(55,50,47,0.08)]">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f2d3a1] bg-[#fff8ed] px-4 py-2 text-sm text-[#9a3412]">
+              <Plane className="h-4 w-4" />
+              Choisis d abord la batterie qui te concerne
+            </div>
+            <h1 className="max-w-3xl text-4xl font-bold leading-tight text-[#37322f] md:text-5xl">
+              Les concours sont maintenant la porte d&apos;entree principale de la preparation.
             </h1>
-          </div>
-          <p className="text-[#605a57] mb-12 max-w-2xl">
-            Selectionnez votre concours pour acceder aux exercices
-            d&apos;entrainement adaptes a chaque selection.
-          </p>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#605a57]">
+              Au lieu d&apos;une navigation plate, chaque concours devient un parcours clair avec sa logique propre, ses familles d&apos;epreuves dominantes et ses exercices prioritaires.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/stadium"
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b_0%,#b45309_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(180,83,9,0.24)]"
+              >
+                <Trophy className="h-4 w-4" />
+                Entrer dans le Stadium
+              </Link>
+              <Link
+                href="/exercices"
+                className="inline-flex items-center gap-2 rounded-full border border-[#e0dedb] bg-white px-5 py-3 text-sm font-medium text-[#37322f]"
+              >
+                Voir tous les exercices
+              </Link>
+            </div>
+          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <section className="mt-12 grid gap-6 lg:grid-cols-3">
             {competitions.map((competition) => {
               const exercises = getExercisesByCompetition(competition.id);
-
-              // Get unique types for this competition
-              const types = [
-                ...new Set(exercises.flatMap((e) => e.types)),
-              ].slice(0, 4);
+              const types = [...new Set(exercises.flatMap((exercise) => exercise.types))].slice(0, 4);
 
               return (
-                <Link key={competition.id} href={`/concours/${competition.slug}`}>
-                  <article className="h-full bg-white rounded-xl border border-[#e0dedb] hover:shadow-xl transition-all hover:scale-[1.02] overflow-hidden">
-                    {/* Header */}
-                    <div className="p-6 border-b border-[#e0dedb]">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-[#605a57]">
+                <Link key={competition.id} href={`/concours/${competition.slug}`} className="block h-full">
+                  <article
+                    className="h-full rounded-[28px] border border-[#e0dedb] bg-white p-6 transition-transform hover:scale-[1.012]"
+                    style={{
+                      boxShadow: '0 10px 30px rgba(55,50,47,0.08)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-[#605a57]">
                           {competition.organization}
-                        </span>
-                        <ChevronRight className="h-5 w-5 text-[#605a57]" />
+                        </p>
+                        <h2 className="mt-3 text-3xl font-semibold text-[#37322f]">
+                          {competition.name}
+                        </h2>
+                        <p className="mt-1 text-sm text-[#605a57]">{competition.fullName}</p>
                       </div>
-                      <h2 className="text-2xl font-bold text-[#37322f] mb-1">
-                        {competition.name}
-                      </h2>
-                      <p className="text-sm text-[#605a57]">
-                        {competition.fullName}
-                      </p>
+                      <ArrowRight className="mt-1 h-5 w-5 text-[#605a57]" />
                     </div>
 
-                    {/* Content */}
-                    <div className="p-6">
-                      <p className="text-sm text-[#605a57] mb-4">
-                        {competition.description}
-                      </p>
+                    <p className="mt-5 text-sm leading-relaxed text-[#605a57]">
+                      {competition.description}
+                    </p>
+                    <p className="mt-4 text-sm font-medium text-[#37322f]">
+                      {hooks[competition.id]}
+                    </p>
 
-                      {/* Stats */}
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="text-center">
-                          <span className="block text-2xl font-bold text-[#37322f]">
-                            {exercises.length}
-                          </span>
-                          <span className="text-xs text-[#605a57]">exercices</span>
-                        </div>
-                        <div className="h-8 w-px bg-[#e0dedb]" />
-                        <div className="text-center">
-                          <span className="block text-2xl font-bold text-[#37322f]">
-                            {types.length}
-                          </span>
-                          <span className="text-xs text-[#605a57]">categories</span>
-                        </div>
+                    <div className="mt-6 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-[#f8f5f2] px-4 py-4">
+                        <p className="text-2xl font-semibold text-[#37322f]">{exercises.length}</p>
+                        <p className="mt-1 text-xs text-[#605a57]">exercices disponibles</p>
                       </div>
+                      <div className="rounded-2xl bg-[#f8f5f2] px-4 py-4">
+                        <p className="text-2xl font-semibold text-[#37322f]">{types.length}</p>
+                        <p className="mt-1 text-xs text-[#605a57]">familles dominantes</p>
+                      </div>
+                    </div>
 
-                      {/* Types */}
-                      <div className="flex flex-wrap gap-2">
-                        {types.map((type) => {
-                          const typeConfig = EXERCISE_TYPES[type];
-                          return (
-                            <span
-                              key={type}
-                              className="text-xs px-2 py-1 rounded"
-                              style={{
-                                backgroundColor: typeConfig.bgColor,
-                                color: typeConfig.color,
-                              }}
-                            >
-                              {typeConfig.label}
-                            </span>
-                          );
-                        })}
-                      </div>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {types.map((type) => {
+                        const config = EXERCISE_TYPES[type];
+                        return (
+                          <span
+                            key={type}
+                            className="rounded-full px-3 py-1 text-xs font-medium"
+                            style={{
+                              backgroundColor: config.bgColor,
+                              color: config.color,
+                            }}
+                          >
+                            {config.label}
+                          </span>
+                        );
+                      })}
                     </div>
                   </article>
                 </Link>
               );
             })}
-          </div>
+          </section>
+
+          <section className="mt-12 rounded-[28px] border border-[#e0dedb] bg-white p-6 shadow-[0_10px_30px_rgba(55,50,47,0.08)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-[#37322f]">Comment utiliser cette page</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#605a57]">
+                  Choisis ton concours, entre dans sa batterie, puis travaille soit les blocs les plus critiques, soit le Stadium pour faire monter la repetition et la competitivite.
+                </p>
+              </div>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[#37322f]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour accueil
+              </Link>
+            </div>
+          </section>
         </div>
       </main>
     </>

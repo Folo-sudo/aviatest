@@ -1,29 +1,20 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { getExerciseConfigForSlug, getAllExerciseSlugs, isKnownExerciseSlug } from '@/lib/exercises/mobile';
 import MobileExerciseClient from './MobileExerciseClient';
-
-const VALID_SLUGS = ['calcul-mental', 'calcul-mental-2', 'calcul-mental-3', 'fiche-angles', 'fiche-calcul', 'glossaire-angles'];
-
-const EXERCISE_TITLES: Record<string, string> = {
-  'calcul-mental': 'Calcul Mental 1 - Mobile',
-  'calcul-mental-2': 'Calcul Mental 2 - Mobile',
-  'calcul-mental-3': 'Calcul Mental 3 - Mobile',
-  'fiche-angles': 'Fiche Angles - Mobile',
-  'fiche-calcul': 'Fiche Calcul - Mobile',
-  'glossaire-angles': 'Glossaire Angles - Mobile',
-};
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  return VALID_SLUGS.map((slug) => ({ slug }));
+  return getAllExerciseSlugs().map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const title = EXERCISE_TITLES[slug] || 'Exercice Mobile';
+  const exercise = getExerciseConfigForSlug(slug);
+  const title = exercise?.title ?? 'Exercice Mobile';
 
   return {
     title: `${title} | AviaTest`,
@@ -35,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MobileExercisePage({ params }: Props) {
   const { slug } = await params;
 
-  if (!VALID_SLUGS.includes(slug)) {
+  if (!isKnownExerciseSlug(slug)) {
     notFound();
   }
 
