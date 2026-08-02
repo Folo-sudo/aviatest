@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, Settings, RotateCcw, Home, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +36,11 @@ interface GaugeConfig {
 }
 interface BoardState { values: Record<InstrumentId, number>; active: Set<InstrumentId> }
 interface ColumnOptions { options: string[]; correct: string }
+interface CompteurSettings {
+  numQuestions: number;
+  totalTime: number;
+  examMode: boolean;
+}
 
 /* ================================================================
    Geometry helpers
@@ -497,7 +503,11 @@ function Gauge({ id, value }: { id: InstrumentId; value: number }) {
 export function CompteurTest() {
   const router = useRouter();
   const [gs, setGs] = useState<GameState>('menu');
-  const [settings, setSettings] = useState({ numQuestions: 20, totalTime: 600 });
+  const [settings, setSettings] = useState<CompteurSettings>({
+    numQuestions: 20,
+    totalTime: 600,
+    examMode: false,
+  });
   const [scorer] = useState(() => new Scorer());
   const [qNum, setQNum] = useState(0);
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -540,21 +550,10 @@ export function CompteurTest() {
   }, [gs]);
 
   const pickCell = useCallback((id: InstrumentId, value: string) => {
-    if (answered || !board || !columns) return;
+    if (answered || !board) return;
     if (!board.active.has(id)) return;
-
-    setSelection(prev => {
-      const next = { ...prev, [id]: value };
-      const activeIds = [...board.active];
-      if (activeIds.every(aid => next[aid] != null)) {
-        const ok = activeIds.every(aid => next[aid] === columns[aid].correct);
-        setAnswered(true);
-        setLastCorrect(ok);
-        scorer.recordAnswer(ok);
-      }
-      return next;
-    });
-  }, [answered, board, columns, scorer]);
+    setSelection(prev => ({ ...prev, [id]: value }));
+  }, [answered, board]);
 
   const advance = useCallback(() => {
     const n = qNum + 1;
@@ -566,6 +565,32 @@ export function CompteurTest() {
     setQNum(n);
     nextQ();
   }, [qNum, settings.numQuestions, nextQ]);
+
+  /** Validate current selection (Suivant), then show correction or go next in exam mode. */
+  const submitOrAdvance = useCallback(() => {
+    if (!board || !columns) return;
+
+    if (answered) {
+      advance();
+      return;
+    }
+
+    const activeIds = [...board.active];
+    if (!activeIds.every(aid => selection[aid] != null)) return;
+
+    const ok = activeIds.every(aid => selection[aid] === columns[aid].correct);
+    scorer.recordAnswer(ok);
+    setLastCorrect(ok);
+
+    if (settings.examMode) {
+      advance();
+    } else {
+      setAnswered(true);
+    }
+  }, [board, columns, answered, selection, scorer, settings.examMode, advance]);
+
+  const selectionComplete =
+    !!board && [...board.active].every(aid => selection[aid] != null);
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -591,8 +616,11 @@ export function CompteurTest() {
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
               <p className="font-semibold mb-1">Regles</p>
-              <p>8 compteurs cockpit sont affiches. Pour chaque colonne active, choisissez la case qui correspond a la valeur reelle. Les compteurs a 0 ne sont pas evalues (pas besoin de les lire). Selectionnez une valeur par colonne active.</p>
+              <p>8 compteurs cockpit sont affiches. Pour chaque colonne active, choisissez la case qui correspond a la valeur reelle, puis validez avec Suivant. Les compteurs a 0 ne sont pas evalues. Hors mode examen, la correction s&apos;affiche apres validation.</p>
             </div>
+            {settings.examMode && (
+              <p className="text-center text-sm text-amber-700 font-medium">Mode examen actif</p>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}><Play className="mr-2 h-5 w-5" />Jouer</Button>
               <Button variant="outline" size="lg" className="w-full" onClick={() => setGs('settings')}><Settings className="mr-2 h-5 w-5" />Parametres</Button>
@@ -618,6 +646,16 @@ export function CompteurTest() {
             <div>
               <Label>Temps total : {Math.floor(settings.totalTime / 60)} min</Label>
               <Slider value={[settings.totalTime]} onValueChange={([v]) => setSettings(s => ({ ...s, totalTime: v }))} min={120} max={900} step={60} className="mt-2" />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label>Mode examen</Label>
+                <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les planches</p>
+              </div>
+              <Switch
+                checked={settings.examMode}
+                onCheckedChange={v => setSettings(s => ({ ...s, examMode: v }))}
+              />
             </div>
             <Button variant="outline" className="w-full" onClick={() => setGs('menu')}><ArrowLeft className="mr-2 h-4 w-4" />Retour</Button>
           </CardContent>
@@ -761,17 +799,22 @@ export function CompteurTest() {
           </table>
         </div>
 
-        {/* Feedback + Next */}
-        {answered && (
-          <div className="flex items-center justify-between mt-3">
-            <div className="text-sm">
-              {lastCorrect
+        {/* Validate / feedback + Next */}
+        <div className="flex items-center justify-between mt-3 gap-3">
+          <div className="text-sm min-h-[1.25rem]">
+            {answered && (
+              lastCorrect
                 ? <span className="text-green-600 font-bold">Correct !</span>
-                : <span className="text-red-600 font-bold">Incorrect — les cases vertes indiquent les bonnes valeurs</span>}
-            </div>
-            <Button onClick={advance}>Suivant <ChevronRight className="ml-1 h-4 w-4" /></Button>
+                : <span className="text-red-600 font-bold">Incorrect — les cases vertes indiquent les bonnes valeurs</span>
+            )}
           </div>
-        )}
+          <Button
+            onClick={submitOrAdvance}
+            disabled={!answered && !selectionComplete}
+          >
+            Suivant <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
