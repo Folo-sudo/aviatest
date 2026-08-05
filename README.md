@@ -82,6 +82,9 @@ Vercel (ou local) et Supabase sont separes. Le site se connecte au projet Supaba
 
 Option simple : **dev local + Supabase distant** (celle utilisee aujourd'hui).
 
+Apres toute installation ou mise a jour des scripts `supabase/schema-*.sql`, executer
+[`supabase/schema-security-hardening.sql`](supabase/schema-security-hardening.sql) en dernier afin de retirer l'acces anonyme aux RPC privilegiees.
+
 ## Migration Netlify → Vercel
 
 Pendant la bascule :

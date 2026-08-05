@@ -3,11 +3,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import AuthForms from '@/components/AuthForms';
+import UsernameSetup from '@/components/UsernameSetup';
 import DuelInviteHost from '@/components/DuelInviteHost';
 import {
   getSupabaseBrowserClient,
   isSupabaseConfigured,
 } from '@/lib/supabase/client';
+import { fetchMyProfile } from '@/lib/account/profile';
 
 const styles = {
   background: '#fbfaf9',
@@ -19,10 +21,11 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState(false);
+  const [needsUsername, setNeedsUsername] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- env check after mount
       setConfigError(true);
       setLoading(false);
       return;
@@ -31,15 +34,45 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     let cancelled = false;
     const supabase = getSupabaseBrowserClient();
 
+    const refreshProfileGate = async (next: Session | null) => {
+      if (!next) {
+        if (!cancelled) {
+          setNeedsUsername(false);
+          setProfileLoading(false);
+        }
+        return;
+      }
+      if (!cancelled) setProfileLoading(true);
+      try {
+        const profile = await fetchMyProfile();
+        if (cancelled) return;
+        // Retry briefly if trigger has not created the profile yet
+        if (!profile) {
+          await new Promise((r) => setTimeout(r, 400));
+          const again = await fetchMyProfile();
+          if (cancelled) return;
+          setNeedsUsername(Boolean(again?.username_pending));
+        } else {
+          setNeedsUsername(Boolean(profile.username_pending));
+        }
+      } catch {
+        if (!cancelled) setNeedsUsername(false);
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setSession(data.session);
       setLoading(false);
+      void refreshProfileGate(data.session);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
       setLoading(false);
+      void refreshProfileGate(next);
     });
 
     return () => {
@@ -48,7 +81,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  if (loading) {
+  if (loading || (session && profileLoading)) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
@@ -73,7 +106,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
           </h1>
           <p className="text-sm" style={{ color: styles.textMuted }}>
             Ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY
-            (voir supabase/env.example), puis execute supabase/schema.sql dans
+            (voir supabase/env.example), puis exécute supabase/schema.sql dans
             le SQL Editor Supabase.
           </p>
         </div>
@@ -83,6 +116,16 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
   if (!session) {
     return <AuthForms onSuccess={() => {/* session via onAuthStateChange */}} />;
+  }
+
+  if (needsUsername) {
+    return (
+      <UsernameSetup
+        onDone={() => {
+          setNeedsUsername(false);
+        }}
+      />
+    );
   }
 
   return (

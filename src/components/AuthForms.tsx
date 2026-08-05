@@ -40,6 +40,34 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
     setError(null);
   };
 
+  const handleGoogle = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      });
+      if (oauthError) {
+        setError(mapAuthError(oauthError.message));
+        setBusy(false);
+      }
+      // On success the browser redirects away
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      if (message?.includes('Missing NEXT_PUBLIC_SUPABASE')) {
+        setError(
+          'Supabase n’est pas configuré. Ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.',
+        );
+      } else {
+        setError(mapAuthError(message));
+      }
+      setBusy(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -66,7 +94,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
           return;
         }
         if (available === false) {
-          setError('Ce nom d utilisateur est deja pris');
+          setError("Ce nom d’utilisateur est déjà pris");
           return;
         }
 
@@ -88,7 +116,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
 
         if (!data.session || !data.user) {
           setError(
-            'Compte cree. Confirme ton email puis reconnecte-toi, ou desactive la confirmation email dans Supabase.',
+            'Compte créé. Confirme ton e-mail puis reconnecte-toi, ou désactive la confirmation e-mail dans Supabase.',
           );
           setMode('login');
           return;
@@ -102,7 +130,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
 
         if (profileError || !profile) {
           await supabase.auth.signOut();
-          setError('Ce nom d utilisateur est deja pris');
+          setError("Ce nom d’utilisateur est déjà pris");
           return;
         }
 
@@ -127,7 +155,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
       const message = err instanceof Error ? err.message : undefined;
       if (message?.includes('Missing NEXT_PUBLIC_SUPABASE')) {
         setError(
-          'Supabase n est pas configure. Ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.',
+          'Supabase n’est pas configuré. Ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.',
         );
       } else {
         setError(mapAuthError(message));
@@ -175,9 +203,53 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
           style={{ color: styles.colors.textMuted }}
         >
           {mode === 'login'
-            ? 'Connecte-toi pour acceder aux exercices'
-            : 'Cree un compte pour commencer a t entrainer'}
+            ? 'Connecte-toi pour accéder aux exercices'
+            : 'Crée un compte pour commencer à t’entraîner'}
         </p>
+
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={busy}
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-85 disabled:opacity-60"
+          style={{
+            borderColor: styles.colors.border,
+            backgroundColor: styles.colors.cardBg,
+            color: styles.colors.text,
+          }}
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="#EA4335"
+              d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.2-1.9 2.9l3.1 2.4c1.8-1.7 2.8-4.1 2.8-7 0-.7-.1-1.3-.2-1.9H12z"
+            />
+            <path
+              fill="#34A853"
+              d="M5.3 14.3l-.8.6-2.2 1.7C3.8 19.3 7.6 22 12 22c2.7 0 5-.9 6.7-2.4l-3.1-2.4c-.9.6-2 .9-3.6.9-2.8 0-5.1-1.9-5.9-4.4z"
+            />
+            <path
+              fill="#4A90E2"
+              d="M3.1 7.4C2.4 8.8 2 10.3 2 12s.4 3.2 1.1 4.6l3.1-2.4C5.7 13.4 5.5 12.7 5.5 12s.2-1.4.6-2z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M12 5.5c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.9 2.5 14.7 1.5 12 1.5 7.6 1.5 3.8 4.2 2.3 8.3l3.1 2.4C6.9 7.4 9.2 5.5 12 5.5z"
+            />
+          </svg>
+          Continuer avec Google
+        </button>
+
+        {error && (
+          <p className="mb-4 text-sm text-red-500 text-center">{error}</p>
+        )}
+
+        <div className="mb-4 flex items-center gap-3">
+          <div className="h-px flex-1" style={{ backgroundColor: styles.colors.border }} />
+          <span className="text-xs" style={{ color: styles.colors.textMuted }}>
+            ou
+          </span>
+          <div className="h-px flex-1" style={{ backgroundColor: styles.colors.border }} />
+        </div>
 
         <div
           className="grid grid-cols-2 gap-1 p-1 rounded-lg mb-6"
@@ -205,7 +277,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
               boxShadow: mode === 'signup' ? styles.shadows.card : 'none',
             }}
           >
-            Creer un compte
+            Créer un compte
           </button>
         </div>
 
@@ -216,7 +288,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                 className="text-xs font-medium"
                 style={{ color: styles.colors.textMuted }}
               >
-                Nom d utilisateur
+                Nom d’utilisateur
               </label>
               <Input
                 type="text"
@@ -228,7 +300,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                 required
               />
               <p className="text-xs" style={{ color: styles.colors.textMuted }}>
-                Unique, lie a ton email. Sert aussi de pseudo (progression / Stadium).
+                Unique, lié à ton e-mail. Sert aussi de pseudo (progression / Stadium).
               </p>
             </div>
           )}
@@ -238,7 +310,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
               className="text-xs font-medium"
               style={{ color: styles.colors.textMuted }}
             >
-              Email
+              E-mail
             </label>
             <Input
               type="email"
@@ -259,18 +331,16 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
             </label>
             <Input
               type="password"
-              placeholder="Au moins 6 caracteres"
+              placeholder={
+                mode === 'signup' ? 'Au moins 12 caractères' : 'Ton mot de passe'
+              }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              minLength={6}
+              minLength={mode === 'signup' ? 12 : undefined}
               required
             />
           </div>
-
-          {error && (
-            <p className="text-sm text-red-500 text-center">{error}</p>
-          )}
 
           <Button
             type="submit"
@@ -282,10 +352,10 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
             }}
           >
             {busy
-              ? 'Patiente...'
+              ? 'Patiente…'
               : mode === 'login'
                 ? 'Se connecter'
-                : 'Creer mon compte'}
+                : 'Créer mon compte'}
           </Button>
         </form>
       </div>

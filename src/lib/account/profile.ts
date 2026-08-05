@@ -7,6 +7,7 @@ export type ProgressionVisibility = 'public' | 'friends' | 'private';
 export type UserProfile = {
   id: string;
   username: string;
+  username_pending: boolean;
   progression_public: boolean;
   progression_visibility: ProgressionVisibility;
   duel_wins: number;
@@ -57,7 +58,7 @@ export async function fetchMyProfile(): Promise<UserProfile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, progression_public, progression_visibility, duel_wins')
+    .select('id, username, username_pending, progression_public, progression_visibility, duel_wins')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -67,6 +68,7 @@ export async function fetchMyProfile(): Promise<UserProfile | null> {
   return {
     id: data.id as string,
     username: data.username as string,
+    username_pending: Boolean(data.username_pending),
     progression_public: visibility === 'public' || Boolean(data.progression_public),
     progression_visibility: visibility,
     duel_wins: Number(data.duel_wins) || 0,
@@ -77,13 +79,23 @@ export async function fetchMyProfile(): Promise<UserProfile | null> {
 /** Bind local pseudo to the unique profile username (1 email = 1 pseudo). */
 export async function syncPseudoFromProfile(): Promise<string | null> {
   const profile = await fetchMyProfile();
-  if (!profile) return null;
+  if (!profile || profile.username_pending) return null;
   const old = getPseudo();
   if (old && old !== profile.username) {
     migrateLocalPseudoKeys(old, profile.username);
   }
   setPseudo(profile.username);
   return profile.username;
+}
+
+/** First Google / OAuth login: set definitive username when username_pending. */
+export async function claimUsername(candidate: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('claim_username', {
+    candidate: candidate.trim(),
+  });
+  if (error) throw error;
+  await syncPseudoFromProfile();
 }
 
 export async function setProgressionVisibility(
