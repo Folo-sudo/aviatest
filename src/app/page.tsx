@@ -42,6 +42,7 @@ import { LatecoerePlaneIcon } from '@/components/icons/LatecoerePlaneIcon';
 import { FichesIcon } from '@/components/icons/FichesIcon';
 import {
   EXERCISES,
+  EXERCISE_TYPES,
   getAllCompetitions,
   getDifficultyLabel,
   getExerciseUrl,
@@ -182,6 +183,37 @@ function buildLaneExercises(types: ExerciseType[], readyExercises: ExerciseConfi
   });
 
   return collected;
+}
+
+/** Order used for the bottom "Tous les tests" scatter — follows competence flow. */
+const ALL_TESTS_TYPE_ORDER: ExerciseType[] = [
+  'attention',
+  'psychomoteur',
+  'spatiale',
+  'numerique',
+  'intellectuel',
+  'memorisation',
+  'verbal',
+  'anglais',
+];
+
+function groupExercisesForAllTests(
+  readyExercises: ExerciseConfig[],
+): Array<{ type: ExerciseType; exercises: ExerciseConfig[] }> {
+  const byType = new Map<ExerciseType, ExerciseConfig[]>();
+  for (const exercise of readyExercises) {
+    const type = exercise.primaryType;
+    const list = byType.get(type) ?? [];
+    list.push(exercise);
+    byType.set(type, list);
+  }
+  for (const list of byType.values()) {
+    list.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
+  }
+  return ALL_TESTS_TYPE_ORDER.filter((type) => (byType.get(type)?.length ?? 0) > 0).map((type) => ({
+    type,
+    exercises: byType.get(type)!,
+  }));
 }
 
 function CompetitionHeroCard({
@@ -364,6 +396,11 @@ function HomeContent() {
         ...lane,
         exercises: buildLaneExercises(lane.types, readyExercises),
       })),
+    [readyExercises]
+  );
+
+  const allTestsGroups = useMemo(
+    () => groupExercisesForAllTests(readyExercises),
     [readyExercises]
   );
 
@@ -590,7 +627,7 @@ function HomeContent() {
       <section id="concours" className="container mx-auto px-4 pb-10 pt-6 md:pb-12 md:pt-8">
         <div className="mb-4 flex justify-end">
           <Link
-            href="/exercices"
+            href="#tous-les-tests"
             className="text-sm underline-offset-4 transition-opacity hover:opacity-70 hover:underline"
             style={{ color: homeStyles.colors.textMuted }}
           >
@@ -674,6 +711,57 @@ function HomeContent() {
         </div>
       </section>
 
+      <section id="tous-les-tests" className="container mx-auto px-4 pb-12 pt-2 md:pb-14">
+        <div className="mb-6 flex items-end justify-between gap-3">
+          <h2 className="text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
+            Tous les tests
+          </h2>
+          <span className="text-sm" style={{ color: homeStyles.colors.textMuted }}>
+            {readyExercises.length}
+          </span>
+        </div>
+
+        <div className="space-y-8">
+          {allTestsGroups.map(({ type, exercises }) => {
+            const typeConfig = EXERCISE_TYPES[type];
+            return (
+              <div key={type}>
+                <p
+                  className="mb-3 text-xs font-medium uppercase tracking-[0.18em]"
+                  style={{ color: typeConfig.color }}
+                >
+                  {typeConfig.label}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {exercises.map((exercise) => (
+                    <Link
+                      key={exercise.id}
+                      href={getExerciseUrl(exercise)}
+                      target="_blank"
+                      className="inline-flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm transition-transform hover:scale-[1.02]"
+                      style={{
+                        backgroundColor: typeConfig.bgColor,
+                        color: homeStyles.colors.text,
+                        border: `1px solid ${homeStyles.colors.border}`,
+                      }}
+                      title={exercise.description}
+                    >
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: '#ffffff', color: typeConfig.color }}
+                      >
+                        {getExerciseIcon(exercise.iconName)}
+                      </span>
+                      <span className="font-medium leading-tight">{exercise.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <footer className="pb-10 pt-6" style={{ borderTop: `1px solid ${homeStyles.colors.border}` }}>
         <div className="container mx-auto px-4">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
@@ -698,7 +786,7 @@ function HomeContent() {
                 Acces rapides
               </h3>
               <div className="mt-4 flex flex-col gap-2 text-sm">
-                <Link href="/exercices" style={{ color: homeStyles.colors.textMuted }}>
+                <Link href="#tous-les-tests" style={{ color: homeStyles.colors.textMuted }}>
                   Tous les tests
                 </Link>
                 <Link href="/stadium" style={{ color: homeStyles.colors.text }}>
