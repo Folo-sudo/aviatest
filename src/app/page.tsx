@@ -527,6 +527,14 @@ function HomeContent() {
                   <span className="hidden sm:inline">Admin</span>
                 </Link>
               )}
+              <Link
+                href="/notice"
+                className="ml-0.5 text-sm font-medium transition-opacity hover:opacity-70"
+                style={{ color: homeStyles.colors.textMuted }}
+                title="Notice"
+              >
+                Notice
+              </Link>
               <button
                 onClick={handleLogout}
                 className="ml-0.5 inline-flex items-center justify-center rounded-full p-2 transition-opacity hover:opacity-70"
@@ -788,6 +796,9 @@ function HomeContent() {
               <div className="mt-4 flex flex-col gap-2 text-sm">
                 <Link href="#tous-les-tests" style={{ color: homeStyles.colors.textMuted }}>
                   Tous les tests
+                </Link>
+                <Link href="/notice" style={{ color: homeStyles.colors.textMuted }}>
+                  Notice
                 </Link>
                 <Link href="/stadium" style={{ color: homeStyles.colors.text }}>
                   Stadium
