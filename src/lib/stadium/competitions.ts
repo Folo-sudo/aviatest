@@ -201,7 +201,8 @@ export async function listTopScoresGrouped(
 
 /**
  * Upsert best score for the current user on a competition.
- * Only updates when the new score_pct is strictly better.
+ * Specials (Sparing…): ranked by correct count.
+ * Other competitions: ranked by score_pct.
  */
 export async function upsertCompetitionBestScore(
   competitionId: string,
@@ -218,6 +219,15 @@ export async function upsertCompetitionBestScore(
   const pseudo = getPseudo() || 'Anonyme';
   const score_pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
 
+  const { data: competition } = await supabase
+    .from('competitions')
+    .select('exercise_id')
+    .eq('id', competitionId)
+    .maybeSingle();
+  const byCount = competition
+    ? isSpecialStadiumExercise(String((competition as { exercise_id: string }).exercise_id))
+    : false;
+
   const { data: existing } = await supabase
     .from('competition_scores')
     .select('*')
@@ -225,8 +235,12 @@ export async function upsertCompetitionBestScore(
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (existing && Number(existing.score_pct) >= score_pct) {
-    return 'unchanged';
+  if (existing) {
+    if (byCount) {
+      if (Number(existing.correct) >= correct) return 'unchanged';
+    } else if (Number(existing.score_pct) >= score_pct) {
+      return 'unchanged';
+    }
   }
 
   const payload = {
@@ -246,6 +260,20 @@ export async function upsertCompetitionBestScore(
 
   if (error) throw error;
   return 'updated';
+}
+
+/** Rank scores: specials by correct count, others by score_pct. */
+export function sortCompetitionScores(
+  scores: CompetitionScore[],
+  byCount: boolean,
+): CompetitionScore[] {
+  return [...scores].sort((a, b) => {
+    if (byCount) {
+      if (b.correct !== a.correct) return b.correct - a.correct;
+      return Number(b.score_pct) - Number(a.score_pct);
+    }
+    return Number(b.score_pct) - Number(a.score_pct);
+  });
 }
 
 /** Specials first (Sparing rouge, Sparing Bleu…), then newest. */

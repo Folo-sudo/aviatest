@@ -163,6 +163,7 @@ export default function SparingTest({
     const times = timesRef.current;
     const avgMs =
       times.length > 0 ? times.reduce((s, t) => s + t, 0) / times.length : 0;
+    // correct = series length; total kept for local % chart only
     savePerformanceResult(
       cfg.exerciseId,
       finalScore,

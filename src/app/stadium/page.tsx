@@ -16,6 +16,7 @@ import {
   isSpecialStadiumExercise,
   listCompetitions,
   listTopScoresGrouped,
+  sortCompetitionScores,
   sortCompetitionsForDisplay,
   type Competition,
   type CompetitionScore,
@@ -102,12 +103,22 @@ function GoldenLaurel({ children }: { children: ReactNode }) {
   );
 }
 
+function formatCompetitionScore(
+  score: CompetitionScore,
+  byCount: boolean,
+): string {
+  if (byCount) return String(score.correct);
+  return `${score.score_pct}%`;
+}
+
 function ScoreLine({
   rank,
   score,
+  byCount = false,
 }: {
   rank: number;
   score: CompetitionScore;
+  byCount?: boolean;
 }) {
   return (
     <li
@@ -120,17 +131,26 @@ function ScoreLine({
         </span>
         {score.pseudo}
       </span>
-      <span className="font-medium">
-        {score.score_pct}%{' '}
-        <span className="text-xs font-normal" style={{ color: styles.textMuted }}>
-          ({score.correct}/{score.total})
-        </span>
+      <span className="font-medium tabular-nums">
+        {formatCompetitionScore(score, byCount)}
+        {!byCount && (
+          <span className="text-xs font-normal" style={{ color: styles.textMuted }}>
+            {' '}
+            ({score.correct}/{score.total})
+          </span>
+        )}
       </span>
     </li>
   );
 }
 
-function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
+function CompetitionPodium({
+  scores,
+  byCount = false,
+}: {
+  scores: CompetitionScore[];
+  byCount?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const first = scores[0];
   const second = scores[1];
@@ -159,7 +179,7 @@ function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
           </p>
           {second && (
             <p className="text-[10px] tabular-nums" style={{ color: styles.textMuted }}>
-              {second.score_pct}%
+              {formatCompetitionScore(second, byCount)}
             </p>
           )}
           <div
@@ -185,7 +205,7 @@ function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
           )}
           {first && (
             <p className="text-xs tabular-nums font-medium" style={{ color: styles.gold }}>
-              {first.score_pct}%
+              {formatCompetitionScore(first, byCount)}
             </p>
           )}
           <div
@@ -214,7 +234,7 @@ function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
           </p>
           {third && (
             <p className="text-[10px] tabular-nums" style={{ color: styles.textMuted }}>
-              {third.score_pct}%
+              {formatCompetitionScore(third, byCount)}
             </p>
           )}
           <div
@@ -258,7 +278,7 @@ function CompetitionPodium({ scores }: { scores: CompetitionScore[] }) {
               }}
             >
               {rest.map((s, i) => (
-                <ScoreLine key={s.id} rank={i + 4} score={s} />
+                <ScoreLine key={s.id} rank={i + 4} score={s} byCount={byCount} />
               ))}
             </ol>
           )}
@@ -313,7 +333,12 @@ function StadiumContent() {
       const list = sortCompetitionsForDisplay(await listCompetitions());
       setCompetitions(list);
       const grouped = await listTopScoresGrouped(list.map((c) => c.id));
-      setScores(grouped);
+      const sorted: Record<string, CompetitionScore[]> = {};
+      for (const c of list) {
+        const byCount = isSpecialStadiumExercise(c.exercise_id);
+        sorted[c.id] = sortCompetitionScores(grouped[c.id] || [], byCount);
+      }
+      setScores(sorted);
     } catch {
       setError(
         'Impossible de charger le Stadium. Execute supabase/schema-stadium.sql si besoin.',
@@ -589,7 +614,10 @@ function StadiumContent() {
                       </span>
                     </div>
 
-                    <CompetitionPodium scores={top} />
+                    <CompetitionPodium
+                      scores={top}
+                      byCount={isSpecialStadiumExercise(c.exercise_id)}
+                    />
                   </>
                 );
 
