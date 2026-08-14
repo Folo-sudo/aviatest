@@ -444,9 +444,11 @@ function NotamPanel() {
           boxShadow: styles.shadow,
         }}
       >
-        <p className="text-sm" style={{ color: styles.textMuted }}>
-          {t('aeropostale.notam.intro')}
-        </p>
+        {t('aeropostale.notam.intro').trim() ? (
+          <p className="text-sm" style={{ color: styles.textMuted }}>
+            {t('aeropostale.notam.intro')}
+          </p>
+        ) : null}
         <form onSubmit={onSubmit} className="space-y-4">
           <textarea
             value={body}

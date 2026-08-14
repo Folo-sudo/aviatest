@@ -84,34 +84,34 @@ export default async function ExercicesPage({ searchParams }: Props) {
           <section className="rounded-[30px] border border-[#e0dedb] bg-[linear-gradient(180deg,#fffaf3_0%,#ffffff_100%)] p-8 shadow-[0_12px_34px_rgba(55,50,47,0.08)]">
             <h1 className="max-w-3xl text-4xl font-bold leading-tight text-[#37322f] md:text-5xl">
               {filterTypes.length > 0
-                ? `Categorie : ${filterLabels.join(' · ')}`
-                : 'La bibliotheque complete des exercices, apres les bonnes portes d\'entree.'}
+                ? filterLabels.join(' · ')
+                : 'Tous les exercices'}
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#605a57]">
-              {filterTypes.length > 0
-                ? `${readyExercises.length} exercice${readyExercises.length > 1 ? 's' : ''} dans cette categorie.`
-                : 'Cette page sert quand tu sais deja ce que tu veux chercher. Pour une preparation plus guidee, passe d\'abord par les concours ou le Stadium.'}
-            </p>
+            {filterTypes.length > 0 ? (
+              <p className="mt-4 text-base text-[#605a57]">
+                {readyExercises.length} exercice{readyExercises.length > 1 ? 's' : ''}
+              </p>
+            ) : null}
             <div className="mt-7 flex flex-wrap gap-3">
               {filterTypes.length > 0 && (
                 <Link
                   href="/exercices"
                   className="rounded-full border border-[#e0dedb] bg-white px-5 py-3 text-sm font-medium text-[#37322f]"
                 >
-                  Voir tous les tests
+                  Tous les tests
                 </Link>
               )}
               <Link
                 href="/concours"
                 className="rounded-full border border-[#e0dedb] bg-white px-5 py-3 text-sm font-medium text-[#37322f]"
               >
-                Entrer par concours
+                Par concours
               </Link>
               <Link
                 href="/stadium"
                 className="rounded-full bg-[linear-gradient(135deg,#f59e0b_0%,#b45309_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(180,83,9,0.24)]"
               >
-                Aller au Stadium
+                Stadium
               </Link>
             </div>
           </section>
@@ -134,18 +134,10 @@ export default async function ExercicesPage({ searchParams }: Props) {
             </section>
           )}
 
-          <div className="mb-8 mt-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-3xl font-semibold text-[#37322f]">
-                {filterTypes.length > 0 ? 'Exercices de la categorie' : 'Tous les exercices'}
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#605a57]">
-                {readyExercises.length} exercice{readyExercises.length > 1 ? 's' : ''}
-                {filterTypes.length === 0
-                  ? ' couvrant l\'ensemble des competences evaluees lors des selections pilote de ligne.'
-                  : '.'}
-              </p>
-            </div>
+          <div className="mb-8 mt-12">
+            <p className="text-sm text-[#605a57]">
+              {readyExercises.length} exercice{readyExercises.length > 1 ? 's' : ''}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

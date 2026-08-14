@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import {
   ArrowRight,
   Binary,
@@ -43,13 +42,11 @@ import { LatecoerePlaneIcon } from '@/components/icons/LatecoerePlaneIcon';
 import { FichesIcon } from '@/components/icons/FichesIcon';
 import {
   EXERCISES,
-  EXERCISE_TYPES,
   getAllCompetitions,
   getDifficultyLabel,
   getExerciseUrl,
   getExercisesByCompetition,
   type Competition,
-  type CompetitionId,
   type ExerciseConfig,
   type ExerciseType,
 } from '@/lib/data/exercises';
@@ -113,7 +110,6 @@ const iconMap: Record<string, React.ReactNode> = {
 const trainingLanes: Array<{
   id: string;
   title: string;
-  description: string;
   types: ExerciseType[];
   accent: string;
   accentBg: string;
@@ -121,8 +117,6 @@ const trainingLanes: Array<{
   {
     id: 'speed-attention',
     title: 'Attention & vitesse',
-    description:
-      'Pour t entrainer a rester precis quand tout va vite : formes, chiffres, signaux et reactions.',
     types: ['attention', 'psychomoteur'],
     accent: '#0ea5e9',
     accentBg: '#e0f2fe',
@@ -130,8 +124,6 @@ const trainingLanes: Array<{
   {
     id: 'spatial-cockpit',
     title: 'Spatial & cockpit',
-    description:
-      'Pour visualiser dans l espace, lire des instruments et te situer mentalement comme en cabine.',
     types: ['spatiale'],
     accent: '#d97706',
     accentBg: '#fffbeb',
@@ -139,8 +131,6 @@ const trainingLanes: Array<{
   {
     id: 'logic-maths',
     title: 'Calcul & logique',
-    description:
-      'Pour renforcer le calcul mental, les estimations et le raisonnement sous contrainte de temps.',
     types: ['numerique', 'intellectuel'],
     accent: '#7c3aed',
     accentBg: '#f5f3ff',
@@ -148,8 +138,6 @@ const trainingLanes: Array<{
   {
     id: 'memory-multitask',
     title: 'Memoire & multitache',
-    description:
-      'Pour tenir plusieurs informations en tete et enchainer sans perdre le fil.',
     types: ['memorisation'],
     accent: '#e11d48',
     accentBg: '#fff1f2',
@@ -157,8 +145,6 @@ const trainingLanes: Array<{
   {
     id: 'language-comprehension',
     title: 'Verbal & anglais',
-    description:
-      'Pour comprendre vite, trier des infos et repondre a des QCM ou consignes en francais / anglais.',
     types: ['verbal', 'anglais'],
     accent: '#0f766e',
     accentBg: '#ecfeff',
@@ -201,18 +187,14 @@ function buildLaneExercises(types: ExerciseType[], readyExercises: ExerciseConfi
 function CompetitionHeroCard({
   competition,
   exerciseCount,
-  hook,
-  compact = false,
 }: {
   competition: Competition;
   exerciseCount: number;
-  hook: string;
-  compact?: boolean;
 }) {
   return (
     <Link href={`/concours/${competition.slug}`} className="block h-full">
       <article
-        className={`flex h-full flex-col rounded-[22px] transition-transform hover:scale-[1.01] ${compact ? 'p-4 md:p-5' : 'p-6'}`}
+        className="flex h-full flex-col rounded-[22px] p-4 transition-transform hover:scale-[1.01] md:p-5"
         style={{
           background:
             competition.id === 'psy0'
@@ -233,7 +215,7 @@ function CompetitionHeroCard({
               {competition.organization}
             </p>
             <h3
-              className={`mt-1.5 font-semibold ${compact ? 'text-lg md:text-xl' : 'text-2xl'}`}
+              className="mt-1.5 text-lg font-semibold md:text-xl"
               style={{ color: homeStyles.colors.text }}
             >
               {competition.name}
@@ -250,22 +232,17 @@ function CompetitionHeroCard({
             {exerciseCount} tests
           </div>
         </div>
-        {!compact && (
-          <p className="mb-3 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-            {competition.description}
-          </p>
-        )}
         <p
-          className={`mb-4 text-sm leading-snug ${compact ? 'line-clamp-3' : ''}`}
+          className="mb-4 line-clamp-3 text-sm leading-snug"
           style={{ color: homeStyles.colors.textMuted }}
         >
-          {compact ? competition.description : hook}
+          {competition.description}
         </p>
         <div
           className="mt-auto flex items-center justify-between text-sm font-medium"
           style={{ color: homeStyles.colors.text }}
         >
-          <span>Voir les exercices</span>
+          <span>Voir</span>
           <ArrowRight className="h-4 w-4" />
         </div>
       </article>
@@ -275,14 +252,12 @@ function CompetitionHeroCard({
 
 function LaneCard({
   title,
-  description,
   exercises,
   accent,
   accentBg,
   types,
 }: {
   title: string;
-  description: string;
   exercises: ExerciseConfig[];
   accent: string;
   accentBg: string;
@@ -300,7 +275,7 @@ function LaneCard({
         boxShadow: homeStyles.shadows.soft,
       }}
     >
-      <Link href={categoryHref} className="mb-5 block transition-opacity hover:opacity-85">
+      <Link href={categoryHref} className="mb-4 block transition-opacity hover:opacity-85">
         <div
           className="inline-flex rounded-full px-3 py-1 text-xs font-medium"
           style={{ backgroundColor: accentBg, color: accent }}
@@ -310,16 +285,6 @@ function LaneCard({
         <h3 className="mt-3 text-xl font-semibold" style={{ color: homeStyles.colors.text }}>
           {title}
         </h3>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-          {description}
-        </p>
-        <div
-          className="mt-3 flex items-center gap-1 text-sm font-medium"
-          style={{ color: accent }}
-        >
-          <span>Voir la categorie</span>
-          <ArrowRight className="h-4 w-4" />
-        </div>
       </Link>
       <div
         className="mb-4 flex items-center justify-between text-xs"
@@ -363,59 +328,15 @@ function LaneCard({
   );
 }
 
-function ExerciseLibraryCard({ exercise }: { exercise: ExerciseConfig }) {
-  const primaryType = EXERCISE_TYPES[exercise.primaryType];
-
-  return (
-    <Link href={getExerciseUrl(exercise)} target="_blank" className="block h-full">
-      <article
-        className="h-full rounded-[22px] p-4 transition-transform hover:scale-[1.015]"
-        style={{
-          backgroundColor: '#ffffff',
-          border: `1px solid ${homeStyles.colors.border}`,
-          boxShadow: homeStyles.shadows.soft,
-        }}
-      >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div
-            className="rounded-2xl p-2.5"
-            style={{ backgroundColor: primaryType.bgColor, color: primaryType.color }}
-          >
-            {getExerciseIcon(exercise.iconName)}
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-medium" style={{ color: primaryType.color }}>
-              {primaryType.label}
-            </p>
-            <p className="text-[11px]" style={{ color: homeStyles.colors.textMuted }}>
-              {exercise.competitions.length} concours
-            </p>
-          </div>
-        </div>
-        <h3 className="mb-2 text-base font-semibold" style={{ color: homeStyles.colors.text }}>
-          {exercise.title}
-        </h3>
-        <p className="mb-4 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-          {exercise.description}
-        </p>
-        <div
-          className="flex items-center justify-between text-xs"
-          style={{ color: homeStyles.colors.textMuted }}
-        >
-          <span>{getDifficultyLabel(exercise.difficulty)}</span>
-          <span>~{exercise.estimatedDuration} min</span>
-        </div>
-      </article>
-    </Link>
-  );
-}
-
 function HomeContent() {
   const { t } = useSiteTexts();
+  const txt = (key: string) => {
+    const value = t(key).trim();
+    return value.length > 0 ? value : null;
+  };
   const [pseudo, setPseudoState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeCompetition, setActiveCompetition] = useState<CompetitionId>('psy0');
   const competitions = getAllCompetitions();
   const readyExercises = useMemo(() => EXERCISES.filter((exercise) => exercise.ready), []);
 
@@ -446,17 +367,6 @@ function HomeContent() {
     [readyExercises]
   );
 
-  const competitionExercises = useMemo(
-    () => getExercisesByCompetition(activeCompetition),
-    [activeCompetition]
-  );
-
-  const heroHooks: Record<CompetitionId, string> = {
-    psy0: 'Parfait pour demarrer : attention, spatial et vitesse.',
-    psy1: 'Pour monter en niveau : calcul, 3D et doubles taches.',
-    'enac-epl': 'Une preparation large, utile pour couvrir toutes les familles de tests.',
-  };
-
   const handleLogout = async () => {
     try {
       const supabase = getSupabaseBrowserClient();
@@ -470,6 +380,14 @@ function HomeContent() {
 
   const navLinkClass =
     'inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-opacity hover:opacity-80';
+
+  const stadiumBody = txt('home.stadium.body');
+  const agoraBody = txt('home.agora.body');
+  const aeroBody = txt('home.aeropostale.body');
+  const lanesTitle = txt('home.lanes.title') || 'Par competence';
+  const lanesBody = txt('home.lanes.body');
+  const footerBlurb = txt('home.footer.blurb');
+  const cadetsLabel = txt('home.concours.cadets_label') || 'Cadets Air France';
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: homeStyles.colors.background }}>
@@ -597,8 +515,7 @@ function HomeContent() {
         />
         <div className="relative container mx-auto px-4 py-8 md:py-10">
           <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-            {/* Stadium — hauteur de reference */}
-            <Link href="/stadium" className="block h-full min-h-[280px] lg:min-h-[340px]">
+            <Link href="/stadium" className="block h-full min-h-[220px] lg:min-h-[280px]">
               <div
                 className="flex h-full flex-col justify-between rounded-[28px] p-6 text-white transition-transform hover:scale-[1.01] md:p-7"
                 style={{
@@ -607,34 +524,20 @@ function HomeContent() {
                 }}
               >
                 <div>
-                  <div className="flex items-center justify-between">
-                    <Badge className="border-0 bg-white/15 text-white">{t('home.stadium.badge')}</Badge>
+                  <div className="flex items-center justify-end">
                     <Trophy className="h-6 w-6" />
                   </div>
-                  <h2 className="mt-5 text-3xl font-semibold">{t('home.stadium.title')}</h2>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 md:text-base">
-                    {t('home.stadium.body')}
-                  </p>
-                </div>
-                <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-2xl bg-white/12 px-3 py-3">
-                    <p className="text-lg font-semibold">{readyExercises.length}</p>
-                    <p className="mt-1 text-white/80">tests</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/12 px-3 py-3">
-                    <p className="text-lg font-semibold">{competitions.length}</p>
-                    <p className="mt-1 text-white/80">concours</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/12 px-3 py-3">
-                    <p className="text-lg font-semibold">Live</p>
-                    <p className="mt-1 text-white/80">sessions</p>
-                  </div>
+                  <h2 className="mt-4 text-3xl font-semibold">{t('home.stadium.title')}</h2>
+                  {stadiumBody && (
+                    <p className="mt-3 max-w-md text-sm leading-relaxed text-white/88 md:text-base">
+                      {stadiumBody}
+                    </p>
+                  )}
                 </div>
               </div>
             </Link>
 
-            {/* Agora (plus grand) + Aeropostale — meme hauteur que Stadium */}
-            <div className="grid h-full min-h-[280px] grid-rows-[1.55fr_1fr] gap-4 lg:min-h-[340px]">
+            <div className="grid h-full min-h-[220px] grid-rows-[1.55fr_1fr] gap-4 lg:min-h-[280px]">
               <Link href="/agora" className="block min-h-0">
                 <div
                   className="flex h-full flex-col justify-between rounded-[26px] p-5 text-white transition-transform hover:scale-[1.01] md:p-6"
@@ -647,9 +550,11 @@ function HomeContent() {
                       <h3 className="text-xl font-semibold md:text-2xl">{t('home.agora.title')}</h3>
                       <Landmark className="h-5 w-5" />
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-white/85 md:text-base">
-                      {t('home.agora.body')}
-                    </p>
+                    {agoraBody && (
+                      <p className="mt-2 text-sm leading-relaxed text-white/85 md:text-base">
+                        {agoraBody}
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -668,9 +573,11 @@ function HomeContent() {
                       <h3 className="text-lg font-semibold md:text-xl">{t('home.aeropostale.title')}</h3>
                       <LatecoerePlaneIcon className="h-6 w-9" />
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                      {t('home.aeropostale.body')}
-                    </p>
+                    {aeroBody && (
+                      <p className="mt-2 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+                        {aeroBody}
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -704,23 +611,19 @@ function HomeContent() {
                 className="mb-3 px-1 text-xs uppercase tracking-[0.2em]"
                 style={{ color: homeStyles.colors.textMuted }}
               >
-                {t('home.concours.cadets_label')}
+                {cadetsLabel}
               </p>
               <div className="grid flex-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 {psy0 && (
                   <CompetitionHeroCard
                     competition={psy0}
                     exerciseCount={getExercisesByCompetition('psy0').length}
-                    hook={heroHooks.psy0}
-                    compact
                   />
                 )}
                 {psy1 && (
                   <CompetitionHeroCard
                     competition={psy1}
                     exerciseCount={getExercisesByCompetition('psy1').length}
-                    hook={heroHooks.psy1}
-                    compact
                   />
                 )}
               </div>
@@ -739,8 +642,6 @@ function HomeContent() {
                 <CompetitionHeroCard
                   competition={enac}
                   exerciseCount={getExercisesByCompetition('enac-epl').length}
-                  hook={heroHooks['enac-epl']}
-                  compact
                 />
               </div>
             </div>
@@ -749,142 +650,26 @@ function HomeContent() {
       </section>
 
       <section id="parcours" className="container mx-auto px-4 py-10 md:py-12">
-        <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-            {t('home.lanes.eyebrow')}
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-            {t('home.lanes.title')}
+        <div className="mb-6">
+          <h2 className="text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
+            {lanesTitle}
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-            {t('home.lanes.body')}
-          </p>
+          {lanesBody && (
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+              {lanesBody}
+            </p>
+          )}
         </div>
         <div className="grid gap-5 xl:grid-cols-3">
           {laneData.map((lane) => (
             <LaneCard
               key={lane.id}
               title={lane.title}
-              description={lane.description}
               exercises={lane.exercises}
               accent={lane.accent}
               accentBg={lane.accentBg}
               types={lane.types}
             />
-          ))}
-        </div>
-      </section>
-
-      <section className="container mx-auto px-4 py-8 md:py-10">
-        <div
-          className="rounded-[30px] p-6 md:p-8"
-          style={{
-            backgroundColor: '#ffffff',
-            border: `1px solid ${homeStyles.colors.border}`,
-            boxShadow: homeStyles.shadows.soft,
-          }}
-        >
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-                {t('home.battery.eyebrow')}
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-                {t('home.battery.title')}
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                {t('home.battery.body')}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {competitions.map((competition) => (
-                <button
-                  key={competition.id}
-                  onClick={() => setActiveCompetition(competition.id)}
-                  className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-85"
-                  style={{
-                    backgroundColor:
-                      activeCompetition === competition.id ? homeStyles.colors.text : '#ffffff',
-                    color:
-                      activeCompetition === competition.id ? '#fbfaf9' : homeStyles.colors.text,
-                    border: `1px solid ${
-                      activeCompetition === competition.id
-                        ? homeStyles.colors.text
-                        : homeStyles.colors.border
-                    }`,
-                  }}
-                >
-                  {competition.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {competitionExercises.slice(0, 8).map((exercise) => (
-              <Link
-                key={`${activeCompetition}-${exercise.id}`}
-                href={getExerciseUrl(exercise)}
-                target="_blank"
-                className="rounded-[22px] p-4 transition-transform hover:scale-[1.015]"
-                style={{ backgroundColor: homeStyles.colors.backgroundWarm }}
-              >
-                <div className="mb-3 flex items-center gap-3">
-                  <div
-                    className="rounded-xl p-2"
-                    style={{
-                      backgroundColor: EXERCISE_TYPES[exercise.primaryType].bgColor,
-                      color: EXERCISE_TYPES[exercise.primaryType].color,
-                    }}
-                  >
-                    {getExerciseIcon(exercise.iconName)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: homeStyles.colors.text }}>
-                      {exercise.title}
-                    </p>
-                    <p className="text-xs" style={{ color: homeStyles.colors.textMuted }}>
-                      {EXERCISE_TYPES[exercise.primaryType].label}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                  {exercise.description}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="bibliotheque" className="container mx-auto px-4 py-10 md:py-12">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.22em]" style={{ color: homeStyles.colors.textMuted }}>
-              {t('home.library.eyebrow')}
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>
-              {t('home.library.title')}
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-              {t('home.library.body')}
-            </p>
-          </div>
-          <Link
-            href="/exercices"
-            className="rounded-full px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-            style={{
-              backgroundColor: '#ffffff',
-              color: homeStyles.colors.textMuted,
-              border: `1px solid ${homeStyles.colors.border}`,
-            }}
-          >
-            Tous les tests · {readyExercises.length}
-          </Link>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {readyExercises.map((exercise) => (
-            <ExerciseLibraryCard key={exercise.id} exercise={exercise} />
           ))}
         </div>
       </section>
@@ -899,9 +684,11 @@ function HomeContent() {
                   AviaTest
                 </span>
               </div>
-              <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
-                {t('home.footer.blurb')}
-              </p>
+              {footerBlurb && (
+                <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: homeStyles.colors.textMuted }}>
+                  {footerBlurb}
+                </p>
+              )}
             </div>
             <div>
               <h3
@@ -930,7 +717,7 @@ function HomeContent() {
                   Profil
                 </Link>
                 <Link href="/telephone" style={{ color: homeStyles.colors.text }}>
-                  Mode telephone
+                  Telephone
                 </Link>
               </div>
             </div>
@@ -939,7 +726,7 @@ function HomeContent() {
                 className="text-sm font-semibold uppercase tracking-[0.18em]"
                 style={{ color: homeStyles.colors.textMuted }}
               >
-                Families
+                Competences
               </h3>
               <div className="mt-4 flex flex-col gap-2 text-sm">
                 {trainingLanes.map((lane) => (

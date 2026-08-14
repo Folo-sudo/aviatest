@@ -93,15 +93,14 @@ export default function UsernameSetup({ onDone }: { onDone: () => void }) {
             className="text-2xl font-bold"
             style={{ color: styles.colors.text }}
           >
-            Choisis ton pseudo
+            Choisis un pseudo
           </h1>
         </div>
         <p
           className="text-sm mb-6 text-center"
           style={{ color: styles.colors.textMuted }}
         >
-          Une dernière étape après Google : ton nom d’utilisateur sert pour la
-          progression et le Stadium.
+          Pour la progression et le Stadium.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

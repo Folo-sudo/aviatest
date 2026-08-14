@@ -202,9 +202,7 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
           className="text-sm mb-6 text-center"
           style={{ color: styles.colors.textMuted }}
         >
-          {mode === 'login'
-            ? 'Connecte-toi pour accéder aux exercices'
-            : 'Crée un compte pour commencer à t’entraîner'}
+          {mode === 'login' ? 'Connecte-toi' : 'Cree un compte'}
         </p>
 
         <button

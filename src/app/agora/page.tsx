@@ -127,9 +127,13 @@ function MissivesSection({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm" style={{ color: styles.textMuted }}>
-          {t('agora.intro')}
-        </p>
+        {t('agora.intro').trim() ? (
+          <p className="text-sm" style={{ color: styles.textMuted }}>
+            {t('agora.intro')}
+          </p>
+        ) : (
+          <span />
+        )}
         <p className="text-sm shrink-0" style={{ color: styles.textMuted }}>
           Accords :{' '}
           <span className="font-semibold" style={{ color: styles.text }}>
@@ -315,7 +319,7 @@ function NotamSection({
   return (
     <div className="space-y-4">
       <p className="text-sm" style={{ color: styles.textMuted }}>
-        {t('agora.notam.intro')}{' '}
+        {t('agora.notam.intro').trim() ? <>{t('agora.notam.intro')}{' '}</> : null}
         <Link href="/boite?tab=notam" className="underline">
           Poser un NOTAM
         </Link>

@@ -7,7 +7,7 @@ import {
 } from '@/lib/data/exercises';
 import StructuredData from '@/components/seo/StructuredData';
 import { generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
-import { ArrowLeft, ArrowRight, Plane, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://aviatest.fr';
 
@@ -33,12 +33,6 @@ export const metadata: Metadata = {
   },
 };
 
-const hooks = {
-  psy0: 'La meilleure entree pour travailler la vitesse, l attention et les formats psychotechniques les plus nerveux.',
-  psy1: 'La bonne porte si tu veux du calcul, de la logique et des exercices cognitifs plus exigeants.',
-  'enac-epl': 'Le parcours le plus large pour couvrir une preparation plus academique et tres equilibree.',
-};
-
 export default function ConcoursPage() {
   const competitions = getAllCompetitions();
 
@@ -59,29 +53,22 @@ export default function ConcoursPage() {
           </nav>
 
           <section className="rounded-[30px] border border-[#e0dedb] bg-[linear-gradient(180deg,#fffaf3_0%,#f6efe4_100%)] p-8 shadow-[0_12px_34px_rgba(55,50,47,0.08)]">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f2d3a1] bg-[#fff8ed] px-4 py-2 text-sm text-[#9a3412]">
-              <Plane className="h-4 w-4" />
-              Choisis d abord la batterie qui te concerne
-            </div>
             <h1 className="max-w-3xl text-4xl font-bold leading-tight text-[#37322f] md:text-5xl">
-              Les concours sont maintenant la porte d&apos;entree principale de la preparation.
+              Concours
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#605a57]">
-              Au lieu d&apos;une navigation plate, chaque concours devient un parcours clair avec sa logique propre, ses familles d&apos;epreuves dominantes et ses exercices prioritaires.
-            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/stadium"
                 className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b_0%,#b45309_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(180,83,9,0.24)]"
               >
                 <Trophy className="h-4 w-4" />
-                Entrer dans le Stadium
+                Stadium
               </Link>
               <Link
                 href="/exercices"
                 className="inline-flex items-center gap-2 rounded-full border border-[#e0dedb] bg-white px-5 py-3 text-sm font-medium text-[#37322f]"
               >
-                Voir tous les exercices
+                Tous les exercices
               </Link>
             </div>
           </section>
@@ -115,19 +102,10 @@ export default function ConcoursPage() {
                     <p className="mt-5 text-sm leading-relaxed text-[#605a57]">
                       {competition.description}
                     </p>
-                    <p className="mt-4 text-sm font-medium text-[#37322f]">
-                      {hooks[competition.id]}
-                    </p>
 
-                    <div className="mt-6 grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl bg-[#f8f5f2] px-4 py-4">
-                        <p className="text-2xl font-semibold text-[#37322f]">{exercises.length}</p>
-                        <p className="mt-1 text-xs text-[#605a57]">exercices disponibles</p>
-                      </div>
-                      <div className="rounded-2xl bg-[#f8f5f2] px-4 py-4">
-                        <p className="text-2xl font-semibold text-[#37322f]">{types.length}</p>
-                        <p className="mt-1 text-xs text-[#605a57]">familles dominantes</p>
-                      </div>
+                    <div className="mt-6 rounded-2xl bg-[#f8f5f2] px-4 py-4">
+                      <p className="text-2xl font-semibold text-[#37322f]">{exercises.length}</p>
+                      <p className="mt-1 text-xs text-[#605a57]">exercices</p>
                     </div>
 
                     <div className="mt-5 flex flex-wrap gap-2">

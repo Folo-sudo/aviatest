@@ -53,9 +53,11 @@ function FichesContent() {
       </header>
 
       <div className="container mx-auto max-w-2xl space-y-6 px-4 py-8">
-        <p className="text-sm leading-relaxed" style={{ color: styles.textMuted }}>
-          {t('fiches.intro')}
-        </p>
+        {t('fiches.intro').trim() ? (
+          <p className="text-sm leading-relaxed" style={{ color: styles.textMuted }}>
+            {t('fiches.intro')}
+          </p>
+        ) : null}
 
         {fiches.length === 0 ? (
           <p className="text-sm" style={{ color: styles.textMuted }}>
