@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { getExerciseBySlug, EXERCISES } from '@/lib/data/exercises';
-import { createCompetition } from '@/lib/stadium/competitions';
+import {
+  createCompetition,
+  getSpecialCompetition,
+  isSpecialStadiumExercise,
+} from '@/lib/stadium/competitions';
 import {
   readExerciseSettings,
   setActiveCompetitionId,
@@ -29,26 +33,48 @@ export default function StadiumBanner({ slug }: { slug: string }) {
     EXERCISES.find((e) => e.slug === slug || e.id === slug) ||
     null;
 
+  const isSpecial = exercise ? isSpecialStadiumExercise(exercise.id) : false;
+
   useEffect(() => {
-    if (stadiumCreate) {
-      setActiveCompetitionId(null);
+    if (!stadiumCreate || !exercise) return;
+    setActiveCompetitionId(null);
+
+    if (isSpecialStadiumExercise(exercise.id)) {
       setMessage(
-        'Mode creation Stadium : regle les Parametres du test (mode examen inclus), puis ouvre la competition.',
+        'Competition speciale : elle existe deja dans le Stadium. Tu ne peux pas en creer une.',
       );
+      void (async () => {
+        try {
+          const existing = await getSpecialCompetition(exercise.id);
+          if (existing) {
+            setActiveCompetitionId(existing.id);
+            router.replace(
+              `/exercices/${exercise.slug}?competitionId=${existing.id}`,
+            );
+          }
+        } catch {
+          /* stay on banner */
+        }
+      })();
+      return;
     }
-  }, [stadiumCreate]);
+
+    const hasSettings = Boolean(EXERCISE_SETTINGS_KEYS[exercise.id]);
+    setMessage(
+      hasSettings
+        ? 'Mode creation Stadium : regle les Parametres du test (mode examen inclus), puis ouvre la competition.'
+        : 'Mode creation Stadium : ce test n\'a pas de parametres. Ouvre la competition directement.',
+    );
+  }, [stadiumCreate, exercise, router]);
 
   if (!stadiumCreate || competitionId) return null;
 
   const openCompetition = async () => {
-    if (!exercise) return;
+    if (!exercise || isSpecial) return;
     setBusy(true);
     setMessage(null);
     try {
       const settings = readExerciseSettings(exercise.id);
-      if (!EXERCISE_SETTINGS_KEYS[exercise.id]) {
-        // Exercises without settings still allowed with empty object
-      }
       const created = await createCompetition(exercise.id, settings);
       setActiveCompetitionId(created.id);
       router.replace(
@@ -59,6 +85,10 @@ export default function StadiumBanner({ slug }: { slug: string }) {
       if (msg === 'competition_exists') {
         setMessage(
           'Une competition existe deja pour ce test avec les memes reglages.',
+        );
+      } else if (msg === 'special_competition') {
+        setMessage(
+          'Competition speciale : impossible de la creer. Retourne au Stadium pour jouer.',
         );
       } else if (msg === 'not_authenticated') {
         setMessage('Connecte-toi pour ouvrir une competition.');
@@ -74,14 +104,16 @@ export default function StadiumBanner({ slug }: { slug: string }) {
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(560px,92vw)] -translate-x-1/2 rounded-xl border border-[#e0dedb] bg-white p-4 shadow-lg">
       <p className="text-sm text-[#37322f] mb-3">{message}</p>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          disabled={busy || !exercise}
-          onClick={openCompetition}
-          style={{ backgroundColor: '#37322f', color: '#fbfaf9' }}
-        >
-          {busy ? 'Ouverture...' : 'Ouvrir la competition'}
-        </Button>
+        {!isSpecial && (
+          <Button
+            type="button"
+            disabled={busy || !exercise}
+            onClick={openCompetition}
+            style={{ backgroundColor: '#37322f', color: '#fbfaf9' }}
+          >
+            {busy ? 'Ouverture...' : 'Ouvrir la competition'}
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"

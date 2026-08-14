@@ -1,18 +1,22 @@
 'use client';
 
-import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Trophy, ArrowLeft, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
 import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
+import { BoxingGlovesIcon } from '@/components/icons/BoxingGlovesIcon';
 import { CrossedSwordsIcon } from '@/components/icons/CrossedSwordsIcon';
 import { Button } from '@/components/ui/button';
 import { EXERCISES } from '@/lib/data/exercises';
 import {
   adminDeleteCompetition,
+  ensureSpecialCompetitions,
+  isSpecialStadiumExercise,
   listCompetitions,
   listTopScoresGrouped,
+  sortCompetitionsForDisplay,
   type Competition,
   type CompetitionScore,
 } from '@/lib/stadium/competitions';
@@ -284,7 +288,14 @@ function StadiumContent() {
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
   const [duelMsg, setDuelMsg] = useState<string | null>(null);
 
-  const readyExercises = EXERCISES.filter((e) => e.ready);
+  /** User-creatable tests only — specials (Sparing…) are excluded. */
+  const creatableExercises = useMemo(
+    () =>
+      EXERCISES.filter((e) => e.ready && !isSpecialStadiumExercise(e.id)).sort(
+        (a, b) => a.title.localeCompare(b.title, 'fr'),
+      ),
+    [],
+  );
 
   const reload = async () => {
     setLoading(true);
@@ -296,7 +307,10 @@ function StadiumContent() {
       } = await supabase.auth.getUser();
       setUserId(user?.id ?? null);
       setIsAdmin(user?.email === ADMIN_EMAIL);
-      const list = await listCompetitions();
+      if (user) {
+        await ensureSpecialCompetitions();
+      }
+      const list = sortCompetitionsForDisplay(await listCompetitions());
       setCompetitions(list);
       const grouped = await listTopScoresGrouped(list.map((c) => c.id));
       setScores(grouped);
@@ -438,7 +452,8 @@ function StadiumContent() {
             <p className="text-sm" style={{ color: styles.textMuted }}>
               Classements publics par competition. Une competition = un test + des
               reglages precis. Impossible d&apos;ouvrir un doublon avec les memes
-              parametres.
+              parametres. Les competitions speciales (Sparing Multiplication / Sparing +-)
+              sont deja la — on ne les cree pas.
             </p>
 
             {creating && (
@@ -458,7 +473,7 @@ function StadiumContent() {
                   &quot;Ouvrir la competition&quot;.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {readyExercises.map((ex) => (
+                  {creatableExercises.map((ex) => (
                     <Link
                       key={ex.id}
                       href={`/exercices/${ex.slug}?stadiumCreate=1`}
@@ -495,23 +510,33 @@ function StadiumContent() {
               {competitions.map((c) => {
                 const top = scores[c.id] || [];
                 const rank = myRank(c.id);
-                return (
-                  <article
-                    key={c.id}
-                    className="rounded-xl p-5"
-                    style={{
-                      backgroundColor: styles.cardBg,
-                      border: `1px solid ${styles.border}`,
-                      boxShadow: styles.shadow,
-                    }}
-                  >
+                const isSpecial = isSpecialStadiumExercise(c.exercise_id);
+                const isBleu = c.exercise_id === 'sparing-bleu';
+
+                const cardBody = (
+                  <>
                     <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                       <div>
                         <h3 className="font-semibold" style={{ color: styles.text }}>
-                          {exerciseTitle(c.exercise_id)}
+                          <span className="inline-flex flex-wrap items-center gap-2">
+                            {exerciseTitle(c.exercise_id)}
+                            {isSpecial && (
+                              <span
+                                className={`text-[10px] font-semibold uppercase tracking-wide ${
+                                  isBleu ? 'text-sky-700' : 'text-rose-700'
+                                }`}
+                              >
+                                Special
+                              </span>
+                            )}
+                          </span>
                         </h3>
                         <p className="text-xs mt-1" style={{ color: styles.textMuted }}>
-                          Hash reglages : {c.settings_hash.slice(0, 10)}…
+                          {isSpecial
+                            ? isBleu
+                              ? 'Competition permanente — abc ± cde'
+                              : 'Competition permanente — ab × cd'
+                            : `Hash reglages : ${c.settings_hash.slice(0, 10)}…`}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -523,7 +548,10 @@ function StadiumContent() {
                         >
                           <Button
                             size="sm"
-                            style={{ backgroundColor: styles.text, color: styles.background }}
+                            style={{
+                              backgroundColor: styles.text,
+                              color: styles.background,
+                            }}
                           >
                             Jouer
                           </Button>
@@ -562,6 +590,48 @@ function StadiumContent() {
                     </div>
 
                     <CompetitionPodium scores={top} />
+                  </>
+                );
+
+                if (isSpecial) {
+                  return (
+                    <article
+                      key={c.id}
+                      className="overflow-hidden rounded-xl"
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: isBleu ? '1px solid #bae6fd' : '1px solid #fecdd3',
+                        boxShadow: styles.shadow,
+                      }}
+                    >
+                      <div className="flex min-h-[240px] items-stretch">
+                        <div
+                          className={`relative w-[132px] shrink-0 self-stretch sm:w-[160px] ${
+                            isBleu ? 'bg-sky-50' : 'bg-rose-50'
+                          }`}
+                        >
+                          <BoxingGlovesIcon
+                            accent={isBleu ? 'blue' : 'red'}
+                            className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] object-contain"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 p-5">{cardBody}</div>
+                      </div>
+                    </article>
+                  );
+                }
+
+                return (
+                  <article
+                    key={c.id}
+                    className="rounded-xl p-5"
+                    style={{
+                      backgroundColor: styles.cardBg,
+                      border: `1px solid ${styles.border}`,
+                      boxShadow: styles.shadow,
+                    }}
+                  >
+                    {cardBody}
                   </article>
                 );
               })}
@@ -634,7 +704,7 @@ function StadiumContent() {
                       enverras le defi.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {readyExercises.map((ex) => (
+                      {creatableExercises.map((ex) => (
                         <Link
                           key={ex.id}
                           href={`/exercices/${ex.slug}?duelCreate=1&opponentId=${selectedFriend}`}

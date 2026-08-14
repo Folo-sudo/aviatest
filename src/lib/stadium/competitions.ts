@@ -1,6 +1,13 @@
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { getPseudo } from '@/lib/core/PerformanceTracker';
 
+/** Exercises that appear as fixed Stadium competitions — not user-creatable. */
+export const SPECIAL_STADIUM_EXERCISE_IDS = ['sparing', 'sparing-bleu'] as const;
+
+export function isSpecialStadiumExercise(exerciseId: string): boolean {
+  return (SPECIAL_STADIUM_EXERCISE_IDS as readonly string[]).includes(exerciseId);
+}
+
 export type Competition = {
   id: string;
   exercise_id: string;
@@ -71,6 +78,45 @@ export async function getCompetition(id: string): Promise<Competition | null> {
   return data as Competition | null;
 }
 
+export async function getSpecialCompetition(
+  exerciseId: string,
+): Promise<Competition | null> {
+  if (!isSpecialStadiumExercise(exerciseId)) return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('competitions')
+    .select('*')
+    .eq('exercise_id', exerciseId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Competition | null;
+}
+
+/**
+ * Ensure fixed special competitions exist (Sparing, …).
+ * Silent system seed — not a user "create" action.
+ */
+export async function ensureSpecialCompetitions(): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  for (const exerciseId of SPECIAL_STADIUM_EXERCISE_IDS) {
+    const existing = await getSpecialCompetition(exerciseId);
+    if (existing) continue;
+    try {
+      await createCompetition(exerciseId, {}, { allowSpecial: true });
+    } catch (err) {
+      if (err instanceof Error && err.message === 'competition_exists') continue;
+      throw err;
+    }
+  }
+}
+
 export async function adminDeleteCompetition(id: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const { error } = await supabase.rpc('admin_delete_competition', { p_id: id });
@@ -84,7 +130,12 @@ export async function adminDeleteCompetition(id: string): Promise<void> {
 export async function createCompetition(
   exerciseId: string,
   settings: Record<string, unknown>,
+  options?: { allowSpecial?: boolean },
 ): Promise<Competition> {
+  if (isSpecialStadiumExercise(exerciseId) && !options?.allowSpecial) {
+    throw new Error('special_competition');
+  }
+
   const supabase = getSupabaseBrowserClient();
   const {
     data: { user },
@@ -195,4 +246,18 @@ export async function upsertCompetitionBestScore(
 
   if (error) throw error;
   return 'updated';
+}
+
+/** Specials first (Sparing rouge, Sparing Bleu…), then newest. */
+export function sortCompetitionsForDisplay(list: Competition[]): Competition[] {
+  const specialOrder = SPECIAL_STADIUM_EXERCISE_IDS as readonly string[];
+  return [...list].sort((a, b) => {
+    const aIdx = specialOrder.indexOf(a.exercise_id);
+    const bIdx = specialOrder.indexOf(b.exercise_id);
+    const aSpecial = aIdx >= 0;
+    const bSpecial = bIdx >= 0;
+    if (aSpecial && bSpecial) return aIdx - bIdx;
+    if (aSpecial !== bSpecial) return aSpecial ? -1 : 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 }

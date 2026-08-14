@@ -38,6 +38,7 @@ import {
   Variable,
   X,
 } from 'lucide-react';
+import { BoxingGlovesIcon } from '@/components/icons/BoxingGlovesIcon';
 import { LatecoerePlaneIcon } from '@/components/icons/LatecoerePlaneIcon';
 import { FichesIcon } from '@/components/icons/FichesIcon';
 import {
@@ -106,6 +107,8 @@ const iconMap: Record<string, React.ReactNode> = {
   Brackets: <Brackets className="h-5 w-5" />,
   Compass: <Compass className="h-5 w-5" />,
   Search: <Search className="h-5 w-5" />,
+  BoxingGloves: <BoxingGlovesIcon accent="red" className="h-8 w-10" />,
+  BoxingGlovesBlue: <BoxingGlovesIcon accent="blue" className="h-8 w-10" />,
 };
 
 const trainingLanes: Array<{

@@ -546,6 +546,58 @@ export const EXERCISES: ExerciseConfig[] = [
     ready: true,
   },
   {
+    id: 'sparing',
+    slug: 'sparing',
+    title: 'Sparing Multiplication',
+    description:
+      'Fiche calcul en mode combat (ab × cd) : 3 vies, chrono qui se resserre, zero pause',
+    longDescription:
+      'Competition speciale Stadium. Enchaine des multiplications ab × cd sans aucune pause. Chaque calcul a un delai : 22 s au depart, puis le temps decroit vers un plancher difficile (~3,6 s). Plus le delai est court, plus la baisse ralentit. Une erreur ou un timeout coute une vie. Trois vies au depart. Le classement recompense la plus longue serie.',
+    types: ['numerique'],
+    primaryType: 'numerique',
+    competitions: [],
+    difficulty: 'difficile',
+    seoTitle: 'Sparing Multiplication - Calcul Chronometre Stadium | AviaTest',
+    seoDescription:
+      'Sparing Multiplication : multiplications ab × cd en mode survie. Trois vies, chrono qui se resserre, aucune pause. Competition speciale Stadium.',
+    seoKeywords: [
+      'sparing multiplication',
+      'calcul mental chronometre',
+      'stadium aviatest',
+      'multiplication ab cd',
+      'entrainement calcul rapide',
+    ],
+    iconName: 'BoxingGloves',
+    estimatedDuration: 5,
+    ready: true,
+  },
+  {
+    id: 'sparing-bleu',
+    slug: 'sparing-bleu',
+    title: 'Sparing +-',
+    description:
+      'Sparing en abc ± cde : 3 vies, chrono qui se resserre, zero pause',
+    longDescription:
+      'Competition speciale Stadium (gants bleus). Memes regles que le Sparing Multiplication, mais uniquement des additions et soustractions abc ± cde (comme la fiche calcul). 22 s au depart, resserrement vers ~3,6 s, trois vies, aucune pause.',
+    types: ['numerique'],
+    primaryType: 'numerique',
+    competitions: [],
+    difficulty: 'difficile',
+    seoTitle: 'Sparing +- - Additions Soustractions Chronometrees | AviaTest',
+    seoDescription:
+      'Sparing +- : abc ± cde en mode survie. Trois vies, chrono qui se resserre, aucune pause. Competition speciale Stadium.',
+    seoKeywords: [
+      'sparing plus moins',
+      'addition soustraction chronometre',
+      'stadium aviatest',
+      'abc plus moins cde',
+      'fiche calcul sparing',
+    ],
+    iconName: 'BoxingGlovesBlue',
+    estimatedDuration: 5,
+    ready: true,
+  },
+  {
     id: 'fiche-angles',
     slug: 'fiche-angles',
     title: 'Fiche Angles',

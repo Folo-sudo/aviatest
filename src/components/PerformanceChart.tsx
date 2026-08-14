@@ -51,6 +51,8 @@ const LINE_COLORS: Record<string, string> = {
   'matrices-raven': '#6D28D9',
   'lecture-textes': '#BE185D',
   'psychomoteur-enac': '#059669',
+  sparing: '#BE123C',
+  'sparing-bleu': '#0284C7',
 };
 
 function getLineColor(exerciseId: string): string {
