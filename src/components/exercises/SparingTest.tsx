@@ -6,6 +6,7 @@ import { ArrowLeft, Play, Heart } from 'lucide-react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
 import { BoxingGlovesIcon } from '@/components/icons/BoxingGlovesIcon';
+import { isStadiumHeld } from '@/lib/stadium/hold';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,7 +110,8 @@ export default function SparingTest({
   const [bestScore, setBestScore] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const deadlineRef = useRef(0);
+  const remainingRef = useRef(T0_SEC * 1000);
+  const lastTickRef = useRef(0);
   const limitSecRef = useRef(T0_SEC);
   const livesRef = useRef(START_LIVES);
   const scoreRef = useRef(0);
@@ -144,7 +146,9 @@ export default function SparingTest({
       setLimitSec(nextLimit);
       limitSecRef.current = nextLimit;
       const ms = nextLimit * 1000;
-      deadlineRef.current = Date.now() + ms;
+      remainingRef.current = ms;
+      // Not armed until Stadium hold lifts (see tick loop)
+      lastTickRef.current = 0;
       setRemainingMs(ms);
       resolvingRef.current = false;
       focusInput();
@@ -199,9 +203,9 @@ export default function SparingTest({
   const onCorrect = useCallback(() => {
     if (resolvingRef.current || !currentQRef.current) return;
     resolvingRef.current = true;
-    const used = Math.max(0, deadlineRef.current - Date.now());
     const allotted = limitSecRef.current * 1000;
-    timesRef.current.push(allotted - used);
+    const used = Math.max(0, allotted - remainingRef.current);
+    timesRef.current.push(used);
 
     const nextScore = scoreRef.current + 1;
     scoreRef.current = nextScore;
@@ -224,15 +228,31 @@ export default function SparingTest({
     }
   }, [phase, userInput, onCorrect, loseLifeAndContinue]);
 
+  // Pause-aware countdown: ignores wall-clock during Stadium "prepare-toi" hold
   useEffect(() => {
     if (phase !== 'playing') return;
     let raf = 0;
     const tick = () => {
-      const left = deadlineRef.current - Date.now();
-      setRemainingMs(Math.max(0, left));
-      if (left <= 0 && !resolvingRef.current) {
-        loseLifeAndContinue('timeout');
+      if (isStadiumHeld()) {
+        lastTickRef.current = 0;
+        setRemainingMs(remainingRef.current);
+        raf = requestAnimationFrame(tick);
         return;
+      }
+
+      const now = Date.now();
+      if (!lastTickRef.current) {
+        // First frame after hold / question start — arm clock, no time lost
+        lastTickRef.current = now;
+      } else {
+        const dt = now - lastTickRef.current;
+        lastTickRef.current = now;
+        remainingRef.current = Math.max(0, remainingRef.current - dt);
+        setRemainingMs(remainingRef.current);
+        if (remainingRef.current <= 0 && !resolvingRef.current) {
+          loseLifeAndContinue('timeout');
+          return;
+        }
       }
       raf = requestAnimationFrame(tick);
     };
@@ -261,7 +281,8 @@ export default function SparingTest({
     setBestScore(Math.max(...entries.map((e) => e.correct)));
   }, [cfg.exerciseId]);
 
-  const timerPct = limitSec > 0 ? Math.min(100, (remainingMs / (limitSec * 1000)) * 100) : 0;
+  const timerPct =
+    limitSec > 0 ? Math.min(1, Math.max(0, remainingMs / (limitSec * 1000))) : 0;
   const timerHot = remainingMs < 2500;
 
   if (phase === 'menu') {
@@ -410,12 +431,10 @@ export default function SparingTest({
           </Badge>
         </div>
 
-        <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-200">
+        <div className="mb-4 h-3 overflow-hidden rounded-full bg-slate-200/90">
           <div
-            className={`h-full transition-[width] duration-75 ${
-              timerHot ? 'bg-red-500' : cfg.accentBar
-            }`}
-            style={{ width: `${timerPct}%` }}
+            className={`h-full w-full origin-left rounded-full will-change-transform ${cfg.accentBar}`}
+            style={{ transform: `scaleX(${timerPct})` }}
           />
         </div>
 
