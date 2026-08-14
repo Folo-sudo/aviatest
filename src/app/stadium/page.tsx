@@ -452,7 +452,7 @@ function StadiumContent() {
             <p className="text-sm" style={{ color: styles.textMuted }}>
               Classements publics par competition. Une competition = un test + des
               reglages precis. Impossible d&apos;ouvrir un doublon avec les memes
-              parametres. Les competitions speciales (Sparing Multiplication / Sparing +-)
+              parametres. Les competitions speciales (Sparing × / Sparing +-)
               sont deja la — on ne les cree pas.
             </p>
 

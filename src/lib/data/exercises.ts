@@ -548,7 +548,7 @@ export const EXERCISES: ExerciseConfig[] = [
   {
     id: 'sparing',
     slug: 'sparing',
-    title: 'Sparing Multiplication',
+    title: 'Sparing ×',
     description:
       'Fiche calcul en mode combat (ab × cd) : 3 vies, chrono qui se resserre, zero pause',
     longDescription:
@@ -557,9 +557,9 @@ export const EXERCISES: ExerciseConfig[] = [
     primaryType: 'numerique',
     competitions: [],
     difficulty: 'difficile',
-    seoTitle: 'Sparing Multiplication - Calcul Chronometre Stadium | AviaTest',
+    seoTitle: 'Sparing × - Calcul Chronometre Stadium | AviaTest',
     seoDescription:
-      'Sparing Multiplication : multiplications ab × cd en mode survie. Trois vies, chrono qui se resserre, aucune pause. Competition speciale Stadium.',
+      'Sparing × : multiplications ab × cd en mode survie. Trois vies, chrono qui se resserre, aucune pause. Competition speciale Stadium.',
     seoKeywords: [
       'sparing multiplication',
       'calcul mental chronometre',
@@ -578,7 +578,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description:
       'Sparing en abc ± cde : 3 vies, chrono qui se resserre, zero pause',
     longDescription:
-      'Competition speciale Stadium (gants bleus). Memes regles que le Sparing Multiplication, mais uniquement des additions et soustractions abc ± cde (comme la fiche calcul). 22 s au depart, resserrement vers ~3,6 s, trois vies, aucune pause.',
+      'Competition speciale Stadium (gants bleus). Memes regles que le Sparing ×, mais uniquement des additions et soustractions abc ± cde (comme la fiche calcul). 22 s au depart, resserrement vers ~3,6 s, trois vies, aucune pause.',
     types: ['numerique'],
     primaryType: 'numerique',
     competitions: [],

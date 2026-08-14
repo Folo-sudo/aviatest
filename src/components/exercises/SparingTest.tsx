@@ -31,8 +31,8 @@ interface CalcQuestion {
 const VARIANT_CONFIG = {
   rouge: {
     exerciseId: 'sparing',
-    title: 'Sparing Multiplication',
-    subtitle: 'Multiplications ab × cd. Trois vies. Pas de pause.',
+    title: 'Sparing ×',
+    subtitle: 'Calculs ab × cd. Trois vies. Pas de pause.',
     mode: 'multiplication' as CalcMode,
     calcLabel: 'ab × cd',
     accentBtn: 'bg-rose-700 hover:bg-rose-800',

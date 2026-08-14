@@ -11,7 +11,7 @@ const SRC: Record<BoxingGlovesAccent, string> = {
 };
 
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt'> & {
-  /** red = Sparing Multiplication, blue = Sparing +- */
+  /** red = Sparing ×, blue = Sparing +- */
   accent?: BoxingGlovesAccent;
 };
 
