@@ -55,6 +55,7 @@ import {
 import { getPseudo } from '@/lib/core/PerformanceTracker';
 import { syncPseudoFromProfile } from '@/lib/account/profile';
 import AuthGate from '@/components/AuthGate';
+import { clearGuestMode, isGuestMode } from '@/lib/auth/guest';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
 import { useSiteTexts } from '@/lib/site-texts/useSiteTexts';
@@ -381,6 +382,12 @@ function HomeContent() {
 
   useEffect(() => {
     void (async () => {
+      if (isGuestMode()) {
+        setPseudoState(null);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
       const name = await syncPseudoFromProfile();
       setPseudoState(name || getPseudo());
       try {
@@ -408,6 +415,11 @@ function HomeContent() {
   );
 
   const handleLogout = async () => {
+    if (isGuestMode()) {
+      clearGuestMode();
+      window.location.href = '/';
+      return;
+    }
     try {
       const supabase = getSupabaseBrowserClient();
       await supabase.auth.signOut();
@@ -505,7 +517,9 @@ function HomeContent() {
                 }}
               >
                 <User className="h-3.5 w-3.5" />
-                <span className="max-w-[7rem] truncate">{pseudo || 'Profil'}</span>
+                <span className="max-w-[7rem] truncate">
+                  {isGuestMode() ? 'Invité' : pseudo || 'Profil'}
+                </span>
               </Link>
               <Link
                 href="/telephone"
@@ -542,8 +556,8 @@ function HomeContent() {
                 onClick={handleLogout}
                 className="ml-0.5 inline-flex items-center justify-center rounded-full p-2 transition-opacity hover:opacity-70"
                 style={{ color: homeStyles.colors.textMuted }}
-                title="Se deconnecter"
-                aria-label="Se deconnecter"
+                title={isGuestMode() ? 'Quitter le mode invité' : 'Se deconnecter'}
+                aria-label={isGuestMode() ? 'Quitter le mode invité' : 'Se deconnecter'}
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>

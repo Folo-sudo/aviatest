@@ -17,6 +17,7 @@ export function NotamScoreVotes({
   score,
   myVote,
   disabled,
+  readOnly,
   onChanged,
 }: {
   targetType: 'notam' | 'reply';
@@ -24,6 +25,8 @@ export function NotamScoreVotes({
   score: number;
   myVote: number;
   disabled?: boolean;
+  /** Affiche le score sans boutons de vote (mode invité). */
+  readOnly?: boolean;
   onChanged: () => Promise<void> | void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -37,6 +40,19 @@ export function NotamScoreVotes({
       setBusy(false);
     }
   };
+
+  if (readOnly) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 min-w-[2rem] text-sm font-semibold"
+        style={{ color: styles.text }}
+        title="Score"
+      >
+        <ThumbsUp className="h-3.5 w-3.5" style={{ color: styles.textMuted }} />
+        {score}
+      </span>
+    );
+  }
 
   return (
     <div className="inline-flex items-center gap-1">

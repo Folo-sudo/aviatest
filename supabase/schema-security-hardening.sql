@@ -19,4 +19,8 @@ alter default privileges for role postgres in schema public
 -- the user has an authenticated session.
 grant execute on function public.is_username_available(text) to anon, authenticated;
 
+-- Guest / anon read-only views (no write RPCs granted to anon).
+grant execute on function public.list_agora() to anon;
+grant execute on function public.list_notams() to anon;
+
 commit;

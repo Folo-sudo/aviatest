@@ -6,9 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, Landmark, Megaphone, ThumbsUp } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
 import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
+import { GuestReadonlyBanner } from '@/components/GuestReadonlyBanner';
 import { Button } from '@/components/ui/button';
 import { NotamScoreVotes } from '@/components/notam/NotamScoreVotes';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { isGuestMode } from '@/lib/auth/guest';
 import { ADMIN_EMAIL } from '@/lib/stadium/settingsKeys';
 import {
   adminCloseAgoraMissive,
@@ -56,6 +58,16 @@ function MissivesSection({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const reload = async () => {
+    if (isGuestMode()) {
+      try {
+        const list = await listAgora();
+        setItems(list);
+      } catch {
+        setItems([]);
+      }
+      setVotesUsed(VOTE_LIMIT); // aucun vote restant en invité
+      return;
+    }
     const [list, count] = await Promise.all([listAgora(), myAgoraVoteCount()]);
     setItems(list);
     setVotesUsed(count);
@@ -70,6 +82,7 @@ function MissivesSection({
   const remaining = Math.max(0, VOTE_LIMIT - votesUsed);
 
   const onVote = async (id: string, currentlyVoted: boolean) => {
+    if (isGuestMode()) return;
     setBusyId(id);
     setMessage(null);
     try {
@@ -134,12 +147,14 @@ function MissivesSection({
         ) : (
           <span />
         )}
-        <p className="text-sm shrink-0" style={{ color: styles.textMuted }}>
-          Accords :{' '}
-          <span className="font-semibold" style={{ color: styles.text }}>
-            {remaining}/{VOTE_LIMIT}
-          </span>
-        </p>
+        {!isGuestMode() && (
+          <p className="text-sm shrink-0" style={{ color: styles.textMuted }}>
+            Accords :{' '}
+            <span className="font-semibold" style={{ color: styles.text }}>
+              {remaining}/{VOTE_LIMIT}
+            </span>
+          </p>
+        )}
       </div>
 
       {message && (
@@ -193,23 +208,27 @@ function MissivesSection({
             </p>
 
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={item.my_vote ? 'default' : 'outline'}
-                disabled={busyId === item.id || (!item.my_vote && remaining <= 0)}
-                onClick={() => onVote(item.id, item.my_vote)}
-                style={
-                  item.my_vote
-                    ? { backgroundColor: styles.text, color: styles.background }
-                    : undefined
-                }
-              >
-                <ThumbsUp className="h-3.5 w-3.5 mr-1" />
-                {item.my_vote ? 'Retirer mon accord' : 'Donner mon accord'}
-              </Button>
+              {!isGuestMode() && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={item.my_vote ? 'default' : 'outline'}
+                  disabled={
+                    busyId === item.id || (!item.my_vote && remaining <= 0)
+                  }
+                  onClick={() => onVote(item.id, item.my_vote)}
+                  style={
+                    item.my_vote
+                      ? { backgroundColor: styles.text, color: styles.background }
+                      : undefined
+                  }
+                >
+                  <ThumbsUp className="h-3.5 w-3.5 mr-1" />
+                  {item.my_vote ? 'Retirer mon accord' : 'Donner mon accord'}
+                </Button>
+              )}
 
-              {isAdmin && (
+              {isAdmin && !isGuestMode() && (
                 <>
                   <Button
                     type="button"
@@ -254,6 +273,15 @@ function NotamSection({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const reload = async () => {
+    if (isGuestMode()) {
+      try {
+        const list = await listNotams();
+        setItems(list.filter((n) => !n.closed_at));
+      } catch {
+        setItems([]);
+      }
+      return;
+    }
     const list = await listNotams();
     setItems(list.filter((n) => !n.closed_at || isAdmin || n.is_mine));
   };
@@ -265,6 +293,7 @@ function NotamSection({
   }, [setMessage]);
 
   const onReply = async (notamId: string) => {
+    if (isGuestMode()) return;
     const body = (replyDrafts[notamId] || '').trim();
     if (body.length < 2) return;
     setBusyId(notamId);
@@ -320,9 +349,11 @@ function NotamSection({
     <div className="space-y-4">
       <p className="text-sm" style={{ color: styles.textMuted }}>
         {t('agora.notam.intro').trim() ? <>{t('agora.notam.intro')}{' '}</> : null}
-        <Link href="/boite?tab=notam" className="underline">
-          Poser un NOTAM
-        </Link>
+        {!isGuestMode() && (
+          <Link href="/boite?tab=notam" className="underline">
+            Poser un NOTAM
+          </Link>
+        )}
       </p>
 
       {message && (
@@ -368,6 +399,7 @@ function NotamSection({
                 score={item.score}
                 myVote={item.my_vote}
                 disabled={Boolean(item.closed_at)}
+                readOnly={isGuestMode()}
                 onChanged={reload}
               />
             </div>
@@ -376,7 +408,7 @@ function NotamSection({
               {item.body}
             </p>
 
-            {isAdmin && (
+            {isAdmin && !isGuestMode() && (
               <div className="flex flex-wrap gap-2">
                 {!item.closed_at && (
                   <Button
@@ -423,6 +455,7 @@ function NotamSection({
                       score={reply.score}
                       myVote={reply.my_vote}
                       disabled={Boolean(item.closed_at)}
+                      readOnly={isGuestMode()}
                       onChanged={reload}
                     />
                   </div>
@@ -432,7 +465,7 @@ function NotamSection({
                 </div>
               ))}
 
-              {!item.closed_at && (
+              {!item.closed_at && !isGuestMode() && (
                 <div className="space-y-2">
                   <textarea
                     value={replyDrafts[item.id] || ''}
@@ -512,6 +545,8 @@ function AgoraContent() {
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
+        <GuestReadonlyBanner context="l'Agora" />
+
         <div
           className="flex rounded-xl p-1 gap-1"
           style={{

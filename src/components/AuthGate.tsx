@@ -10,6 +10,11 @@ import {
   isSupabaseConfigured,
 } from '@/lib/supabase/client';
 import { fetchMyProfile } from '@/lib/account/profile';
+import {
+  clearGuestMode,
+  enterGuestMode,
+  isGuestMode,
+} from '@/lib/auth/guest';
 
 const styles = {
   background: '#fbfaf9',
@@ -17,12 +22,24 @@ const styles = {
   textMuted: '#605a57',
 };
 
-export default function AuthGate({ children }: { children: ReactNode }) {
+export default function AuthGate({
+  children,
+  requireAccount = false,
+}: {
+  children: ReactNode;
+  /** If true, guests must log in (compte, progression, admin…). */
+  requireAccount?: boolean;
+}) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [guest, setGuest] = useState(false);
+
+  useEffect(() => {
+    setGuest(isGuestMode());
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -42,11 +59,15 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         }
         return;
       }
-      if (!cancelled) setProfileLoading(true);
+      // Real session wins over guest
+      clearGuestMode();
+      if (!cancelled) {
+        setGuest(false);
+        setProfileLoading(true);
+      }
       try {
         const profile = await fetchMyProfile();
         if (cancelled) return;
-        // Retry briefly if trigger has not created the profile yet
         if (!profile) {
           await new Promise((r) => setTimeout(r, 400));
           const again = await fetchMyProfile();
@@ -115,7 +136,24 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!session) {
-    return <AuthForms onSuccess={() => {/* session via onAuthStateChange */}} />;
+    if (guest && !requireAccount) {
+      return <>{children}</>;
+    }
+    return (
+      <AuthForms
+        onSuccess={() => {
+          /* session via onAuthStateChange */
+        }}
+        onContinueAsGuest={
+          requireAccount
+            ? undefined
+            : () => {
+                enterGuestMode();
+                setGuest(true);
+              }
+        }
+      />
+    );
   }
 
   if (needsUsername) {

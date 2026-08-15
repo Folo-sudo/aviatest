@@ -7,8 +7,10 @@ import { Suspense } from 'react';
 import { ArrowLeft, Bug, Megaphone, ScrollText } from 'lucide-react';
 import AuthGate from '@/components/AuthGate';
 import { LatecoerePlaneIcon } from '@/components/icons/LatecoerePlaneIcon';
+import { GuestActionsLock, GuestReadonlyBanner } from '@/components/GuestReadonlyBanner';
 import { Button } from '@/components/ui/button';
 import { EXERCISES } from '@/lib/data/exercises';
+import { isGuestMode } from '@/lib/auth/guest';
 import {
   BUG_STATUS_COLOR,
   BUG_STATUS_LABEL,
@@ -70,6 +72,11 @@ function BeugsPanel() {
   const [message, setMessage] = useState<string | null>(null);
 
   const reload = async () => {
+    if (isGuestMode()) {
+      setCount(0);
+      setBugs([]);
+      return;
+    }
     const [c, list] = await Promise.all([getBugCount(), listMyBugs()]);
     setCount(c);
     setBugs(list);
@@ -86,6 +93,7 @@ function BeugsPanel() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isGuestMode()) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -230,6 +238,11 @@ function MissivesPanel() {
   const [message, setMessage] = useState<string | null>(null);
 
   const reload = async () => {
+    if (isGuestMode()) {
+      setCount(0);
+      setMissives([]);
+      return;
+    }
     const [c, list] = await Promise.all([getMissiveCount(), listMyMissives()]);
     setCount(c);
     setMissives(list);
@@ -246,6 +259,7 @@ function MissivesPanel() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isGuestMode()) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -264,6 +278,7 @@ function MissivesPanel() {
   };
 
   const onAgoraToggle = async (m: Missive) => {
+    if (isGuestMode()) return;
     setBusyId(m.id);
     setMessage(null);
     try {
@@ -408,6 +423,10 @@ function NotamPanel() {
   const [message, setMessage] = useState<string | null>(null);
 
   const reload = async () => {
+    if (isGuestMode()) {
+      setItems([]);
+      return;
+    }
     const list = await listMyNotams();
     setItems(list);
   };
@@ -418,6 +437,7 @@ function NotamPanel() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isGuestMode()) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -548,6 +568,8 @@ function BoiteContent() {
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
+        <GuestReadonlyBanner context="l'Aeropostale" />
+
         <div
           className="flex rounded-xl p-1 gap-1"
           style={{
@@ -591,7 +613,9 @@ function BoiteContent() {
           </button>
         </div>
 
-        {tab === 'beugs' ? <BeugsPanel /> : tab === 'missives' ? <MissivesPanel /> : <NotamPanel />}
+        <GuestActionsLock>
+          {tab === 'beugs' ? <BeugsPanel /> : tab === 'missives' ? <MissivesPanel /> : <NotamPanel />}
+        </GuestActionsLock>
       </div>
     </main>
   );

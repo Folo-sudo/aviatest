@@ -56,7 +56,7 @@ function scoreBadge(score: number | null) {
 
 export default function ProgressionPage() {
   return (
-    <AuthGate>
+    <AuthGate requireAccount>
       <Suspense
         fallback={
           <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">

@@ -528,7 +528,7 @@ function SiteTextsSection({ onError }: { onError: (msg: string | null) => void }
 
 export default function AdminPage() {
   return (
-    <AuthGate>
+    <AuthGate requireAccount>
       <AdminContent />
     </AuthGate>
   );

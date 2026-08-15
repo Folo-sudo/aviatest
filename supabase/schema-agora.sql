@@ -232,4 +232,4 @@ grant execute on function public.admin_close_agora_missive(uuid) to authenticate
 revoke all on function public.my_agora_vote_count() from public;
 grant execute on function public.my_agora_vote_count() to authenticated;
 revoke all on function public.list_agora() from public;
-grant execute on function public.list_agora() to authenticated;
+grant execute on function public.list_agora() to anon, authenticated;

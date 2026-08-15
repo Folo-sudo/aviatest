@@ -16,6 +16,7 @@ import {
   startExercisePresence,
   stopExercisePresence,
 } from '@/lib/presence/exercisePresence';
+import { isGuestMode } from '@/lib/auth/guest';
 
 type Phase = 'idle' | 'loading' | 'waiting' | 'countdown' | 'go' | 'error';
 
@@ -72,6 +73,12 @@ export default function DuelPlayGate({
     if (!duelId || duelCreate) {
       setStadiumHold(false);
       setPhase('idle');
+      return;
+    }
+    if (isGuestMode()) {
+      setStadiumHold(false);
+      setError('Mode invité : les duels sont reserves aux comptes.');
+      setPhase('error');
       return;
     }
     if (!exercise) {

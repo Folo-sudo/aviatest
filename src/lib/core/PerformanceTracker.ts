@@ -131,6 +131,10 @@ export function savePerformanceResult(
   avgTimeMs: number = 0,
 ): void {
   if (typeof window === 'undefined') return;
+  // Guests: no local progression, no cloud, no Stadium scores
+  try {
+    if (sessionStorage.getItem('aviatest-guest') === '1') return;
+  } catch { /* ignore */ }
   const pseudo = getPseudo();
   if (!pseudo) return;
   try {

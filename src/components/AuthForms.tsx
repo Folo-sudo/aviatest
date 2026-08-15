@@ -27,7 +27,13 @@ const styles = {
 
 type Mode = 'login' | 'signup';
 
-export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
+export default function AuthForms({
+  onSuccess,
+  onContinueAsGuest,
+}: {
+  onSuccess: () => void;
+  onContinueAsGuest?: () => void;
+}) {
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -356,6 +362,31 @@ export default function AuthForms({ onSuccess }: { onSuccess: () => void }) {
                 : 'Créer mon compte'}
           </Button>
         </form>
+
+        {onContinueAsGuest && (
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1" style={{ backgroundColor: styles.colors.border }} />
+              <span className="text-xs" style={{ color: styles.colors.textMuted }}>
+                ou
+              </span>
+              <div className="h-px flex-1" style={{ backgroundColor: styles.colors.border }} />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={busy}
+              onClick={onContinueAsGuest}
+            >
+              Continuer en invité
+            </Button>
+            <p className="text-center text-xs" style={{ color: styles.colors.textMuted }}>
+              Catalogue et tests sans compte. Stadium, Agora et Aéropostale
+              sont consultables, sans action (jouer, voter, envoyer…).
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

@@ -9,6 +9,7 @@ import {
   readExerciseSettings,
 } from '@/lib/stadium/settingsKeys';
 import { challengeDuel } from '@/lib/duels/api';
+import { isGuestMode } from '@/lib/auth/guest';
 
 /**
  * Floating bar for Duel create mode (?duelCreate=1&opponentId=…).
@@ -31,7 +32,9 @@ export default function DuelBanner({ slug }: { slug: string }) {
   useEffect(() => {
     if (duelCreate && opponentId) {
       setMessage(
-        'Mode duel : regle les Parametres du test, puis provoque ton ami.',
+        isGuestMode()
+          ? 'Mode invité : les duels sont reserves aux comptes.'
+          : 'Mode duel : regle les Parametres du test, puis provoque ton ami.',
       );
     }
   }, [duelCreate, opponentId]);
@@ -39,7 +42,7 @@ export default function DuelBanner({ slug }: { slug: string }) {
   if (!duelCreate || !opponentId || duelId) return null;
 
   const challenge = async () => {
-    if (!exercise) return;
+    if (!exercise || isGuestMode()) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -68,7 +71,7 @@ export default function DuelBanner({ slug }: { slug: string }) {
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
-          disabled={busy || !exercise}
+          disabled={busy || !exercise || isGuestMode()}
           onClick={() => void challenge()}
           style={{ backgroundColor: '#37322f', color: '#fbfaf9' }}
         >

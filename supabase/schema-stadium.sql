@@ -24,6 +24,11 @@ create policy "competitions_select_authenticated"
   on public.competitions for select to authenticated
   using (true);
 
+drop policy if exists "competitions_select_anon" on public.competitions;
+create policy "competitions_select_anon"
+  on public.competitions for select to anon
+  using (true);
+
 drop policy if exists "competitions_insert_own" on public.competitions;
 create policy "competitions_insert_own"
   on public.competitions for insert to authenticated
@@ -54,6 +59,11 @@ alter table public.competition_scores enable row level security;
 drop policy if exists "competition_scores_select_authenticated" on public.competition_scores;
 create policy "competition_scores_select_authenticated"
   on public.competition_scores for select to authenticated
+  using (true);
+
+drop policy if exists "competition_scores_select_anon" on public.competition_scores;
+create policy "competition_scores_select_anon"
+  on public.competition_scores for select to anon
   using (true);
 
 drop policy if exists "competition_scores_insert_own" on public.competition_scores;

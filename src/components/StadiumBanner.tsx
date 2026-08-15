@@ -14,6 +14,7 @@ import {
   setActiveCompetitionId,
   EXERCISE_SETTINGS_KEYS,
 } from '@/lib/stadium/settingsKeys';
+import { isGuestMode } from '@/lib/auth/guest';
 
 /**
  * Floating bar for Stadium create mode only.
@@ -37,6 +38,10 @@ export default function StadiumBanner({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!stadiumCreate || !exercise) return;
+    if (isGuestMode()) {
+      setMessage('Mode invité : creation de competition reservee aux comptes.');
+      return;
+    }
     setActiveCompetitionId(null);
 
     if (isSpecialStadiumExercise(exercise.id)) {
@@ -70,7 +75,7 @@ export default function StadiumBanner({ slug }: { slug: string }) {
   if (!stadiumCreate || competitionId) return null;
 
   const openCompetition = async () => {
-    if (!exercise || isSpecial) return;
+    if (!exercise || isSpecial || isGuestMode()) return;
     setBusy(true);
     setMessage(null);
     try {

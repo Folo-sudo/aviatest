@@ -8,8 +8,10 @@ import AuthGate from '@/components/AuthGate';
 import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
 import { BoxingGlovesIcon } from '@/components/icons/BoxingGlovesIcon';
 import { CrossedSwordsIcon } from '@/components/icons/CrossedSwordsIcon';
+import { GuestReadonlyBanner } from '@/components/GuestReadonlyBanner';
 import { Button } from '@/components/ui/button';
 import { EXERCISES } from '@/lib/data/exercises';
+import { isGuestMode } from '@/lib/auth/guest';
 import {
   adminDeleteCompetition,
   ensureSpecialCompetitions,
@@ -307,6 +309,7 @@ function StadiumContent() {
   const [duelCreating, setDuelCreating] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
   const [duelMsg, setDuelMsg] = useState<string | null>(null);
+  const guest = isGuestMode();
 
   /** User-creatable tests only — specials (Sparing…) are excluded. */
   const creatableExercises = useMemo(
@@ -321,6 +324,26 @@ function StadiumContent() {
     setLoading(true);
     setError(null);
     try {
+      if (isGuestMode()) {
+        setUserId(null);
+        setIsAdmin(false);
+        // Lecture seule : classements publics si RLS le permet, sinon page vide + banniere.
+        try {
+          const list = sortCompetitionsForDisplay(await listCompetitions());
+          setCompetitions(list);
+          const grouped = await listTopScoresGrouped(list.map((c) => c.id));
+          const sorted: Record<string, CompetitionScore[]> = {};
+          for (const c of list) {
+            const byCount = isSpecialStadiumExercise(c.exercise_id);
+            sorted[c.id] = sortCompetitionScores(grouped[c.id] || [], byCount);
+          }
+          setScores(sorted);
+        } catch {
+          setCompetitions([]);
+          setScores({});
+        }
+        return;
+      }
       const supabase = getSupabaseBrowserClient();
       const {
         data: { user },
@@ -349,6 +372,11 @@ function StadiumContent() {
   };
 
   const reloadDuels = async () => {
+    if (isGuestMode()) {
+      setFriends([]);
+      setDuels([]);
+      return;
+    }
     try {
       const [f, d] = await Promise.all([listFriends(), listMyDuels()]);
       setFriends(f);
@@ -423,6 +451,7 @@ function StadiumContent() {
           {tab === 'competitions' ? (
             <Button
               size="sm"
+              disabled={guest}
               onClick={() => setCreating((v) => !v)}
               style={{ backgroundColor: styles.text, color: styles.background }}
             >
@@ -431,6 +460,7 @@ function StadiumContent() {
           ) : (
             <Button
               size="sm"
+              disabled={guest}
               onClick={() => setDuelCreating((v) => !v)}
               style={{ backgroundColor: styles.text, color: styles.background }}
             >
@@ -441,6 +471,8 @@ function StadiumContent() {
       </header>
 
       <div className="container mx-auto px-4 py-8 space-y-6">
+        <GuestReadonlyBanner context="le Stadium" />
+
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -480,7 +512,7 @@ function StadiumContent() {
               parametres.
             </p>
 
-            {creating && (
+            {creating && !guest && (
               <section
                 className="rounded-xl p-5"
                 style={{
@@ -564,23 +596,25 @@ function StadiumContent() {
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/exercices/${exerciseSlug(c.exercise_id)}?competitionId=${c.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setActiveCompetitionId(c.id)}
-                        >
-                          <Button
-                            size="sm"
-                            style={{
-                              backgroundColor: styles.text,
-                              color: styles.background,
-                            }}
+                        {!guest && (
+                          <Link
+                            href={`/exercices/${exerciseSlug(c.exercise_id)}?competitionId=${c.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setActiveCompetitionId(c.id)}
                           >
-                            Jouer
-                          </Button>
-                        </Link>
-                        {isAdmin && (
+                            <Button
+                              size="sm"
+                              style={{
+                                backgroundColor: styles.text,
+                                color: styles.background,
+                              }}
+                            >
+                              Jouer
+                            </Button>
+                          </Link>
+                        )}
+                        {isAdmin && !guest && (
                           <AdminDangerConfirm
                             title="Supprimer cette competition ?"
                             description="Suppression definitive de la competition Stadium et de tous ses scores."
@@ -592,26 +626,28 @@ function StadiumContent() {
                       </div>
                     </div>
 
-                    <div
-                      className="mb-4 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
-                      style={{
-                        backgroundColor: '#fbfaf9',
-                        border: `1px solid ${styles.border}`,
-                      }}
-                    >
-                      <span
-                        className="text-xs font-semibold uppercase tracking-wide"
-                        style={{ color: styles.textMuted }}
+                    {!guest && (
+                      <div
+                        className="mb-4 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
+                        style={{
+                          backgroundColor: '#fbfaf9',
+                          border: `1px solid ${styles.border}`,
+                        }}
                       >
-                        Mon rang
-                      </span>
-                      <span
-                        className="text-sm font-semibold"
-                        style={{ color: rank ? styles.text : styles.textMuted }}
-                      >
-                        {rank ? `#${rank}` : 'Pas encore joue'}
-                      </span>
-                    </div>
+                        <span
+                          className="text-xs font-semibold uppercase tracking-wide"
+                          style={{ color: styles.textMuted }}
+                        >
+                          Mon rang
+                        </span>
+                        <span
+                          className="text-sm font-semibold"
+                          style={{ color: rank ? styles.text : styles.textMuted }}
+                        >
+                          {rank ? `#${rank}` : 'Pas encore joue'}
+                        </span>
+                      </div>
+                    )}
 
                     <CompetitionPodium
                       scores={top}
@@ -679,7 +715,7 @@ function StadiumContent() {
               </p>
             )}
 
-            {duelCreating && (
+            {duelCreating && !guest && (
               <section
                 className="rounded-xl p-5 space-y-4"
                 style={{
@@ -790,7 +826,7 @@ function StadiumContent() {
                       {d.status === 'active' && 'Duel en cours'}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {d.status === 'pending' && iAmOpponent && (
+                      {d.status === 'pending' && iAmOpponent && !guest && (
                         <>
                           <Button
                             type="button"
@@ -817,7 +853,7 @@ function StadiumContent() {
                           </Button>
                         </>
                       )}
-                      {d.status === 'pending' && !iAmOpponent && (
+                      {d.status === 'pending' && !iAmOpponent && !guest && (
                         <Button
                           type="button"
                           size="sm"
@@ -827,7 +863,7 @@ function StadiumContent() {
                           Annuler
                         </Button>
                       )}
-                      {d.status === 'active' && (
+                      {d.status === 'active' && !guest && (
                         <Button
                           type="button"
                           size="sm"

@@ -15,6 +15,8 @@ import {
   nativeSetTimeout,
   setStadiumHold,
 } from '@/lib/stadium/hold';
+import { exitGuestToLogin, isGuestMode } from '@/lib/auth/guest';
+import { Button } from '@/components/ui/button';
 
 type Phase = 'idle' | 'loading' | 'countdown' | 'go' | 'error';
 
@@ -70,6 +72,12 @@ export default function StadiumPlayGate({
     if (!competitionId || stadiumCreate) {
       setStadiumHold(false);
       setPhase('idle');
+      return;
+    }
+    if (isGuestMode()) {
+      setStadiumHold(false);
+      setError('Mode invité : les competitions Stadium sont reservees aux comptes.');
+      setPhase('error');
       return;
     }
     if (!exercise) {
@@ -176,10 +184,17 @@ export default function StadiumPlayGate({
   if (phase === 'error') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#fbfaf9] px-4">
-        <p className="text-[#37322f]">{error}</p>
-        <Link href="/stadium" className="text-sm underline text-[#605a57]">
-          Retour Stadium
-        </Link>
+        <p className="text-[#37322f] text-center">{error}</p>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <Link href="/stadium" className="text-sm underline text-[#605a57]">
+            Retour Stadium
+          </Link>
+          {isGuestMode() && (
+            <Button type="button" size="sm" onClick={exitGuestToLogin}>
+              Se connecter
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

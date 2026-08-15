@@ -290,7 +290,7 @@ grant execute on function public.vote_notam_target(text, uuid, smallint) to auth
 revoke all on function public.admin_close_notam(uuid) from public;
 grant execute on function public.admin_close_notam(uuid) to authenticated;
 revoke all on function public.list_notams() from public;
-grant execute on function public.list_notams() to authenticated;
+grant execute on function public.list_notams() to anon, authenticated;
 revoke all on function public.list_my_notams() from public;
 grant execute on function public.list_my_notams() to authenticated;
 

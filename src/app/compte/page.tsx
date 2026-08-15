@@ -582,7 +582,7 @@ function CompteContent() {
 
 export default function ComptePage() {
   return (
-    <AuthGate>
+    <AuthGate requireAccount>
       <CompteContent />
     </AuthGate>
   );
