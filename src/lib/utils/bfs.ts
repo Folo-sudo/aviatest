@@ -2,19 +2,34 @@
  * BFS Utilities - For solving the balls puzzle
  */
 
+/** Capacites des 3 tubes selon le nombre de billes (assez de trous pour des chemins 3–7). */
+export function capacitiesFor(numBalls: number): [number, number, number] {
+  const n = Math.max(2, Math.min(7, Math.floor(numBalls)));
+  // [3,2,3] avec 7 billes → diametre ~3 seulement (1 trou) : trop facile / trop court.
+  if (n <= 4) return [3, 2, 3];
+  if (n === 5) return [4, 2, 4];
+  return [4, 3, 4]; // 6–7 billes : plusieurs trous, diametre large
+}
+
 /**
  * Represents the state of 3 tubes (ball stacks)
  */
 export class TubeState {
+  /** @deprecated use instance `.capacities` — kept for older callers */
   static CAPACITIES = [3, 2, 3];
+  capacities: [number, number, number];
   tubes: number[][];
 
-  constructor(tubes: number[][]) {
-    this.tubes = tubes.map(t => [...t]);
+  constructor(
+    tubes: number[][],
+    capacities: [number, number, number] = [3, 2, 3],
+  ) {
+    this.capacities = [...capacities] as [number, number, number];
+    this.tubes = tubes.map((t) => [...t]);
   }
 
   clone(): TubeState {
-    return new TubeState(this.tubes);
+    return new TubeState(this.tubes, this.capacities);
   }
 
   equals(other: TubeState | null): boolean {
@@ -35,7 +50,7 @@ export class TubeState {
   isValidMove(fromTube: number, toTube: number): boolean {
     if (fromTube === toTube) return false;
     if (this.tubes[fromTube].length === 0) return false;
-    if (this.tubes[toTube].length >= TubeState.CAPACITIES[toTube]) return false;
+    if (this.tubes[toTube].length >= this.capacities[toTube]) return false;
     return true;
   }
 
@@ -95,23 +110,23 @@ export function solveBFS(start: TubeState, goal: TubeState): TubeState[] | null 
  * Generates a random valid configuration
  */
 export function generateRandomConfig(numBalls: number): TubeState {
-  const balls = Array.from({ length: numBalls }, (_, i) => i);
-  // Shuffle
+  const n = Math.max(1, Math.min(7, Math.floor(numBalls)));
+  const capacities = capacitiesFor(n);
+  const balls = Array.from({ length: n }, (_, i) => i);
   for (let i = balls.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [balls[i], balls[j]] = [balls[j], balls[i]];
   }
 
   const tubes: number[][] = [[], [], []];
-  const capacities = TubeState.CAPACITIES;
 
   for (const ball of balls) {
-    const available = [0, 1, 2].filter(i => tubes[i].length < capacities[i]);
+    const available = [0, 1, 2].filter((i) => tubes[i].length < capacities[i]);
     const tubeIdx = available[Math.floor(Math.random() * available.length)];
     tubes[tubeIdx].push(ball);
   }
 
-  return new TubeState(tubes);
+  return new TubeState(tubes, capacities);
 }
 
 export interface PuzzleResult {
@@ -120,42 +135,124 @@ export interface PuzzleResult {
   solution: TubeState[];
 }
 
+type BfsNode = {
+  state: TubeState;
+  parent: BfsNode | null;
+  depth: number;
+};
+
 /**
- * Generates a puzzle with a solution between minMoves and maxMoves
+ * BFS from `start` : pick a random state first reached at exactly `targetDist`.
+ * Guarantees the shortest path length equals `targetDist` (no walk+shorten).
  */
-export function generatePuzzle(
-  numBalls: number,
-  minMoves = 2,
-  maxMoves = 8,
-  maxAttempts = 100
-): PuzzleResult {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const start = generateRandomConfig(numBalls);
-    const goal = generateRandomConfig(numBalls);
+function findPathAtExactDistance(
+  start: TubeState,
+  targetDist: number,
+): TubeState[] | null {
+  if (targetDist <= 0) return [start];
 
-    if (start.equals(goal)) continue;
+  const root: BfsNode = { state: start, parent: null, depth: 0 };
+  const queue: BfsNode[] = [root];
+  const visited = new Set<string>([start.toKey()]);
+  const atTarget: BfsNode[] = [];
 
-    const solution = solveBFS(start, goal);
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    if (node.depth >= targetDist) continue;
 
-    if (solution && minMoves <= solution.length - 1 && solution.length - 1 <= maxMoves) {
-      return { start, goal, solution };
+    for (const [fromT, toT] of node.state.getPossibleMoves()) {
+      const nextState = node.state.applyMove(fromT, toT);
+      const key = nextState.toKey();
+      if (visited.has(key)) continue;
+      visited.add(key);
+
+      const child: BfsNode = {
+        state: nextState,
+        parent: node,
+        depth: node.depth + 1,
+      };
+
+      if (child.depth === targetDist) {
+        atTarget.push(child);
+      } else {
+        queue.push(child);
+      }
     }
   }
 
-  // Fallback: generate from start with random moves
-  const start = generateRandomConfig(numBalls);
-  let current = start;
-  const path = [start];
+  if (atTarget.length === 0) return null;
 
-  const targetMoves = Math.floor(Math.random() * (maxMoves - minMoves + 1)) + minMoves;
-  for (let i = 0; i < targetMoves; i++) {
-    const moves = current.getPossibleMoves();
-    if (moves.length === 0) break;
+  let pick = atTarget[Math.floor(Math.random() * atTarget.length)];
+  const path: TubeState[] = [];
+  let cur: BfsNode | null = pick;
+  while (cur) {
+    path.push(cur.state);
+    cur = cur.parent;
+  }
+  path.reverse();
+  return path;
+}
 
-    const move = moves[Math.floor(Math.random() * moves.length)];
-    current = current.applyMove(...move);
-    path.push(current);
+/**
+ * Generates a puzzle whose SHORTEST solution length is chosen uniformly
+ * in [minMoves, maxMoves], via exact-distance BFS (no computational shortcut).
+ */
+export function generatePuzzle(
+  numBalls: number,
+  minMoves = 3,
+  maxMoves = 7,
+  maxAttempts = 100,
+): PuzzleResult {
+  const lo = Math.max(1, Math.min(minMoves, maxMoves));
+  const hi = Math.max(lo, maxMoves);
+  const span = hi - lo + 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const target = lo + ((attempt + Math.floor(Math.random() * span)) % span);
+    const start = generateRandomConfig(numBalls);
+    const solution = findPathAtExactDistance(start, target);
+    if (solution && solution.length - 1 === target) {
+      return {
+        start,
+        goal: solution[solution.length - 1],
+        solution,
+      };
+    }
   }
 
-  return { start, goal: current, solution: path };
+  for (let target = hi; target >= lo; target--) {
+    for (let i = 0; i < 50; i++) {
+      const start = generateRandomConfig(numBalls);
+      const solution = findPathAtExactDistance(start, target);
+      if (solution && solution.length - 1 === target) {
+        return {
+          start,
+          goal: solution[solution.length - 1],
+          solution,
+        };
+      }
+    }
+  }
+
+  for (let i = 0; i < 40; i++) {
+    const start = generateRandomConfig(numBalls);
+    for (let target = hi; target >= lo; target--) {
+      const solution = findPathAtExactDistance(start, target);
+      if (solution && solution.length - 1 >= lo) {
+        return {
+          start,
+          goal: solution[solution.length - 1],
+          solution,
+        };
+      }
+    }
+  }
+
+  const start = generateRandomConfig(numBalls);
+  const solution = findPathAtExactDistance(start, lo) ?? [start];
+  return {
+    start,
+    goal: solution[solution.length - 1],
+    solution,
+  };
 }

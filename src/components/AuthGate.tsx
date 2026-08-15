@@ -36,9 +36,11 @@ export default function AuthGate({
   const [needsUsername, setNeedsUsername] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [guest, setGuest] = useState(false);
+  const [guestChecked, setGuestChecked] = useState(false);
 
   useEffect(() => {
     setGuest(isGuestMode());
+    setGuestChecked(true);
   }, []);
 
   useEffect(() => {
@@ -102,7 +104,7 @@ export default function AuthGate({
     };
   }, []);
 
-  if (loading || (session && profileLoading)) {
+  if (loading || !guestChecked || (session && profileLoading)) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
