@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Trophy, ArrowLeft, Plus, ChevronDown, ChevronUp } from 'lucide-react';
@@ -47,61 +47,89 @@ const styles = {
   bronze: '#b87333',
 };
 
-function GoldenLaurel({ children }: { children: ReactNode }) {
+function LaurelWreath({ children }: { children: ReactNode }) {
+  const label = typeof children === 'string' ? children : undefined;
   return (
-    <span className="relative inline-flex items-center justify-center px-7 py-1">
-      <svg
+    <div
+      className="relative mx-auto h-[92px] w-[148px] shrink-0"
+      title={label}
+    >
+      {/* Asset fourni : couronne ouverte — le centre reste libre pour le pseudo */}
+      <img
+        src="/icons/laurel-wreath.png"
+        alt=""
         aria-hidden
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        viewBox="0 0 200 56"
-        fill="none"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M28 48c-10-8-16-18-14-28 8-4 18-2 26 6M28 48c8-2 16-10 20-20"
-          stroke={styles.gold}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M22 22c4 2 8 8 8 14M18 30c5 1 10 6 11 12"
-          stroke={styles.gold}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          opacity="0.85"
-        />
-        <path
-          d="M172 48c10-8 16-18 14-28-8-4-18-2-26 6M172 48c-8-2-16-10-20-20"
-          stroke={styles.gold}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M178 22c-4 2-8 8-8 14M182 30c-5 1-10 6-11 12"
-          stroke={styles.gold}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          opacity="0.85"
-        />
-        <circle cx="100" cy="8" r="3" fill={styles.gold} />
-        <path
-          d="M88 10c4-6 8-8 12-8s8 2 12 8"
-          stroke={styles.gold}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
+      />
+      {/* Zone sûre au milieu des branches (pas de superposition avec les feuilles) */}
+      <div className="absolute inset-0 flex items-center justify-center px-[30%] pb-[10%] pt-[6%]">
+        <span
+          className="max-w-full truncate text-center text-[13px] font-semibold leading-tight tracking-wide sm:text-sm"
+          style={{
+            fontFamily: 'var(--font-playfair), Georgia, serif',
+            color: styles.gold,
+            textShadow: '0 1px 0 rgba(255,255,255,0.55)',
+          }}
+        >
+          {children}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function RankMedal({
+  place,
+  label,
+}: {
+  place: 2 | 3;
+  label: string;
+}) {
+  const uid = useId().replace(/:/g, '');
+  const isSilver = place === 2;
+  const gradId = `medal-${place}-${uid}`;
+  const rim = isSilver ? '#c0c6ce' : '#c48a4a';
+  const face = isSilver ? '#e8eaed' : '#d4a574';
+  const deep = isSilver ? '#8a9199' : '#8a5a2b';
+  const text = isSilver ? styles.silver : styles.bronze;
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <svg aria-hidden width="52" height="64" viewBox="0 0 52 64" fill="none">
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={face} />
+            <stop offset="55%" stopColor={rim} />
+            <stop offset="100%" stopColor={deep} />
+          </linearGradient>
+        </defs>
+        {/* Ribbon */}
+        <path d="M18 2 L26 18 L22 2 Z" fill={isSilver ? '#7c8aa0' : '#a65c3a'} />
+        <path d="M34 2 L26 18 L30 2 Z" fill={isSilver ? '#5c6b82' : '#7a3f28'} />
+        {/* Medal disc */}
+        <circle cx="26" cy="36" r="18" fill={`url(#${gradId})`} stroke={deep} strokeWidth="1.5" />
+        <circle cx="26" cy="36" r="13.5" fill="none" stroke={face} strokeWidth="1.2" opacity="0.9" />
+        <text
+          x="26"
+          y="41"
+          textAnchor="middle"
+          fontSize="14"
+          fontWeight="700"
+          fill={deep}
+          fontFamily="var(--font-playfair), Georgia, serif"
+        >
+          {place}
+        </text>
       </svg>
-      <span
-        className="relative font-semibold tracking-wide"
-        style={{
-          fontFamily: 'var(--font-playfair), Georgia, serif',
-          color: styles.gold,
-          textShadow: `0 0 12px ${styles.goldSoft}`,
-        }}
+      <p
+        className="max-w-full truncate text-center text-xs font-medium sm:text-sm"
+        style={{ color: text }}
+        title={label}
       >
-        {children}
-      </span>
-    </span>
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -170,15 +198,15 @@ function CompetitionPodium({
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-center gap-3 sm:gap-5 pt-2 pb-1">
-        {/* 2nd */}
+        {/* 2nd — médaille d'argent */}
         <div className="flex w-[28%] max-w-[120px] flex-col items-center gap-2">
-          <p
-            className="text-center text-xs sm:text-sm font-medium truncate w-full"
-            style={{ color: second ? styles.silver : styles.textMuted }}
-            title={second?.pseudo}
-          >
-            {second?.pseudo || '—'}
-          </p>
+          {second ? (
+            <RankMedal place={2} label={second.pseudo} />
+          ) : (
+            <p className="text-sm" style={{ color: styles.textMuted }}>
+              —
+            </p>
+          )}
           {second && (
             <p className="text-[10px] tabular-nums" style={{ color: styles.textMuted }}>
               {formatCompetitionScore(second, byCount)}
@@ -196,10 +224,10 @@ function CompetitionPodium({
           </div>
         </div>
 
-        {/* 1st */}
+        {/* 1st — couronne de laurier */}
         <div className="flex w-[34%] max-w-[150px] flex-col items-center gap-2">
           {first ? (
-            <GoldenLaurel>{first.pseudo}</GoldenLaurel>
+            <LaurelWreath>{first.pseudo}</LaurelWreath>
           ) : (
             <p className="text-sm" style={{ color: styles.textMuted }}>
               —
@@ -225,15 +253,15 @@ function CompetitionPodium({
           </div>
         </div>
 
-        {/* 3rd */}
+        {/* 3rd — médaille de bronze */}
         <div className="flex w-[28%] max-w-[120px] flex-col items-center gap-2">
-          <p
-            className="text-center text-xs sm:text-sm font-medium truncate w-full"
-            style={{ color: third ? styles.bronze : styles.textMuted }}
-            title={third?.pseudo}
-          >
-            {third?.pseudo || '—'}
-          </p>
+          {third ? (
+            <RankMedal place={3} label={third.pseudo} />
+          ) : (
+            <p className="text-sm" style={{ color: styles.textMuted }}>
+              —
+            </p>
+          )}
           {third && (
             <p className="text-[10px] tabular-nums" style={{ color: styles.textMuted }}>
               {formatCompetitionScore(third, byCount)}
