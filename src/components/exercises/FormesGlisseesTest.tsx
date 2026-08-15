@@ -51,12 +51,16 @@ interface GameSettings {
   timePerQuestionSec: number;
   numShapes: number;
   examMode: boolean;
+  /** Palette aléatoire (deux teintes) fixée pour toute la durée du test. */
+  changingColors: boolean;
 }
 
 interface QuestionResult {
   outcome: AnswerOutcome;
   timeUsedMs: number;
 }
+
+type ColorPalette = { navy: string; grey: string };
 
 const EXERCISE_ID = 'formes-glissees';
 const SETTINGS_KEY = 'aviatest-formes-glissees-settings';
@@ -66,14 +70,36 @@ const DEFAULT_SETTINGS: GameSettings = {
   timePerQuestionSec: 60,
   numShapes: 3,
   examMode: false,
+  changingColors: false,
 };
 
 const BG = '#d4d4d4';
 const NAVY = '#1a2b4a';
 const GREY = '#a8a8a8';
+const DEFAULT_PALETTE: ColorPalette = { navy: NAVY, grey: GREY };
 const CELL_BORDER = '#888';
 const GHOST_ALPHA = 0.45;
 const CELL_PX = 36;
+
+/** Teintes bien contrastées pour le mode couleurs changeantes. */
+const COLOR_POOL = [
+  '#1a2b4a',
+  '#a8a8a8',
+  '#0f766e',
+  '#f59e0b',
+  '#7c2d12',
+  '#2563eb',
+  '#831843',
+  '#16a34a',
+  '#4c1d95',
+  '#c2410c',
+  '#0e7490',
+  '#ca8a04',
+  '#be123c',
+  '#365314',
+  '#1d4ed8',
+  '#9a3412',
+];
 
 // ============================================================================
 // Settings persistence
@@ -131,6 +157,15 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function pickRandomPalette(): ColorPalette {
+  const [a, b] = shuffle(COLOR_POOL);
+  return { navy: a, grey: b };
+}
+
+function cellFill(color: CellColor, palette: ColorPalette = DEFAULT_PALETTE): string {
+  return color === 'navy' ? palette.navy : palette.grey;
 }
 
 function generatePolyomino(minCells: number, maxCells: number): { dx: number; dy: number }[] {
@@ -306,10 +341,6 @@ function computePlayerGrid(size: number, pieces: ShapePiece[], placements: Place
 // Sub-components
 // ============================================================================
 
-function cellFill(color: CellColor): string {
-  return color === 'navy' ? NAVY : GREY;
-}
-
 function PatternGrid({
   grid,
   cellSize = CELL_PX,
@@ -319,6 +350,7 @@ function PatternGrid({
   onCellClick,
   onCellHover,
   onCellLeave,
+  palette = DEFAULT_PALETTE,
 }: {
   grid: CellColor[][];
   cellSize?: number;
@@ -328,6 +360,7 @@ function PatternGrid({
   onCellClick?: (x: number, y: number) => void;
   onCellHover?: (x: number, y: number) => void;
   onCellLeave?: () => void;
+  palette?: ColorPalette;
 }) {
   const size = grid.length;
   const w = size * cellSize;
@@ -343,13 +376,13 @@ function PatternGrid({
   return (
     <div className="flex flex-col items-center gap-2">
       {label && (
-        <p className="text-center text-base font-semibold" style={{ color: NAVY }}>
+        <p className="text-center text-base font-semibold" style={{ color: palette.navy }}>
           {label}
         </p>
       )}
       <div
         className="inline-block rounded border-2 bg-white shadow-sm"
-        style={{ borderColor: NAVY, padding: 4 }}
+        style={{ borderColor: palette.navy, padding: 4 }}
       >
         <svg width={w + 2} height={h + 2} style={{ display: 'block' }}>
           {grid.map((row, y) =>
@@ -359,7 +392,10 @@ function PatternGrid({
               const ghostCell = ghost?.piece.cells.find(
                 (c) => c.dx + (ghost?.offsetX ?? 0) === x && c.dy + (ghost?.offsetY ?? 0) === y,
               );
-              const fill = isGhost && ghostCell ? cellFill(ghostCell.color) : cellFill(color);
+              const fill =
+                isGhost && ghostCell
+                  ? cellFill(ghostCell.color, palette)
+                  : cellFill(color, palette);
               const opacity = isGhost ? GHOST_ALPHA : 1;
 
               return (
@@ -394,7 +430,7 @@ function PatternGrid({
                   width={cellSize - 1}
                   height={cellSize - 1}
                   fill="none"
-                  stroke={NAVY}
+                  stroke={palette.navy}
                   strokeWidth={2}
                   strokeDasharray="4 2"
                   pointerEvents="none"
@@ -413,12 +449,14 @@ function PiecePreview({
   placed,
   onSelect,
   cellSize = 22,
+  palette = DEFAULT_PALETTE,
 }: {
   piece: ShapePiece;
   selected: boolean;
   placed: boolean;
   onSelect: () => void;
   cellSize?: number;
+  palette?: ColorPalette;
 }) {
   const w = piece.width * cellSize;
   const h = piece.height * cellSize;
@@ -429,8 +467,8 @@ function PiecePreview({
       onClick={onSelect}
       className="rounded-lg border-2 bg-white p-2 transition-transform hover:scale-[1.03] active:scale-[0.98]"
       style={{
-        borderColor: selected ? NAVY : placed ? '#94a3b8' : '#ccc',
-        boxShadow: selected ? `0 0 0 2px ${NAVY}33` : undefined,
+        borderColor: selected ? palette.navy : placed ? '#94a3b8' : '#ccc',
+        boxShadow: selected ? `0 0 0 2px ${palette.navy}33` : undefined,
         opacity: placed && !selected ? 0.65 : 1,
       }}
       title={placed ? 'Piece placee — cliquez pour deplacer' : 'Selectionner cette piece'}
@@ -443,7 +481,7 @@ function PiecePreview({
             y={c.dy * cellSize}
             width={cellSize - 1}
             height={cellSize - 1}
-            fill={cellFill(c.color)}
+            fill={cellFill(c.color, palette)}
             stroke={CELL_BORDER}
             strokeWidth={0.5}
           />
@@ -453,17 +491,25 @@ function PiecePreview({
   );
 }
 
-function ColorSwatch({ color, size = 'md' }: { color: CellColor; size?: 'md' | 'lg' }) {
+function ColorSwatch({
+  color,
+  size = 'md',
+  palette = DEFAULT_PALETTE,
+}: {
+  color: CellColor;
+  size?: 'md' | 'lg';
+  palette?: ColorPalette;
+}) {
   const dim = size === 'lg' ? 'h-8 w-8' : 'h-7 w-7';
   return (
     <span
       className={`inline-block ${dim} rounded-md border shadow-sm`}
-      style={{ backgroundColor: cellFill(color), borderColor: CELL_BORDER }}
+      style={{ backgroundColor: cellFill(color, palette), borderColor: CELL_BORDER }}
     />
   );
 }
 
-function SuperpositionLegend() {
+function SuperpositionLegend({ palette = DEFAULT_PALETTE }: { palette?: ColorPalette }) {
   const rules: [CellColor, CellColor, CellColor][] = [
     ['navy', 'navy', 'navy'],
     ['navy', 'grey', 'grey'],
@@ -479,11 +525,11 @@ function SuperpositionLegend() {
             key={i}
             className="flex items-center justify-center gap-3 rounded-full border border-slate-100 bg-slate-50 px-5 py-2.5"
           >
-            <ColorSwatch color={a} size="lg" />
+            <ColorSwatch color={a} size="lg" palette={palette} />
             <span className="text-base font-medium text-slate-500">+</span>
-            <ColorSwatch color={b} size="lg" />
+            <ColorSwatch color={b} size="lg" palette={palette} />
             <span className="text-base font-medium text-slate-500">=</span>
-            <ColorSwatch color={r} size="lg" />
+            <ColorSwatch color={r} size="lg" palette={palette} />
           </div>
         ))}
       </div>
@@ -519,6 +565,7 @@ export default function FormesGlisseesTest() {
   const [locked, setLocked] = useState(false);
   const [successFlash, setSuccessFlash] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
+  const [palette, setPalette] = useState<ColorPalette>(DEFAULT_PALETTE);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -678,6 +725,9 @@ export default function FormesGlisseesTest() {
 
   const startGame = useCallback(() => {
     perfSavedRef.current = false;
+    setPalette(
+      settingsRef.current.changingColors ? pickRandomPalette() : DEFAULT_PALETTE,
+    );
     const qs = generateQuestions(
       settingsRef.current.numQuestions,
       settingsRef.current.numShapes,
@@ -755,6 +805,11 @@ export default function FormesGlisseesTest() {
                 Mode examen — pas de correction entre les questions
               </div>
             )}
+            {settings.changingColors && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-sm text-indigo-700">
+                Couleurs changeantes — palette aleatoire pour tout le test
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>
                 <Play className="mr-2 h-5 w-5" /> Commencer
@@ -825,6 +880,18 @@ export default function FormesGlisseesTest() {
               <Switch
                 checked={settings.examMode}
                 onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Couleurs changeantes</Label>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Deux teintes aleatoires, fixes pour toute la duree du test
+                </p>
+              </div>
+              <Switch
+                checked={settings.changingColors}
+                onCheckedChange={(v) => setSettings((s) => ({ ...s, changingColors: v }))}
               />
             </div>
             <Button size="lg" className="w-full" onClick={() => setGameState('menu')}>
@@ -932,7 +999,7 @@ export default function FormesGlisseesTest() {
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ backgroundColor: BG, color: NAVY }}
+      style={{ backgroundColor: BG, color: palette.navy }}
     >
       <div className="relative mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-4">
         {/* Timer bar */}
@@ -951,7 +1018,7 @@ export default function FormesGlisseesTest() {
           </span>
         </div>
 
-        <SuperpositionLegend />
+        <SuperpositionLegend palette={palette} />
 
         {/* Grids row */}
         <div
@@ -968,6 +1035,7 @@ export default function FormesGlisseesTest() {
               onCellClick={handlePlacePiece}
               onCellHover={handleGhostHover}
               onCellLeave={() => setGhostPos(null)}
+              palette={palette}
             />
             <div className="flex gap-2">
               <Button
@@ -986,6 +1054,7 @@ export default function FormesGlisseesTest() {
           <PatternGrid
             grid={currentPuzzle.target}
             label="Figures a reproduire"
+            palette={palette}
           />
         </div>
 
@@ -1006,6 +1075,7 @@ export default function FormesGlisseesTest() {
                 piece={piece}
                 selected={selectedPieceId === piece.id}
                 placed={placedIds.has(piece.id)}
+                palette={palette}
                 onSelect={() => {
                   if (locked) return;
                   setSelectedPieceId((prev) => (prev === piece.id ? null : piece.id));
