@@ -280,17 +280,24 @@ export default function AirwaysTest() {
       const next = [...seriesStatsRef.current, entry];
       seriesStatsRef.current = next;
       setSeriesStats(next);
+      // Pause courte puis planche suivante (seriesIndex change → relance l'intervalle)
       setTimeout(() => startNextSeries(seriesIndexRef.current + 1, next), 600);
     }
   }, [countGrey, startNextSeries, stopLoop, triggerAccident]);
 
+  // Relancer la boucle a chaque nouvelle planche (seriesIndex).
+  // Sans ca, apres stopLoop en fin de serie le gameState reste "playing"
+  // et l'intervalle n'est jamais recree → plus aucun avion.
   useEffect(() => {
     if (gameState !== 'playing' || accident) return;
-    intervalRef.current = setInterval(tick, settingsRef.current.stepMs);
+    playingRef.current = true;
+    const id = setInterval(tick, settingsRef.current.stepMs);
+    intervalRef.current = id;
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      clearInterval(id);
+      if (intervalRef.current === id) intervalRef.current = null;
     };
-  }, [gameState, accident, tick]);
+  }, [gameState, accident, seriesIndex, tick]);
 
   const closeLine = useCallback((line: number) => {
     // Pilotest onPressSmallBtn: clear entire line trajectory + disable button for series
