@@ -15,11 +15,14 @@ import { useRouter } from 'next/navigation';
 // ============================================================================
 
 type Phase = 'menu' | 'playing' | 'results';
+type AngleMode = 'clock' | 'unsigned';
 
 interface AngleQuestion {
   handA: number;        // angle of hand A in degrees (trig: 0=right, CCW)
   handO: number;        // angle of hand O
-  answer: number;       // signed angle from A to O in the clock's positive direction
+  answer: number;       // clock: signed A→O ; unsigned: smallest angle 10–170
+  lengthA: number;
+  lengthO: number;
   clockRotation: number; // rotation offset of the clock dial
   clockReversed: boolean; // whether the clock is reversed (positive = CCW instead of CW)
 }
@@ -35,6 +38,7 @@ interface AngleResult {
 // ============================================================================
 
 const TOTAL_ANGLES = 30;
+const TOTAL_UNSIGNED = 100;
 
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -43,12 +47,6 @@ function randInt(min: number, max: number): number {
 function degToPoint(deg: number, cx: number, cy: number, r: number): { x: number; y: number } {
   const rad = (deg * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
-}
-
-function angleDiff(a: number, b: number): number {
-  let d = Math.abs(a - b) % 360;
-  if (d > 180) d = 360 - d;
-  return d;
 }
 
 function generateAngles(): AngleQuestion[] {
@@ -76,9 +74,50 @@ function generateAngles(): AngleQuestion[] {
       handO = ((handA - answer) % 360 + 360) % 360;
     }
 
-    questions.push({ handA, handO, answer, clockRotation, clockReversed });
+    questions.push({
+      handA,
+      handO,
+      answer,
+      lengthA: 0.38,
+      lengthO: 0.38,
+      clockRotation,
+      clockReversed,
+    });
   }
   return questions;
+}
+
+/** Version locale Python : angle non oriente, x et 360-x acceptes. */
+function generateUnsignedAngles(): AngleQuestion[] {
+  const questions: AngleQuestion[] = [];
+  for (let i = 0; i < TOTAL_UNSIGNED; i++) {
+    const handA = randInt(0, 35) * 10;
+    const answer = randInt(1, 17) * 10;
+    const direction = Math.random() < 0.5 ? 1 : -1;
+    const handO = ((handA + direction * answer) % 360 + 360) % 360;
+    questions.push({
+      handA,
+      handO,
+      answer,
+      // Comme scripts/fiche_angles_local.py : traits de longueurs independantes
+      lengthA: 0.22 + Math.random() * 0.26,
+      lengthO: 0.22 + Math.random() * 0.26,
+      clockRotation: 0,
+      clockReversed: false,
+    });
+  }
+  return questions;
+}
+
+function unsignedError(userAngle: number, answer: number): number {
+  const normalized = ((userAngle % 360) + 360) % 360;
+  const complement = (360 - answer) % 360;
+  return Math.min(Math.abs(normalized - answer), Math.abs(normalized - complement));
+}
+
+function formatUnsignedExpected(answer: number): string {
+  const complement = (360 - answer) % 360;
+  return `${answer} ou ${complement}`;
 }
 
 // ============================================================================
@@ -151,44 +190,52 @@ function ClockDial({
 // SVG: Two-hand angle display (like a clock)
 // ============================================================================
 
-function AngleDisplay({ handA, handO, size = 240 }: { handA: number; handO: number; size?: number }) {
+function AngleDisplay({
+  handA,
+  handO,
+  lengthA = 0.38,
+  lengthO = 0.38,
+  size = 240,
+  colored = false,
+}: {
+  handA: number;
+  handO: number;
+  lengthA?: number;
+  lengthO?: number;
+  size?: number;
+  colored?: boolean;
+}) {
   const cx = size / 2;
   const cy = size / 2;
-  const handLen = size * 0.38;
   const labelOff = size * 0.06;
+  const strokeA = colored ? '#2563EB' : '#1E293B';
+  const strokeO = colored ? '#DC2626' : '#1E293B';
 
-  const ptA = degToPoint(handA, cx, cy, handLen);
-  const ptO = degToPoint(handO, cx, cy, handLen);
+  const ptA = degToPoint(handA, cx, cy, size * lengthA);
+  const ptO = degToPoint(handO, cx, cy, size * lengthO);
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto">
       <rect x="0" y="0" width={size} height={size} rx="12" fill="#E2E8F0" />
 
-      {/* Hand A */}
-      <line x1={cx} y1={cy} x2={ptA.x} y2={ptA.y} stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
-      {/* Hand O */}
-      <line x1={cx} y1={cy} x2={ptO.x} y2={ptO.y} stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
+      <line x1={cx} y1={cy} x2={ptA.x} y2={ptA.y} stroke={strokeA} strokeWidth="4" strokeLinecap="round" />
+      <line x1={cx} y1={cy} x2={ptO.x} y2={ptO.y} stroke={strokeO} strokeWidth="4" strokeLinecap="round" />
 
-      {/* Center dot */}
       <circle cx={cx} cy={cy} r="5" fill="#1E293B" />
 
-      {/* Label A */}
       <text
         x={ptA.x + (ptA.x >= cx ? labelOff : -labelOff)}
         y={ptA.y + (ptA.y >= cy ? labelOff * 2.2 : -labelOff * 0.6)}
         fontSize="18" fontWeight="bold" fill="#2563EB" textAnchor="middle"
       >A</text>
-      {/* Dot at A */}
-      <circle cx={ptA.x} cy={ptA.y} r="4" fill="#2563EB" />
+      <circle cx={ptA.x} cy={ptA.y} r="5" fill="#2563EB" />
 
-      {/* Label O */}
       <text
         x={ptO.x + (ptO.x >= cx ? labelOff : -labelOff)}
         y={ptO.y + (ptO.y >= cy ? labelOff * 2.2 : -labelOff * 0.6)}
         fontSize="18" fontWeight="bold" fill="#DC2626" textAnchor="middle"
       >O</text>
-      {/* Dot at O */}
-      <circle cx={ptO.x} cy={ptO.y} r="4" fill="#DC2626" />
+      <circle cx={ptO.x} cy={ptO.y} r="5" fill="#DC2626" />
     </svg>
   );
 }
@@ -316,6 +363,7 @@ function TrigCircle({
 export default function FicheAngleTest() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('menu');
+  const [mode, setMode] = useState<AngleMode>('clock');
 
   const [angles, setAngles] = useState<AngleQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -332,9 +380,10 @@ export default function FicheAngleTest() {
     }
   }, [phase, currentIdx, showCorrection]);
 
-  const startFiche = useCallback(() => {
+  const startFiche = useCallback((nextMode: AngleMode) => {
     perfSavedRef.current = false;
-    setAngles(generateAngles());
+    setMode(nextMode);
+    setAngles(nextMode === 'unsigned' ? generateUnsignedAngles() : generateAngles());
     setCurrentIdx(0);
     setUserInput('');
     setShowCorrection(false);
@@ -345,13 +394,15 @@ export default function FicheAngleTest() {
   const submitAngle = useCallback(() => {
     const parsed = parseInt(userInput, 10);
     if (isNaN(parsed)) return;
-    // Snap to nearest multiple of 10
     const snapped = Math.round(parsed / 10) * 10;
     const q = angles[currentIdx];
-    const error = Math.abs(snapped - q.answer);
+    const error =
+      mode === 'unsigned'
+        ? unsignedError(snapped, q.answer)
+        : Math.abs(snapped - q.answer);
     setResults(prev => [...prev, { question: q, userAngle: snapped, error }]);
     setShowCorrection(true);
-  }, [angles, currentIdx, userInput]);
+  }, [angles, currentIdx, userInput, mode]);
 
   const nextAngle = useCallback(() => {
     if (currentIdx + 1 >= angles.length) {
@@ -370,40 +421,42 @@ export default function FicheAngleTest() {
   if (phase === 'menu') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Fiche Angles</CardTitle>
             <CardDescription className="text-base mt-2">
-              Estimez l&apos;angle entre deux aiguilles
+              Choisissez le type d&apos;entrainement
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
-              <p><strong>30 angles</strong> a estimer.</p>
-              <p>Deux aiguilles partent du meme centre.</p>
-              <p>Un <strong>cadran horloge</strong> indique le sens positif (lire les chiffres 3{'\u2192'}6{'\u2192'}9{'\u2192'}12 dans l&apos;ordre croissant).</p>
-              <p>Trouvez l&apos;angle de <strong>A vers O</strong> dans le sens positif du cadran.</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">30</p>
-                <p className="text-xs text-slate-500">Angles</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">10{'\u00B0'}</p>
-                <p className="text-xs text-slate-500">Precision</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startFiche}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <ArrowLeft className="mr-2 h-5 w-5" /> Retour
-              </Button>
-            </div>
+          <CardContent className="space-y-3">
+            <Button
+              size="lg"
+              className="h-auto w-full flex-col items-start gap-1 whitespace-normal py-4 text-left"
+              onClick={() => startFiche('clock')}
+            >
+              <span className="flex items-center text-base font-semibold">
+                <Play className="mr-2 h-5 w-5 shrink-0" /> Cadran (actuelle)
+              </span>
+              <span className="font-normal text-sm opacity-90">
+                30 angles signes A vers O, avec cadran horloge (sens positif,
+                cadran parfois inverse).
+              </span>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-auto w-full flex-col items-start gap-1 whitespace-normal py-4 text-left"
+              onClick={() => startFiche('unsigned')}
+            >
+              <span className="text-base font-semibold">Angle non oriente</span>
+              <span className="font-normal text-sm text-slate-600">
+                100 angles entre A et O — les deux sens sont acceptes (x et
+                360 - x), comme l&apos;app locale Python.
+              </span>
+            </Button>
+            <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
+              <ArrowLeft className="mr-2 h-5 w-5" /> Retour
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -457,7 +510,9 @@ export default function FicheAngleTest() {
                   <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm flex justify-between items-center">
                     <span className="text-slate-500">#{i + 1}</span>
                     <span className="font-mono text-slate-600">
-                      {r.question.answer >= 0 ? '+' : ''}{r.question.answer}{'\u00B0'} {'\u2192'} {r.userAngle >= 0 ? '+' : ''}{r.userAngle}{'\u00B0'}
+                      {mode === 'unsigned'
+                        ? `${formatUnsignedExpected(r.question.answer)}\u00B0 \u2192 ${r.userAngle}\u00B0`
+                        : `${r.question.answer >= 0 ? '+' : ''}${r.question.answer}\u00B0 \u2192 ${r.userAngle >= 0 ? '+' : ''}${r.userAngle}\u00B0`}
                     </span>
                     <span className={`font-semibold ${r.error === 0 ? 'text-green-600' : r.error <= 10 ? 'text-blue-600' : r.error <= 30 ? 'text-amber-600' : 'text-red-600'}`}>
                       {r.error === 0 ? '\u2713' : `\u0394${r.error}\u00B0`}
@@ -477,8 +532,11 @@ export default function FicheAngleTest() {
             )}
 
             <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startFiche}>
+              <Button size="lg" className="w-full" onClick={() => startFiche(mode)}>
                 <RotateCcw className="mr-2 h-5 w-5" /> Recommencer
+              </Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => setPhase('menu')}>
+                Changer de mode
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <Home className="mr-2 h-5 w-5" /> Accueil
@@ -500,7 +558,7 @@ export default function FicheAngleTest() {
         <div className="w-full max-w-md">
           <div className="flex items-center justify-between mb-4">
             <Badge variant="outline" className="text-base px-3 py-1">
-              {currentIdx + 1} / {TOTAL_ANGLES}
+              {currentIdx + 1} / {angles.length}
             </Badge>
             <Badge variant={lastResult.error === 0 ? 'default' : lastResult.error <= 10 ? 'secondary' : 'destructive'}>
               {lastResult.error === 0 ? '\u2713 Parfait !' : `Erreur : ${lastResult.error}\u00B0`}
@@ -509,27 +567,43 @@ export default function FicheAngleTest() {
 
           <Card className="mb-4">
             <CardContent className="pt-4 pb-3">
-              <TrigCircle
-                handA={currentQ.handA}
-                handO={currentQ.handO}
-                answer={currentQ.answer}
-                userAngle={lastResult.userAngle}
-              />
+              {mode === 'unsigned' ? (
+                <AngleDisplay
+                  handA={currentQ.handA}
+                  handO={currentQ.handO}
+                  lengthA={currentQ.lengthA}
+                  lengthO={currentQ.lengthO}
+                  size={280}
+                  colored
+                />
+              ) : (
+                <TrigCircle
+                  handA={currentQ.handA}
+                  handO={currentQ.handO}
+                  answer={currentQ.answer}
+                  userAngle={lastResult.userAngle}
+                />
+              )}
               <div className="flex flex-col items-center gap-2 mt-3 text-sm">
                 <div className="flex gap-6">
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-blue-600" />
-                    <span className="text-slate-600">A ({currentQ.handA}{'\u00B0'})</span>
+                    <span className="text-slate-600">A</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-600" />
-                    <span className="text-slate-600">O ({currentQ.handO}{'\u00B0'})</span>
+                    <span className="text-slate-600">O</span>
                   </div>
                 </div>
                 <p className="text-slate-700 font-semibold">
-                  Angle A{'\u2192'}O = {currentQ.answer >= 0 ? '+' : ''}{currentQ.answer}{'\u00B0'}
+                  {mode === 'unsigned'
+                    ? `Bonnes reponses : ${formatUnsignedExpected(currentQ.answer)}\u00B0`
+                    : `Angle A\u2192O = ${currentQ.answer >= 0 ? '+' : ''}${currentQ.answer}\u00B0`}
                   {lastResult.error > 0 && (
-                    <span className="text-slate-400 font-normal ml-2">(vous : {lastResult.userAngle >= 0 ? '+' : ''}{lastResult.userAngle}{'\u00B0'})</span>
+                    <span className="text-slate-400 font-normal ml-2">
+                      (vous : {lastResult.userAngle}
+                      {'\u00B0'})
+                    </span>
                   )}
                 </p>
               </div>
@@ -550,24 +624,44 @@ export default function FicheAngleTest() {
       <div className="w-full max-w-md">
         <div className="flex items-center justify-between mb-4">
           <Badge variant="outline" className="text-base px-3 py-1">
-            {currentIdx + 1} / {TOTAL_ANGLES}
+            {currentIdx + 1} / {angles.length}
           </Badge>
         </div>
 
-        {/* Angle display + clock dial */}
         <Card className="mb-4">
           <CardContent className="pt-4 pb-3">
             <p className="text-center text-sm text-slate-500 mb-3">
-              Angle de <span className="text-blue-600 font-bold">A</span> vers <span className="text-red-600 font-bold">O</span> dans le sens positif du cadran
+              {mode === 'unsigned' ? (
+                <>
+                  Angle non oriente entre <span className="text-blue-600 font-bold">A</span> et{' '}
+                  <span className="text-red-600 font-bold">O</span>
+                  <span className="block mt-1 text-xs">Les deux sens sont acceptes : x et 360 - x</span>
+                </>
+              ) : (
+                <>
+                  Angle de <span className="text-blue-600 font-bold">A</span> vers{' '}
+                  <span className="text-red-600 font-bold">O</span> dans le sens positif du cadran
+                </>
+              )}
             </p>
-            <div className="flex items-center justify-center gap-4">
-              <AngleDisplay handA={currentQ.handA} handO={currentQ.handO} />
-              <ClockDial rotation={currentQ.clockRotation} reversed={currentQ.clockReversed} />
-            </div>
+            {mode === 'unsigned' ? (
+              <AngleDisplay
+                handA={currentQ.handA}
+                handO={currentQ.handO}
+                lengthA={currentQ.lengthA}
+                lengthO={currentQ.lengthO}
+                size={280}
+                colored
+              />
+            ) : (
+              <div className="flex items-center justify-center gap-4">
+                <AngleDisplay handA={currentQ.handA} handO={currentQ.handO} />
+                <ClockDial rotation={currentQ.clockRotation} reversed={currentQ.clockReversed} />
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Angle input bar */}
         <div className="flex items-center gap-3 mb-4">
           <Input
             ref={inputRef}
@@ -576,7 +670,16 @@ export default function FicheAngleTest() {
             placeholder="Angle (ex: 130 ou -40)"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submitAngle()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitAngle();
+              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const cur = parseInt(userInput, 10);
+                const base = Number.isNaN(cur) ? 0 : cur;
+                const next = Math.round((base + (e.key === 'ArrowUp' ? 10 : -10)) / 10) * 10;
+                setUserInput(String(next));
+              }
+            }}
             className="text-center text-lg font-mono h-12 flex-1"
           />
           <Button size="lg" className="h-12" onClick={submitAngle} disabled={userInput.trim() === ''}>
