@@ -131,6 +131,16 @@ export function savePerformanceResult(
   avgTimeMs: number = 0,
 ): void {
   if (typeof window === 'undefined') return;
+  try {
+    const variant = window.location.pathname.startsWith('/telephone')
+      ? 'mobile'
+      : 'desktop';
+    void import('@/lib/usage/track')
+      .then(({ trackExerciseUsage }) =>
+        trackExerciseUsage(exerciseId, 'complete', variant),
+      )
+      .catch(() => { /* ignore */ });
+  } catch { /* ignore */ }
   // Guests: no local progression, no cloud, no Stadium scores
   try {
     if (localStorage.getItem('aviatest-guest') === '1') return;

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Inbox } from 'lucide-react';
+import { getExerciseById } from '@/lib/data/exercises';
+import { listExerciseUsage, type ExerciseUsageRow } from '@/lib/usage/api';
 import AuthGate from '@/components/AuthGate';
 import { AdminDangerConfirm } from '@/components/admin/AdminDangerConfirm';
 import { Button } from '@/components/ui/button';
@@ -38,6 +40,16 @@ const styles = {
 
 const STATUSES: BugStatus[] = ['envoye', 'en_cours', 'corrige'];
 
+type AdminTab = 'beugs' | 'missives' | 'notam' | 'textes' | 'usage';
+
+const TABS: { id: AdminTab; label: string }[] = [
+  { id: 'beugs', label: 'Beugs' },
+  { id: 'missives', label: 'Missives' },
+  { id: 'notam', label: 'NOTAM' },
+  { id: 'textes', label: 'Textes' },
+  { id: 'usage', label: 'Usage tests' },
+];
+
 function exerciseLabel(id: string): string {
   if (!id || id === 'autre') return 'Autre';
   return EXERCISES.find((e) => e.id === id)?.title || id;
@@ -59,6 +71,7 @@ function AdminContent() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<AdminTab>('beugs');
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [missives, setMissives] = useState<Missive[]>([]);
   const [notams, setNotams] = useState<NotamItem[]>([]);
@@ -198,11 +211,36 @@ function AdminContent() {
             Aeropostale admin
           </h1>
         </div>
+        <div className="container mx-auto px-4 pb-3 flex flex-wrap gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className="rounded-full px-3 py-1 text-sm font-medium"
+              style={
+                tab === t.id
+                  ? { backgroundColor: styles.text, color: styles.background }
+                  : { backgroundColor: '#fff', color: styles.text, border: `1px solid ${styles.border}` }
+              }
+            >
+              {t.label}
+              {t.id === 'beugs' ? ` (${bugs.length})` : ''}
+              {t.id === 'missives' ? ` (${missives.length})` : ''}
+              {t.id === 'notam' ? ` (${notams.length})` : ''}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="container mx-auto px-4 py-8 space-y-8 max-w-3xl">
         {error && <p className="text-sm text-red-500">{error}</p>}
 
+        {tab === 'usage' && <UsageSection onError={setError} />}
+
+        {tab === 'textes' && <SiteTextsSection onError={setError} />}
+
+        {tab === 'beugs' && (
         <section>
           <h2 className="text-lg font-semibold mb-3" style={{ color: styles.text }}>
             Beugs ({bugs.length})
@@ -292,7 +330,9 @@ function AdminContent() {
             ))}
           </div>
         </section>
+        )}
 
+        {tab === 'missives' && (
         <section>
           <h2 className="text-lg font-semibold mb-3" style={{ color: styles.text }}>
             Missives ({missives.length})
@@ -366,7 +406,9 @@ function AdminContent() {
             ))}
           </div>
         </section>
+        )}
 
+        {tab === 'notam' && (
         <section>
           <h2 className="text-lg font-semibold mb-3" style={{ color: styles.text }}>
             NOTAM ({notams.length})
@@ -407,10 +449,91 @@ function AdminContent() {
             ))}
           </div>
         </section>
-
-        <SiteTextsSection onError={setError} />
+        )}
       </div>
     </main>
+  );
+}
+
+function pct(part: number, total: number): string {
+  if (!total) return '—';
+  return `${Math.round((part / total) * 100)} %`;
+}
+
+function UsageSection({ onError }: { onError: (msg: string | null) => void }) {
+  const [rows, setRows] = useState<ExerciseUsageRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await listExerciseUsage();
+        data.sort((a, b) => b.starts - a.starts || b.opens - a.opens);
+        setRows(data);
+      } catch {
+        onError('Usage : execute supabase/schema-exercise-usage.sql dans l editeur SQL.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [onError]);
+
+  const titleOf = (id: string) => getExerciseById(id)?.title || id;
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold" style={{ color: styles.text }}>
+          Usage des tests
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: styles.textMuted }}>
+          Compteurs anonymes (pas de cookie, pas d identite). Volumes, pas de visiteurs
+          uniques. Journee = fuseau Paris.
+        </p>
+      </div>
+      {loading ? (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Chargement...
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm" style={{ color: styles.textMuted }}>
+          Aucun hit pour l instant. Ouvre un exercice puis clique Commencer / Jouer.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border" style={{ borderColor: styles.border }}>
+          <table className="w-full text-sm" style={{ color: styles.text }}>
+            <thead>
+              <tr className="text-left text-xs" style={{ color: styles.textMuted, backgroundColor: '#f3f2f1' }}>
+                <th className="px-3 py-2 font-medium">Test</th>
+                <th className="px-3 py-2 font-medium text-right">Ouverts</th>
+                <th className="px-3 py-2 font-medium text-right">Parties</th>
+                <th className="px-3 py-2 font-medium text-right">Finis</th>
+                <th className="px-3 py-2 font-medium text-right">Taux fin</th>
+                <th className="px-3 py-2 font-medium text-right">7 j</th>
+                <th className="px-3 py-2 font-medium text-right">Mobile</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.exercise_id} className="border-t" style={{ borderColor: styles.border }}>
+                  <td className="px-3 py-2">{titleOf(r.exercise_id)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{r.opens}</td>
+                  <td className="px-3 py-2 text-right tabular-nums font-medium">{r.starts}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{r.completes}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{pct(r.completes, r.starts)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums" style={{ color: styles.textMuted }}>
+                    {r.starts_7d} parties
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums" style={{ color: styles.textMuted }}>
+                    {r.starts_mobile}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

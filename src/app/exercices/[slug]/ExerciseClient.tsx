@@ -19,6 +19,11 @@ import {
   startExercisePresence,
   stopExercisePresence,
 } from '@/lib/presence/exercisePresence';
+import {
+  attachExerciseStartListener,
+  trackExerciseUsage,
+  type UsageVariant,
+} from '@/lib/usage/track';
 
 function ExercisePresence({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
@@ -33,6 +38,27 @@ function ExercisePresence({ slug }: { slug: string }) {
     startExercisePresence();
     return () => stopExercisePresence();
   }, [slug, createMode, duelId, competitionId]);
+
+  return null;
+}
+
+function ExerciseUsage({
+  slug,
+  variant,
+}: {
+  slug: string;
+  variant: UsageVariant;
+}) {
+  const searchParams = useSearchParams();
+  const createMode =
+    searchParams.get('stadiumCreate') === '1' ||
+    searchParams.get('duelCreate') === '1';
+
+  useEffect(() => {
+    if (createMode) return;
+    trackExerciseUsage(slug, 'open', variant);
+    return attachExerciseStartListener(slug, variant);
+  }, [slug, variant, createMode]);
 
   return null;
 }
@@ -119,6 +145,10 @@ export default function ExerciseClient({
         }
       >
         <ExercisePresence slug={slug} />
+        <ExerciseUsage
+          slug={slug}
+          variant={isPhone || variant === 'mobile' ? 'mobile' : 'desktop'}
+        />
         <StadiumBanner slug={slug} />
         <DuelBanner slug={slug} />
         <StadiumPlayGate slug={slug}>
