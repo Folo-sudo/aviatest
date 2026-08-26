@@ -912,9 +912,9 @@ export const EXERCISES: ExerciseConfig[] = [
     slug: 'series-logiques',
     title: 'Series logiques',
     description:
-      'Completez des series lettres/chiffres en trouvant la logique',
+      'Completez des series (ou trouvez l\'intrus) parmi une cinquantaine de logiques',
     longDescription:
-      'Series de 4 ou 5 items a completer parmi 4 choix. +1 point si correct, -1/3 si incorrect. 15 questions de 30 secondes.',
+      'Series lettres, chiffres et mots a completer (ou intrus). Une cinquantaine de logiques, dont des lois absentes des banks classiques (segments, AZERTY, Morse, QFU, Collatz...). +1 si correct, -1/3 si incorrect.',
     types: ['intellectuel'],
     primaryType: 'intellectuel',
     competitions: ['psy0'],

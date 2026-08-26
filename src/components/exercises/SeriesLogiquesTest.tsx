@@ -11,6 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, RotateCcw, Home, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+  formatSeries,
+  generateSeriesQuestions,
+  type SeriesQuestion,
+} from '@/lib/exercises/seriesLogiques';
 
 // ============================================================================
 // Types
@@ -25,13 +30,7 @@ interface GameSettings {
   examMode: boolean;
 }
 
-interface QuestionData {
-  seriesItems: string[];
-  choices: string[];
-  correctIndex: number;
-  /** Human-readable rule shown during correction */
-  logic: string;
-}
+type QuestionData = SeriesQuestion;
 
 interface QuestionResult {
   question: QuestionData;
@@ -89,42 +88,6 @@ function saveSettings(s: GameSettings): void {
   }
 }
 
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function indexToLetter(i: number): string {
-  const n = ((i % 26) + 26) % 26;
-  return String.fromCharCode(65 + n);
-}
-
-function buildChoices(correct: string, makeWrong: () => string[]): { choices: string[]; correctIndex: number } {
-  const pool = new Set<string>([correct]);
-  let attempts = 0;
-  while (pool.size < 4 && attempts < 40) {
-    attempts++;
-    for (const w of makeWrong()) {
-      if (w !== correct) pool.add(w);
-      if (pool.size >= 4) break;
-    }
-    if (pool.size < 4) {
-      pool.add(`${correct}${pool.size}`);
-      pool.add(`${correct}*`);
-    }
-  }
-  const choices = shuffle([...pool].slice(0, 4));
-  return { choices, correctIndex: choices.indexOf(correct) };
-}
-
 function computeSessionScore(results: QuestionResult[], totalQuestions: number): SessionScore {
   let correct = 0;
   let incorrect = 0;
@@ -138,251 +101,6 @@ function computeSessionScore(results: QuestionResult[], totalQuestions: number):
   const percent = totalQuestions > 0 ? Math.round((raw / totalQuestions) * 1000) / 10 : 0;
   return { raw, percent, correct, incorrect, skipped };
 }
-
-// ============================================================================
-// Question generators
-// ============================================================================
-
-function genLetterStep(): QuestionData {
-  const step = randInt(1, 4) * (Math.random() < 0.2 ? -1 : 1);
-  const len = randInt(4, 5);
-  const start = randInt(0, 25);
-  const series: string[] = [];
-  for (let i = 0; i < len; i++) {
-    series.push(indexToLetter(start + step * i));
-  }
-  const answer = indexToLetter(start + step * len);
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    indexToLetter(start + step * len + 1),
-    indexToLetter(start + step * len - 1),
-    indexToLetter(start + (step + 1) * len),
-    indexToLetter(start + (step - 1) * len),
-  ]);
-  const logic =
-    step > 0
-      ? `Chaque lettre avance de ${step} cran${step > 1 ? 's' : ''} dans l'alphabet.`
-      : `Chaque lettre recule de ${Math.abs(step)} cran${Math.abs(step) > 1 ? 's' : ''} dans l'alphabet.`;
-  return { seriesItems: series, choices, correctIndex, logic };
-}
-
-function genNumberAdd(): QuestionData {
-  const step = randInt(2, 9) * (Math.random() < 0.15 ? -1 : 1);
-  const len = randInt(4, 5);
-  const start = randInt(1, 40);
-  const series: string[] = [];
-  for (let i = 0; i < len; i++) {
-    series.push(String(start + step * i));
-  }
-  const answer = String(start + step * len);
-  const n = Number(answer);
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    String(n + 1),
-    String(n - 1),
-    String(n + step),
-    String(n - step),
-  ]);
-  const logic =
-    step > 0
-      ? `Suite arithmetique : on ajoute ${step} a chaque terme.`
-      : `Suite arithmetique : on soustrait ${Math.abs(step)} a chaque terme.`;
-  return { seriesItems: series, choices, correctIndex, logic };
-}
-
-function genNumberMul(): QuestionData {
-  const factor = pick([2, 3]);
-  const len = randInt(4, 5);
-  const start = randInt(1, factor === 2 ? 8 : 4);
-  const series: string[] = [];
-  let val = start;
-  for (let i = 0; i < len; i++) {
-    series.push(String(val));
-    val *= factor;
-  }
-  const answer = String(val);
-  const n = Number(answer);
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    String(n + factor),
-    String(n - factor),
-    String(n * factor),
-    String(Math.round(n / factor)),
-  ]);
-  return {
-    seriesItems: series,
-    choices,
-    correctIndex,
-    logic: `Chaque terme est multiplie par ${factor}.`,
-  };
-}
-
-function genAlternatingAdd(): QuestionData {
-  const a = randInt(2, 6);
-  const b = randInt(1, 4);
-  const len = randInt(4, 5);
-  let val = randInt(1, 15);
-  const series: string[] = [String(val)];
-  for (let i = 1; i < len; i++) {
-    val += i % 2 === 1 ? a : b;
-    series.push(String(val));
-  }
-  const nextVal = val + (len % 2 === 1 ? a : b);
-  const answer = String(nextVal);
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    String(nextVal + 1),
-    String(nextVal - 1),
-    String(val + a),
-    String(val + b),
-  ]);
-  return {
-    seriesItems: series,
-    choices,
-    correctIndex,
-    logic: `Alternance des ecarts : +${a} puis +${b}, et ainsi de suite.`,
-  };
-}
-
-function genLetterNumber(): QuestionData {
-  const len = randInt(4, 5);
-  const letterStart = randInt(0, 20);
-  const letterStep = randInt(1, 3);
-  const numStart = randInt(1, 6);
-  const numStep = randInt(1, 2);
-  const series: string[] = [];
-  for (let i = 0; i < len; i++) {
-    series.push(`${indexToLetter(letterStart + letterStep * i)}${numStart + numStep * i}`);
-  }
-  const answer = `${indexToLetter(letterStart + letterStep * len)}${numStart + numStep * len}`;
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    `${indexToLetter(letterStart + letterStep * (len + 1))}${numStart + numStep * (len - 1)}`,
-    `${indexToLetter(letterStart + letterStep * (len - 1))}${numStart + numStep * (len + 1)}`,
-    `${indexToLetter(letterStart + letterStep * len)}${numStart + numStep * len + 1}`,
-    `${indexToLetter(letterStart + letterStep * len + 1)}${numStart + numStep * len}`,
-  ]);
-  return {
-    seriesItems: series,
-    choices,
-    correctIndex,
-    logic: `La lettre avance de ${letterStep}, le chiffre avance de ${numStep}.`,
-  };
-}
-
-function genNumberLetter(): QuestionData {
-  const len = randInt(4, 5);
-  const numStart = randInt(2, 12);
-  const numStep = randInt(3, 7);
-  const letterStart = randInt(0, 18);
-  const series: string[] = [];
-  for (let i = 0; i < len; i++) {
-    series.push(`${numStart + numStep * i}${indexToLetter(letterStart + i)}`);
-  }
-  const answer = `${numStart + numStep * len}${indexToLetter(letterStart + len)}`;
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    `${numStart + numStep * len + numStep}${indexToLetter(letterStart + len)}`,
-    `${numStart + numStep * len}${indexToLetter(letterStart + len + 1)}`,
-    `${numStart + numStep * (len - 1)}${indexToLetter(letterStart + len)}`,
-    `${numStart + numStep * len}${indexToLetter(letterStart + len - 1)}`,
-  ]);
-  return {
-    seriesItems: series,
-    choices,
-    correctIndex,
-    logic: `Le nombre avance de ${numStep}, la lettre avance de 1.`,
-  };
-}
-
-function genMixedAlt(): QuestionData {
-  const len = randInt(4, 5);
-  let num = randInt(1, 9);
-  let letter = randInt(0, 20);
-  const numStep = randInt(2, 4);
-  const series: string[] = [];
-  for (let i = 0; i < len; i++) {
-    series.push(`${num}${indexToLetter(letter)}`);
-    num += numStep;
-    letter += 1;
-  }
-  const answer = `${num}${indexToLetter(letter)}`;
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    `${num + 1}${indexToLetter(letter)}`,
-    `${num}${indexToLetter(letter + 1)}`,
-    `${num - numStep}${indexToLetter(letter)}`,
-    `${num}${indexToLetter(letter - 1)}`,
-  ]);
-  return {
-    seriesItems: series,
-    choices,
-    correctIndex,
-    logic: `Le chiffre avance de ${numStep} et la lettre de 1 a chaque etape.`,
-  };
-}
-
-function genArithmetic(): QuestionData {
-  const len = randInt(4, 5);
-  const start = randInt(3, 25);
-  const diff = randInt(3, 11);
-  const series: string[] = [];
-  for (let i = 0; i < len; i++) {
-    series.push(String(start + diff * i));
-  }
-  const answer = String(start + diff * len);
-  const n = Number(answer);
-  const { choices, correctIndex } = buildChoices(answer, () => [
-    String(n + diff),
-    String(n - diff),
-    String(n + 1),
-    String(n - 1),
-  ]);
-  return {
-    seriesItems: series,
-    choices,
-    correctIndex,
-    logic: `Suite arithmetique de raison +${diff}.`,
-  };
-}
-
-function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-const GENERATORS = [
-  genLetterStep,
-  genNumberAdd,
-  genNumberMul,
-  genAlternatingAdd,
-  genLetterNumber,
-  genNumberLetter,
-  genMixedAlt,
-  genArithmetic,
-];
-
-function generateQuestion(): QuestionData {
-  return pick(GENERATORS)();
-}
-
-function generateQuestions(count: number): QuestionData[] {
-  const used = new Set<string>();
-  const qs: QuestionData[] = [];
-  let guard = 0;
-  while (qs.length < count && guard < count * 20) {
-    guard++;
-    const q = generateQuestion();
-    const key = `${q.seriesItems.join('|')}:${q.choices[q.correctIndex]}`;
-    if (used.has(key)) continue;
-    used.add(key);
-    qs.push(q);
-  }
-  while (qs.length < count) {
-    qs.push(generateQuestion());
-  }
-  return qs;
-}
-
-function formatSeries(items: string[]): string {
-  return `${items.join(' - ')} - ??`;
-}
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export default function SeriesLogiquesTest() {
   const router = useRouter();
@@ -521,7 +239,7 @@ export default function SeriesLogiquesTest() {
 
   const startGame = useCallback(() => {
     perfSavedRef.current = false;
-    const qs = generateQuestions(settingsRef.current.totalQuestions);
+    const qs = generateSeriesQuestions(settingsRef.current.totalQuestions);
     setQuestions(qs);
     questionsRef.current = qs;
     setCurrentIdx(0);
@@ -555,15 +273,16 @@ export default function SeriesLogiquesTest() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Series logiques</CardTitle>
             <CardDescription className="mt-2 text-base">
-              Trouvez la loi qui regit la serie et completez-la
+              Completer la serie ou trouver l&apos;intrus — plus de 50 logiques
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
               <p>
-                <strong>{settings.totalQuestions} series</strong> de 4 ou 5 elements a completer.
+                <strong>{settings.totalQuestions} questions</strong>, chacune avec une loi differente
+                (nombres, lettres, mots, rangs, et lois inedites).
               </p>
-              <p>Choisissez la bonne reponse parmi <strong>4 propositions</strong>.</p>
+              <p>4 propositions. Certaines series ont le trou au milieu ; d&apos;autres demandent l&apos;intrus.</p>
               <p>
                 <strong>{settings.timePerQuestionSec}s</strong> par question.
               </p>
@@ -751,8 +470,8 @@ export default function SeriesLogiquesTest() {
                           )}
                         </span>
                       </div>
-                      <p className="font-mono text-xs text-slate-400">{formatSeries(r.question.seriesItems)}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">{r.question.logic}</p>
+                      <p className="font-mono text-xs text-slate-400">{formatSeries(r.question)}</p>
+                      <p className="mt-0.5 whitespace-pre-wrap text-xs text-slate-500">{r.question.logic}</p>
                     </div>
                   );
                 })}
@@ -813,12 +532,26 @@ export default function SeriesLogiquesTest() {
 
         {/* Question */}
         <div className="flex flex-1 flex-col items-center justify-center pr-8">
+          {currentQ?.prompt && (
+            <p className="mb-3 text-center text-sm font-medium sm:text-base" style={{ color: NAVY, opacity: 0.7 }}>
+              {currentQ.prompt}
+            </p>
+          )}
           <p
-            className="text-center text-2xl font-semibold leading-relaxed tracking-wide sm:text-3xl md:text-4xl"
+            className="text-center text-xl font-semibold leading-relaxed tracking-wide sm:text-3xl md:text-4xl"
             style={{ color: NAVY }}
           >
-            {currentQ ? formatSeries(currentQ.seriesItems) : ''}
+            {currentQ ? formatSeries(currentQ) : ''}
           </p>
+          {currentQ?.extraLines?.map((line) => (
+            <p
+              key={line}
+              className="mt-3 text-center text-lg font-semibold tracking-wide sm:text-2xl"
+              style={{ color: NAVY, opacity: 0.8 }}
+            >
+              {line}
+            </p>
+          ))}
           <div
             className="mt-8 w-full max-w-md border-t"
             style={{ borderColor: NAVY, opacity: 0.35 }}
@@ -844,7 +577,7 @@ export default function SeriesLogiquesTest() {
                 type="button"
                 disabled={locked}
                 onClick={() => handleChoice(i)}
-                className="rounded-full px-4 py-4 text-lg font-semibold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+                className="rounded-full px-4 py-4 text-base font-semibold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 sm:text-lg break-all"
                 style={{
                   ...flashStyle,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
@@ -873,8 +606,7 @@ export default function SeriesLogiquesTest() {
                   ? `Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`
                   : `Reponse : ${currentQ.choices[currentQ.correctIndex]}`}
             </p>
-            <p className="text-center text-base text-slate-700">
-              <span className="font-medium text-slate-500">Logique : </span>
+            <p className="whitespace-pre-wrap text-left text-sm leading-relaxed text-slate-700 sm:text-base">
               {currentQ.logic}
             </p>
             <Button size="lg" className="mt-4 w-full" onClick={goToNextQuestion}>
@@ -901,7 +633,7 @@ export default function SeriesLogiquesTest() {
           className="border-t py-3 pr-8 text-center text-base font-medium"
           style={{ borderColor: 'rgba(26,43,74,0.2)', color: NAVY }}
         >
-          {displayIdx + 1} &rarr; {settings.totalQuestions}
+          {displayIdx + 1} &rarr; {questions.length}
         </div>
       </div>
     </div>
