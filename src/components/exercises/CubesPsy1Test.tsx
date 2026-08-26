@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Home, Play, RotateCcw, Settings, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, Home, Play, RotateCcw, Settings, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,10 +104,6 @@ function saveSettingsLocal(s: GameSettings): void {
   }
 }
 
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -132,6 +128,15 @@ function generateLogicalCube(): Record<CubeFaceId, NetFace> {
   return cube;
 }
 
+const FACE_VIEWS: { face: CubeFaceId; label: string }[] = [
+  { face: 'F', label: 'Face' },
+  { face: 'R', label: 'Droite' },
+  { face: 'B', label: 'Arriere' },
+  { face: 'L', label: 'Gauche' },
+  { face: 'U', label: 'Dessus' },
+  { face: 'D', label: 'Dessous' },
+];
+
 function generateQuestion(): QuestionData {
   const layoutId: LayoutId = pick(['A', 'B']);
   const logicalCube = generateLogicalCube();
@@ -142,16 +147,7 @@ function generateQuestion(): QuestionData {
     correctAssignments[slot + 1] = PATTERN_TO_SYMBOL[face.pattern] ?? 'dot';
   });
 
-  const viewFaces: CubeFaceId[] = shuffle(['F', 'U', 'R', 'L', 'D'] as CubeFaceId[]).slice(0, randInt(2, 3));
-  const viewLabels: Record<CubeFaceId, string> = {
-    F: 'Face',
-    B: 'Arriere',
-    L: 'Gauche',
-    R: 'Droite',
-    U: 'Dessus',
-    D: 'Dessous',
-  };
-  const views = viewFaces.map((face) => ({ label: viewLabels[face], face }));
+  const views = FACE_VIEWS.map(({ face, label }) => ({ label, face }));
 
   return { layoutId, logicalCube, views, correctAssignments };
 }
@@ -256,11 +252,13 @@ function CubeNetNumbered({
   assignments,
   onSlotClick,
   selectedSlot,
+  review,
 }: {
   layoutId: LayoutId;
   assignments: Record<number, SymbolId | null>;
-  onSlotClick: (num: number) => void;
+  onSlotClick?: (num: number) => void;
   selectedSlot: number | null;
+  review?: boolean;
 }) {
   const layout = getLayout(layoutId);
   const cell = FACE_SIZE + 8;
@@ -281,9 +279,14 @@ function CubeNetNumbered({
           <button
             key={slotDef.slot}
             type="button"
-            onClick={() => onSlotClick(num)}
+            disabled={review || !onSlotClick}
+            onClick={() => onSlotClick?.(num)}
             className={`absolute flex flex-col items-center justify-center border-2 bg-white transition-all ${
-              isSel ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-400'
+              review
+                ? 'border-green-500 bg-green-50'
+                : isSel
+                  ? 'border-blue-500 ring-2 ring-blue-200'
+                  : 'border-slate-400'
             }`}
             style={{
               left: slotDef.col * cell,
@@ -326,6 +329,7 @@ export default function CubesPsy1Test() {
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [flash, setFlash] = useState<'correct' | 'wrong' | null>(null);
+  const [showCorrection, setShowCorrection] = useState(false);
   const [locked, setLocked] = useState(false);
 
   const perfSavedRef = useRef(false);
@@ -355,6 +359,7 @@ export default function CubesPsy1Test() {
     setResults([]);
     resetAssignments();
     setFlash(null);
+    setShowCorrection(false);
     setLocked(false);
     questionStartRef.current = Date.now();
     setTimeLeft(settings.timePerQuestionSec);
@@ -375,23 +380,19 @@ export default function CubesPsy1Test() {
     [locked, selectedSymbol],
   );
 
-  const advance = useCallback(
-    (correct: boolean, timeMs: number) => {
-      const next = [...results, { correct, timeMs }];
-      setResults(next);
-      if (currentIdx + 1 >= questions.length) {
-        setGameState('results');
-        return;
-      }
-      setCurrentIdx((i) => i + 1);
-      resetAssignments();
-      setFlash(null);
-      setLocked(false);
-      questionStartRef.current = Date.now();
-      setTimeLeft(settings.timePerQuestionSec);
-    },
-    [currentIdx, questions.length, results, resetAssignments, settings.timePerQuestionSec],
-  );
+  const goToNextQuestion = useCallback(() => {
+    if (currentIdx + 1 >= questions.length) {
+      setGameState('results');
+      return;
+    }
+    setCurrentIdx((i) => i + 1);
+    resetAssignments();
+    setFlash(null);
+    setShowCorrection(false);
+    setLocked(false);
+    questionStartRef.current = Date.now();
+    setTimeLeft(settings.timePerQuestionSec);
+  }, [currentIdx, questions.length, resetAssignments, settings.timePerQuestionSec]);
 
   const handleSubmit = useCallback(
     (timeout = false) => {
@@ -401,14 +402,15 @@ export default function CubesPsy1Test() {
       setLocked(true);
       const timeMs = Date.now() - questionStartRef.current;
       const correct = !timeout && isAssignmentCorrect(q, assignments);
-      if (!settings.examMode) {
-        setFlash(correct ? 'correct' : 'wrong');
-        setTimeout(() => advance(correct, timeMs), 1200);
+      setResults((prev) => [...prev, { correct, timeMs }]);
+      if (settings.examMode) {
+        goToNextQuestion();
       } else {
-        advance(correct, timeMs);
+        setFlash(correct ? 'correct' : 'wrong');
+        setShowCorrection(true);
       }
     },
-    [locked, questions, currentIdx, assignments, settings.examMode, advance],
+    [locked, questions, currentIdx, assignments, settings.examMode, goToNextQuestion],
   );
 
   useEffect(() => {
@@ -523,6 +525,11 @@ export default function CubesPsy1Test() {
 
   if (!currentQ) return null;
 
+  const showSolution = showCorrection && flash === 'wrong';
+  const netAssignments = showSolution
+    ? currentQ.correctAssignments
+    : assignments;
+
   return (
     <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
       <div className="border-b bg-white/70 px-4 py-3">
@@ -540,7 +547,7 @@ export default function CubesPsy1Test() {
         {flash && (
           <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 font-semibold ${flash === 'correct' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
             {flash === 'correct' ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
-            {flash === 'correct' ? 'Correct' : 'Incorrect'}
+            {flash === 'correct' ? 'Correct' : 'Incorrect — solution sur le developpement'}
           </div>
         )}
 
@@ -557,40 +564,54 @@ export default function CubesPsy1Test() {
           </div>
 
           <div className="rounded-xl border bg-white/80 p-5">
-            <p className="mb-4 text-sm font-semibold uppercase text-slate-600">Developpement numerote</p>
+            <p className="mb-4 text-sm font-semibold uppercase text-slate-600">
+              {showSolution ? 'Solution' : 'Developpement numerote'}
+            </p>
             <div className="flex justify-center">
               <CubeNetNumbered
                 layoutId={currentQ.layoutId}
-                assignments={assignments}
-                onSlotClick={handleSlotClick}
-                selectedSlot={selectedSlot}
+                assignments={netAssignments}
+                onSlotClick={showCorrection ? undefined : handleSlotClick}
+                selectedSlot={showCorrection ? null : selectedSlot}
+                review={showSolution}
               />
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white/80 p-5">
-          <p className="mb-3 text-sm font-semibold uppercase text-slate-600">Symboles — cliquez puis placez sur un numero</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {SYMBOL_IDS.map((sym) => (
-              <button
-                key={sym}
-                type="button"
-                disabled={locked}
-                onClick={() => setSelectedSymbol(sym)}
-                className={`rounded-lg border-2 bg-white p-2 transition-all ${
-                  selectedSymbol === sym ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-400'
-                }`}
-              >
-                <SymbolSvg id={sym} />
-              </button>
-            ))}
+        {!showCorrection && (
+          <div className="rounded-xl border bg-white/80 p-5">
+            <p className="mb-3 text-sm font-semibold uppercase text-slate-600">Symboles — cliquez puis placez sur un numero</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {SYMBOL_IDS.map((sym) => (
+                <button
+                  key={sym}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => setSelectedSymbol(sym)}
+                  className={`rounded-lg border-2 bg-white p-2 transition-all ${
+                    selectedSymbol === sym ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  <SymbolSvg id={sym} />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex justify-center gap-4">
-          <Button variant="outline" disabled={locked} onClick={resetAssignments}>Effacer</Button>
-          <Button size="lg" disabled={!allAssigned || locked} onClick={() => handleSubmit(false)}>Valider</Button>
+          {showCorrection ? (
+            <Button size="lg" onClick={goToNextQuestion}>
+              {currentIdx + 1 >= questions.length ? 'Voir les resultats' : 'Suivant'}
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" disabled={locked} onClick={resetAssignments}>Effacer</Button>
+              <Button size="lg" disabled={!allAssigned || locked} onClick={() => handleSubmit(false)}>Valider</Button>
+            </>
+          )}
         </div>
       </div>
     </div>

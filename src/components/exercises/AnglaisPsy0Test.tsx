@@ -286,7 +286,7 @@ export default function AnglaisPsy0Test() {
       } else {
         setFlashIdx(choiceIdx);
         setFlashCorrect(isCorrect);
-        setTimeout(goNext, isCorrect ? 280 : 650);
+        setTimeout(goNext, isCorrect ? 700 : 1800);
       }
     },
     [currentIdx, finishGame, gameState, questions, scorer],
@@ -329,7 +329,7 @@ export default function AnglaisPsy0Test() {
                 reponses).
               </p>
               <p>Grammaire, vocabulaire, prepositions, temps verbaux, faux amis.</p>
-              <p>Cliquez une reponse pour passer immediatement a la suivante.</p>
+              <p>Cliquez une reponse : hors mode examen, la bonne reponse s&apos;affiche un instant.</p>
               {settings.timeLimitSec > 0 && (
                 <p>
                   Temps total :{' '}
@@ -622,17 +622,19 @@ export default function AnglaisPsy0Test() {
           {/* Choices */}
           <div className="space-y-3">
             {currentQ?.choices.map((choice, i) => {
-              const isFlash = flashIdx === i;
-              const flashClass =
-                isFlash && flashCorrect === true
-                  ? 'border-green-500 bg-green-50'
-                  : isFlash && flashCorrect === false
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-transparent bg-white hover:bg-slate-50 active:scale-[0.99]';
+              const showFeedback = flashIdx !== null;
+              const isRight = showFeedback && i === currentQ.correct;
+              const isPickedWrong = showFeedback && i === flashIdx && flashCorrect === false;
+              const flashClass = isRight
+                ? 'border-green-600 bg-green-100'
+                : isPickedWrong
+                  ? 'border-red-600 bg-red-100'
+                  : 'border-transparent bg-white hover:bg-slate-50 active:scale-[0.99]';
               return (
                 <button
                   key={i}
                   type="button"
+                  disabled={flashIdx !== null}
                   onClick={() => answerQuestion(i)}
                   className={`w-full rounded-xl border-2 px-5 py-4 text-left text-base font-medium shadow-sm transition-all sm:text-lg ${flashClass}`}
                   style={{ color: NAVY }}

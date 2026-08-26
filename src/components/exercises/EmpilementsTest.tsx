@@ -172,6 +172,37 @@ function transformStructure(
   return normalizeStructure(cubes);
 }
 
+function structureKey(structure: Structure): string {
+  return structure.cubes
+    .map((c) => `${c.color}:${c.pos.x},${c.pos.y},${c.pos.z}`)
+    .sort()
+    .join('|');
+}
+
+/** Smallest key among the 24 cube rotations — used to reject achiral piles. */
+function rotationCanonicalKey(cubes: ColoredCube[]): string {
+  const seen = new Set<string>();
+  const queue: ColoredCube[][] = [cubes.map((c) => ({ color: c.color, pos: { ...c.pos } }))];
+
+  while (queue.length > 0) {
+    const cur = queue.pop()!;
+    const norm = normalizeStructure(cur).cubes;
+    const k = structureKey({ cubes: norm });
+    if (seen.has(k)) continue;
+    seen.add(k);
+    for (const axis of ['x', 'y', 'z'] as Axis[]) {
+      queue.push(
+        norm.map((c) => ({
+          color: c.color,
+          pos: rotatePos(c.pos, axis, 1),
+        })),
+      );
+    }
+  }
+
+  return [...seen].sort()[0];
+}
+
 function generatePolycube(count: number): ColoredCube[] {
   const positions: Vec3[] = [{ x: 0, y: 0, z: 0 }];
   const occupied = new Set(['0,0,0']);
@@ -206,28 +237,41 @@ function randomRotation(): { axis: Axis; steps: number } {
 }
 
 function generateQuestion(): Question {
-  const cubeCount = 4 + Math.floor(Math.random() * 4);
-  const base = generatePolycube(cubeCount);
-  const mirrorIndex = Math.floor(Math.random() * 3) as 0 | 1 | 2;
-  const mirrorAxis: Axis = Math.random() < 0.5 ? 'x' : 'z';
+  let last: Question | null = null;
 
-  const rotations = [randomRotation(), randomRotation(), randomRotation()];
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const cubeCount = 4 + Math.floor(Math.random() * 4);
+    const base = generatePolycube(cubeCount);
+    const mirrorIndex = Math.floor(Math.random() * 3) as 0 | 1 | 2;
+    const mirrorAxis: Axis = Math.random() < 0.5 ? 'x' : 'z';
+    const rotations = [randomRotation(), randomRotation(), randomRotation()];
 
-  const structures = [0, 1, 2].map((i) => {
-    const rot = rotations[i];
-    return transformStructure(
-      base,
-      i === mirrorIndex,
-      mirrorAxis,
-      rot.axis,
-      rot.steps,
-    );
-  }) as [Structure, Structure, Structure];
+    const structures = [0, 1, 2].map((i) => {
+      const rot = rotations[i];
+      return transformStructure(
+        base,
+        i === mirrorIndex,
+        mirrorAxis,
+        rot.axis,
+        rot.steps,
+      );
+    }) as [Structure, Structure, Structure];
 
-  return {
-    structures,
-    answer: (mirrorIndex + 1) as 1 | 2 | 3,
-  };
+    last = { structures, answer: (mirrorIndex + 1) as 1 | 2 | 3 };
+
+    const keys = structures.map(structureKey);
+    if (new Set(keys).size !== 3) continue;
+
+    const mirrored = base.map((c) => ({
+      color: c.color,
+      pos: mirrorPos(c.pos, mirrorAxis),
+    }));
+    if (rotationCanonicalKey(base) === rotationCanonicalKey(mirrored)) continue;
+
+    return last;
+  }
+
+  return last!;
 }
 
 function generateAllQuestions(count: number): Question[] {

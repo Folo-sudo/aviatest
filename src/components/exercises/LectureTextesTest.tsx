@@ -432,7 +432,7 @@ export default function LectureTextesTest() {
           } else {
             setGameState('results');
           }
-        }, 1000);
+        }, correct ? 800 : 1800);
       } else {
         setLocked(false);
         if (qIdx + 1 < currentText.questions.length) {
@@ -479,7 +479,7 @@ export default function LectureTextesTest() {
         } else {
           setGameState('results');
         }
-      }, 1200);
+      }, 2500);
     } else {
       setAnswers({});
       if (textIdx + 1 < texts.length) {
@@ -700,17 +700,28 @@ export default function LectureTextesTest() {
             )}
             <p className="mb-6 text-lg font-medium text-slate-800">{q.question}</p>
             <div className="space-y-3">
-              {q.options.map((opt, i) => (
+              {q.options.map((opt, i) => {
+                const picked = answers[answerKey(textIdx, qIdx)];
+                const isRight = flash && i === q.correctIdx;
+                const isPickedWrong = flash && picked === i && i !== q.correctIdx;
+                return (
                 <button
                   key={i}
                   type="button"
                   disabled={locked}
                   onClick={() => submitOneAnswer(i)}
-                  className="w-full rounded-lg border-2 border-slate-200 bg-white px-4 py-3 text-left text-sm transition-all hover:border-blue-400 hover:bg-blue-50"
+                  className={`w-full rounded-lg border-2 px-4 py-3 text-left text-sm transition-all ${
+                    isRight
+                      ? 'border-green-500 bg-green-50'
+                      : isPickedWrong
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50'
+                  }`}
                 >
                   <span className="font-semibold text-slate-500">{i + 1}. </span>{opt}
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -745,15 +756,24 @@ export default function LectureTextesTest() {
               <div className="space-y-2">
                 {q.options.map((opt, i) => {
                   const sel = answers[answerKey(textIdx, qi)] === i;
+                  const isRight = flash && i === q.correctIdx;
+                  const isPickedWrong = flash && sel && i !== q.correctIdx;
                   return (
                     <button
                       key={i}
                       type="button"
+                      disabled={!!flash}
                       onClick={() =>
                         setAnswers((a) => ({ ...a, [answerKey(textIdx, qi)]: i }))
                       }
                       className={`w-full rounded-lg border-2 px-4 py-2 text-left text-sm transition-all ${
-                        sel ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-400'
+                        isRight
+                          ? 'border-green-500 bg-green-50'
+                          : isPickedWrong
+                            ? 'border-red-500 bg-red-50'
+                            : sel
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-slate-200 hover:border-slate-400'
                       }`}
                     >
                       {i + 1}. {opt}
@@ -763,7 +783,7 @@ export default function LectureTextesTest() {
               </div>
             </div>
           ))}
-          <Button size="lg" disabled={!allAnswered} onClick={submitAllAnswers}>
+          <Button size="lg" disabled={!allAnswered || !!flash} onClick={submitAllAnswers}>
             Valider les 3 reponses
           </Button>
         </div>

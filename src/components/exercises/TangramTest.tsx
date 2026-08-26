@@ -227,41 +227,50 @@ function randomRecipeVariant(correct: Record<string, number>): Record<string, nu
 }
 
 function generateQuestion(): QuestionData {
-  const grid = randomGrid();
-  const counts = computeCounts(grid);
-  const correctStr = formatRecipe(counts);
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const grid = randomGrid();
+    const counts = computeCounts(grid);
+    const correctStr = formatRecipe(counts);
 
-  const seen = new Set<string>([correctStr]);
-  const distractors: string[] = [];
-  let guard = 0;
-  while (distractors.length < 4 && guard < 80) {
-    guard++;
-    const variant = randomRecipeVariant(counts);
-    const str = formatRecipe(variant);
-    if (str && str !== correctStr && recipeTotal(variant) === CELL_COUNT && !seen.has(str)) {
-      seen.add(str);
-      distractors.push(str);
-    }
-  }
-
-  let fallback = 0;
-  while (distractors.length < 4 && fallback < 40) {
-    fallback++;
-    const letter = pick(CATALOG_ORDER);
-    const fake = { ...counts, [letter]: (counts[letter] || 0) + 1 };
-    const donor = pick(Object.keys(counts));
-    if (fake[donor] > 1) {
-      fake[donor] -= 1;
-      const str = formatRecipe(fake);
-      if (str && !seen.has(str) && recipeTotal(fake) === CELL_COUNT) {
+    const seen = new Set<string>([correctStr]);
+    const distractors: string[] = [];
+    let guard = 0;
+    while (distractors.length < 4 && guard < 80) {
+      guard++;
+      const variant = randomRecipeVariant(counts);
+      const str = formatRecipe(variant);
+      if (str && str !== correctStr && recipeTotal(variant) === CELL_COUNT && !seen.has(str)) {
         seen.add(str);
         distractors.push(str);
       }
     }
+
+    let fallback = 0;
+    while (distractors.length < 4 && fallback < 40) {
+      fallback++;
+      const letter = pick(CATALOG_ORDER);
+      const fake = { ...counts, [letter]: (counts[letter] || 0) + 1 };
+      const donor = pick(Object.keys(counts));
+      if (fake[donor] > 1) {
+        fake[donor] -= 1;
+        const str = formatRecipe(fake);
+        if (str && !seen.has(str) && recipeTotal(fake) === CELL_COUNT) {
+          seen.add(str);
+          distractors.push(str);
+        }
+      }
+    }
+
+    if (distractors.length < 4) continue;
+
+    const choices = shuffle([correctStr, ...distractors]);
+    return { grid, recipeCounts: counts, choices, correctIndex: choices.indexOf(correctStr) };
   }
 
-  const choices = shuffle([correctStr, ...distractors]);
-  return { grid, recipeCounts: counts, choices, correctIndex: choices.indexOf(correctStr) };
+  const grid = randomGrid();
+  const counts = computeCounts(grid);
+  const correctStr = formatRecipe(counts);
+  return { grid, recipeCounts: counts, choices: [correctStr], correctIndex: 0 };
 }
 
 function generateQuestions(count: number): QuestionData[] {
