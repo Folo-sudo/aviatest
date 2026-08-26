@@ -745,6 +745,9 @@ export default function FormesGlisseesTest() {
   }, [timeLeft, totalTime, gameState, locked, finishOrNext]);
 
   const currentPuzzle = questions[currentIdx];
+  const selectedPiece = selectedPieceId
+    ? currentPuzzle?.pieces.find((p) => p.id === selectedPieceId) ?? null
+    : null;
   const ghostFits =
     !!selectedPiece &&
     !!ghostPos &&
@@ -762,10 +765,6 @@ export default function FormesGlisseesTest() {
     currentPuzzle
       ? computePlayerGrid(currentPuzzle.gridSize, currentPuzzle.pieces, previewPlacements)
       : [];
-
-  const selectedPiece = selectedPieceId
-    ? currentPuzzle?.pieces.find((p) => p.id === selectedPieceId) ?? null
-    : null;
 
   const ghost =
     selectedPiece && ghostPos
