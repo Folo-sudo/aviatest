@@ -78,7 +78,6 @@ const NAVY = '#1a2b4a';
 const GREY = '#a8a8a8';
 const DEFAULT_PALETTE: ColorPalette = { navy: NAVY, grey: GREY };
 const CELL_BORDER = '#888';
-const GHOST_ALPHA = 0.45;
 const CELL_PX = 36;
 
 /** Teintes bien contrastées pour le mode couleurs changeantes. */
@@ -249,7 +248,10 @@ function fitsInGrid(piece: ShapePiece, offsetX: number, offsetY: number, size: n
   return true;
 }
 
-function generatePuzzle(numShapes: number): Puzzle {
+function generatePuzzle(numShapes: number, attempt = 0): Puzzle {
+  if (attempt > 40) {
+    return generatePuzzle(Math.max(2, numShapes - 1), 0);
+  }
   const gridSize = randInt(5, 7);
   const numSolutionPieces = numShapes;
   const solutionPlacements: { piece: ShapePiece; offsetX: number; offsetY: number }[] = [];
@@ -267,7 +269,7 @@ function generatePuzzle(numShapes: number): Puzzle {
       }
     }
     if (!placed) {
-      solutionPlacements.push({ piece, offsetX: 0, offsetY: 0 });
+      return generatePuzzle(numShapes, attempt + 1);
     }
   }
 
@@ -278,7 +280,7 @@ function generatePuzzle(numShapes: number): Puzzle {
 
   const hasNavy = target.some((row) => row.some((c) => c === 'navy'));
   if (!hasNavy) {
-    return generatePuzzle(numShapes);
+    return generatePuzzle(numShapes, attempt + 1);
   }
 
   const pieces: ShapePiece[] = solutionPlacements.map((p) => p.piece);
@@ -366,13 +368,6 @@ function PatternGrid({
   const w = size * cellSize;
   const h = size * cellSize;
 
-  const ghostSet = new Set<string>();
-  if (ghost) {
-    for (const c of ghost.piece.cells) {
-      ghostSet.add(`${c.dx + ghost.offsetX},${c.dy + ghost.offsetY}`);
-    }
-  }
-
   return (
     <div className="flex flex-col items-center gap-2">
       {label && (
@@ -388,15 +383,7 @@ function PatternGrid({
           {grid.map((row, y) =>
             row.map((color, x) => {
               const key = `${x},${y}`;
-              const isGhost = ghostSet.has(key);
-              const ghostCell = ghost?.piece.cells.find(
-                (c) => c.dx + (ghost?.offsetX ?? 0) === x && c.dy + (ghost?.offsetY ?? 0) === y,
-              );
-              const fill =
-                isGhost && ghostCell
-                  ? cellFill(ghostCell.color, palette)
-                  : cellFill(color, palette);
-              const opacity = isGhost ? GHOST_ALPHA : 1;
+              const fill = cellFill(color, palette);
 
               return (
                 <rect
@@ -406,7 +393,7 @@ function PatternGrid({
                   width={cellSize - 1}
                   height={cellSize - 1}
                   fill={fill}
-                  fillOpacity={opacity}
+                  fillOpacity={1}
                   stroke={CELL_BORDER}
                   strokeWidth={0.5}
                   style={interactive ? { cursor: 'pointer' } : undefined}
@@ -532,6 +519,9 @@ function SuperpositionLegend({ palette = DEFAULT_PALETTE }: { palette?: ColorPal
             <ColorSwatch color={r} size="lg" palette={palette} />
           </div>
         ))}
+        <p className="mt-2 text-center text-xs text-slate-500">
+          Trois couches : appliquer la regle deux fois. Case vide = gris de fond.
+        </p>
       </div>
     </div>
   );
@@ -564,7 +554,7 @@ export default function FormesGlisseesTest() {
   const [totalTime, setTotalTime] = useState(DEFAULT_SETTINGS.timePerQuestionSec);
   const [locked, setLocked] = useState(false);
   const [successFlash, setSuccessFlash] = useState(false);
-  const [wrongFlash, setWrongFlash] = useState(false);
+  const [showCorrection, setShowCorrection] = useState(false);
   const [palette, setPalette] = useState<ColorPalette>(DEFAULT_PALETTE);
 
   useEffect(() => {
@@ -613,11 +603,23 @@ export default function FormesGlisseesTest() {
     setSelectedPieceId(null);
     setGhostPos(null);
     setSuccessFlash(false);
-    setWrongFlash(false);
+    setShowCorrection(false);
     advancingRef.current = false;
     lockedRef.current = false;
     setLocked(false);
   }, []);
+
+  const goToNextQuestion = useCallback(() => {
+    const nextIdx = currentIdxRef.current + 1;
+    if (nextIdx >= questionsRef.current.length) {
+      setGameState('results');
+      return;
+    }
+    currentIdxRef.current = nextIdx;
+    setCurrentIdx(nextIdx);
+    resetQuestionState();
+    startTimer(settingsRef.current.timePerQuestionSec * 1000);
+  }, [resetQuestionState, startTimer]);
 
   const finishOrNext = useCallback(
     (outcome: AnswerOutcome) => {
@@ -628,37 +630,30 @@ export default function FormesGlisseesTest() {
       clearTimer();
 
       const timeUsed = Date.now() - questionStartRef.current;
-      const idx = currentIdxRef.current;
-
       setResults((prev) => [...prev, { outcome, timeUsedMs: timeUsed }]);
 
-      const nextIdx = idx + 1;
-      if (nextIdx >= questionsRef.current.length) {
-        setGameState('results');
+      const examMode = settingsRef.current.examMode;
+      const puzzle = questionsRef.current[currentIdxRef.current];
+
+      if (examMode) {
+        setTimeout(() => goToNextQuestion(), 80);
         return;
       }
 
-      const examMode = settingsRef.current.examMode;
-      if (!examMode && outcome === 'correct') {
+      if (outcome === 'correct') {
         setSuccessFlash(true);
-      } else if (!examMode && outcome !== 'correct') {
-        setWrongFlash(true);
+        setTimeout(() => goToNextQuestion(), 800);
+        return;
       }
 
-      const delay = examMode
-        ? 80
-        : outcome === 'correct'
-          ? 800
-          : 650;
-
-      setTimeout(() => {
-        currentIdxRef.current = nextIdx;
-        setCurrentIdx(nextIdx);
-        resetQuestionState();
-        startTimer(settingsRef.current.timePerQuestionSec * 1000);
-      }, delay);
+      setShowCorrection(true);
+      setSelectedPieceId(null);
+      setGhostPos(null);
+      if (puzzle) {
+        setPlacements(puzzle.solution.map((p) => ({ ...p })));
+      }
     },
-    [clearTimer, resetQuestionState, startTimer],
+    [clearTimer, goToNextQuestion],
   );
 
   const checkMatch = useCallback(
@@ -750,9 +745,22 @@ export default function FormesGlisseesTest() {
   }, [timeLeft, totalTime, gameState, locked, finishOrNext]);
 
   const currentPuzzle = questions[currentIdx];
+  const ghostFits =
+    !!selectedPiece &&
+    !!ghostPos &&
+    !locked &&
+    currentPuzzle &&
+    fitsInGrid(selectedPiece, ghostPos.x, ghostPos.y, currentPuzzle.gridSize);
+  const previewPlacements =
+    currentPuzzle && selectedPieceId && ghostPos && ghostFits
+      ? [
+          ...placements.filter((p) => p.pieceId !== selectedPieceId),
+          { pieceId: selectedPieceId, offsetX: ghostPos.x, offsetY: ghostPos.y },
+        ]
+      : placements;
   const playerGrid =
     currentPuzzle
-      ? computePlayerGrid(currentPuzzle.gridSize, currentPuzzle.pieces, placements)
+      ? computePlayerGrid(currentPuzzle.gridSize, currentPuzzle.pieces, previewPlacements)
       : [];
 
   const selectedPiece = selectedPieceId
@@ -765,6 +773,7 @@ export default function FormesGlisseesTest() {
       : null;
 
   const placedIds = new Set(placements.map((p) => p.pieceId));
+  const solutionIds = new Set(currentPuzzle?.solution.map((p) => p.pieceId) ?? []);
   const timerPercent = totalTime > 0 ? (timeLeft / totalTime) * 100 : 100;
 
   // =========================================================================
@@ -1029,7 +1038,7 @@ export default function FormesGlisseesTest() {
           <div className="flex flex-col items-center gap-2">
             <PatternGrid
               grid={playerGrid.length ? playerGrid : emptyGrid}
-              label="Votre grille"
+              label={showCorrection ? 'Solution (formes posees)' : 'Votre grille'}
               ghost={ghost}
               interactive={!locked && !!selectedPieceId}
               onCellClick={handlePlacePiece}
@@ -1061,8 +1070,20 @@ export default function FormesGlisseesTest() {
         {successFlash && (
           <p className="mt-3 text-center text-xl font-bold text-green-700">Correct !</p>
         )}
-        {wrongFlash && (
-          <p className="mt-3 text-center text-xl font-bold text-red-700">Passe — solution non affichee</p>
+        {showCorrection && (
+          <div className="mx-auto mt-4 w-full max-w-lg rounded-xl border border-red-200 bg-white p-4 text-center shadow-sm">
+            <p className="text-xl font-bold text-red-700">
+              {results[results.length - 1]?.outcome === 'skipped' ? 'Passe' : 'Incorrect'}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+              Les formes cochees sont placees comme dans la solution. Les couleurs de la grille
+              de gauche doivent alors coincider avec la figure a reproduire (superposition :
+              identiques → fonce, differentes → clair).
+            </p>
+            <Button size="lg" className="mt-4 w-full" onClick={goToNextQuestion}>
+              Suivant
+            </Button>
+          </div>
         )}
 
         {/* Pieces tray */}
@@ -1070,18 +1091,28 @@ export default function FormesGlisseesTest() {
           <p className="mb-3 text-center text-sm font-semibold">Formes disponibles</p>
           <div className="flex flex-wrap justify-center gap-3">
             {currentPuzzle.pieces.map((piece) => (
-              <PiecePreview
-                key={piece.id}
-                piece={piece}
-                selected={selectedPieceId === piece.id}
-                placed={placedIds.has(piece.id)}
-                palette={palette}
-                onSelect={() => {
-                  if (locked) return;
-                  setSelectedPieceId((prev) => (prev === piece.id ? null : piece.id));
-                  setGhostPos(null);
-                }}
-              />
+              <div key={piece.id} className="flex flex-col items-center gap-1">
+                <PiecePreview
+                  piece={piece}
+                  selected={selectedPieceId === piece.id}
+                  placed={placedIds.has(piece.id)}
+                  palette={palette}
+                  onSelect={() => {
+                    if (locked) return;
+                    setSelectedPieceId((prev) => (prev === piece.id ? null : piece.id));
+                    setGhostPos(null);
+                  }}
+                />
+                {showCorrection && (
+                  <span
+                    className={`text-[11px] font-medium ${
+                      solutionIds.has(piece.id) ? 'text-green-700' : 'text-slate-500'
+                    }`}
+                  >
+                    {solutionIds.has(piece.id) ? 'Utilisee' : 'Pas utilisee'}
+                  </span>
+                )}
+              </div>
             ))}
           </div>
           {selectedPieceId && (
@@ -1093,6 +1124,7 @@ export default function FormesGlisseesTest() {
 
         {/* Footer */}
         <div className="mt-auto flex flex-col items-center gap-3 pt-4">
+          {!showCorrection && (
           <button
             type="button"
             disabled={locked}
@@ -1101,6 +1133,7 @@ export default function FormesGlisseesTest() {
           >
             Passer cette question...
           </button>
+          )}
           <p className="text-base font-medium">
             {currentIdx + 1} / {questions.length}
           </p>
