@@ -13,6 +13,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, RotateCcw, Home, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+  pickAnglaisQuestions,
+  ANGLAIS_KIND_LABELS,
+  type AnglaisItem,
+  type AnglaisKind,
+} from '@/lib/exercises/anglaisPsy0Bank';
+import { explainAnglaisItem } from '@/lib/exercises/anglaisPsy0Explain';
 
 // ============================================================================
 // Types
@@ -26,11 +33,7 @@ interface GameSettings {
   examMode: boolean;
 }
 
-interface McqItem {
-  stem: string;
-  choices: [string, string, string, string];
-  correct: number;
-}
+type McqItem = AnglaisItem;
 
 interface QuestionResult {
   question: McqItem;
@@ -55,81 +58,16 @@ const DEFAULT_SETTINGS: GameSettings = {
 const BG = '#d4d4d4';
 const NAVY = '#0f2347';
 
-/** Built-in bank (65 items) — grammar, vocab, false friends for AF cadet preselection */
-const QUESTION_BANK: McqItem[] = [
-  { stem: 'She is ___ engineer at Airbus.', choices: ['a', 'an', 'the', '—'], correct: 1 },
-  { stem: 'I have lived in Paris ___ 2019.', choices: ['for', 'since', 'during', 'from'], correct: 1 },
-  { stem: 'The meeting starts ___ 9 o\'clock.', choices: ['in', 'on', 'at', 'by'], correct: 2 },
-  { stem: 'He ___ to London last week.', choices: ['goes', 'has gone', 'went', 'is going'], correct: 2 },
-  { stem: 'We ___ dinner when the phone rang.', choices: ['had', 'were having', 'have had', 'are having'], correct: 1 },
-  { stem: 'This is ___ interesting book.', choices: ['a', 'an', 'the', 'some'], correct: 1 },
-  { stem: 'She speaks English ___ fluently.', choices: ['very', 'much', 'many', 'lot'], correct: 0 },
-  { stem: 'I look forward ___ hearing from you.', choices: ['to', 'for', 'at', 'on'], correct: 0 },
-  { stem: 'Neither Tom nor his brothers ___ ready.', choices: ['is', 'are', 'was', 'has been'], correct: 1 },
-  { stem: 'If I ___ you, I would accept the offer.', choices: ['am', 'was', 'were', 'have been'], correct: 2 },
-  { stem: 'The plane took ___ at 6 a.m.', choices: ['off', 'out', 'away', 'up'], correct: 0 },
-  { stem: 'He is responsible ___ safety procedures.', choices: ['of', 'for', 'to', 'with'], correct: 1 },
-  { stem: 'How ___ does this flight cost?', choices: ['many', 'much', 'long', 'often'], correct: 1 },
-  { stem: 'She has ___ finished her training.', choices: ['yet', 'already', 'still', 'ever'], correct: 1 },
-  { stem: 'The captain asked us to fasten our seat ___.', choices: ['belts', 'ropes', 'strings', 'bands'], correct: 0 },
-  { stem: 'Choose the correct sentence:', choices: ['He don\'t like coffee.', 'He doesn\'t likes coffee.', 'He doesn\'t like coffee.', 'He not like coffee.'], correct: 2 },
-  { stem: 'There isn\'t ___ milk left.', choices: ['some', 'any', 'no', 'many'], correct: 1 },
-  { stem: 'The weather was bad, ___ we landed safely.', choices: ['so', 'but', 'because', 'although'], correct: 1 },
-  { stem: 'I\'d rather ___ early than miss the briefing.', choices: ['to arrive', 'arrive', 'arriving', 'arrived'], correct: 1 },
-  { stem: 'This runway is ___ than the previous one.', choices: ['long', 'longer', 'more long', 'longest'], correct: 1 },
-  { stem: 'She works ___ a flight attendant.', choices: ['as', 'like', 'for', 'by'], correct: 0 },
-  { stem: 'We need to submit the report ___ Friday.', choices: ['until', 'by', 'since', 'during'], correct: 1 },
-  { stem: 'He is used ___ night shifts.', choices: ['to work', 'to working', 'work', 'working'], correct: 1 },
-  { stem: 'The luggage ___ checked already.', choices: ['is', 'has been', 'was being', 'had'], correct: 1 },
-  { stem: 'Could you tell me where ___?', choices: ['is the gate', 'the gate is', 'is gate', 'gate is'], correct: 1 },
-  { stem: 'A "library" in English is a place for books, not a ___ .', choices: ['bookshop', 'reading room only', 'computer lab', 'archive only'], correct: 0 },
-  { stem: '"Actually" in English often means:', choices: ['currently', 'in fact', 'soon', 'possibly'], correct: 1 },
-  { stem: '"Eventually" means:', choices: ['possibly', 'in the end', 'immediately', 'rarely'], correct: 1 },
-  { stem: 'The opposite of "departure" is:', choices: ['arrival', 'delay', 'landing', 'take-off'], correct: 0 },
-  { stem: 'A "pilot" flies an aircraft; a "plot" is:', choices: ['a story plan', 'a type of engine', 'a runway mark', 'a weather chart'], correct: 0 },
-  { stem: 'Fill in: "The flight attendant asked passengers to ___ their trays."', choices: ['rise', 'raise', 'arise', 'lift up'], correct: 1 },
-  { stem: 'Which word is a false friend for French "librairie"?', choices: ['library', 'bookstore', 'librarian', 'ledger'], correct: 0 },
-  { stem: 'He ___ his passport at home yesterday.', choices: ['forgets', 'forgot', 'has forgotten', 'was forgetting'], correct: 1 },
-  { stem: 'The turbulence made some passengers feel ___.', choices: ['sick', 'illness', 'disease', 'injured'], correct: 0 },
-  { stem: 'We must comply ___ international regulations.', choices: ['with', 'to', 'by', 'on'], correct: 0 },
-  { stem: 'She is the ___ student in the class.', choices: ['more good', 'best', 'better', 'most good'], correct: 1 },
-  { stem: 'I haven\'t seen him ___ ages.', choices: ['since', 'for', 'during', 'from'], correct: 1 },
-  { stem: 'The crew performed the check ___ take-off.', choices: ['before', 'ago', 'since', 'during ago'], correct: 0 },
-  { stem: 'Choose the correct preposition: "interested ___ aviation"', choices: ['on', 'in', 'at', 'for'], correct: 1 },
-  { stem: 'Neither the captain ___ the co-pilot was late.', choices: ['or', 'nor', 'and', 'but'], correct: 1 },
-  { stem: 'They ___ the new schedule yet.', choices: ['didn\'t receive', 'haven\'t received', 'don\'t receive', 'aren\'t receiving'], correct: 1 },
-  { stem: 'This is the man ___ helped us at the counter.', choices: ['which', 'who', 'whom', 'whose'], correct: 1 },
-  { stem: 'The announcement was hard to hear because of the ___.', choices: ['noise', 'noisy', 'noisily', 'noised'], correct: 0 },
-  { stem: 'If the weather improves, we ___ on time.', choices: ['will depart', 'would depart', 'departed', 'had departed'], correct: 0 },
-  { stem: 'She avoided ___ the confidential document.', choices: ['to lose', 'losing', 'lose', 'lost'], correct: 1 },
-  { stem: 'The aircraft is ___ the clouds now.', choices: ['above', 'over', 'on', 'up'], correct: 0 },
-  { stem: 'How long ___ you been training?', choices: ['do', 'did', 'have', 'are'], correct: 2 },
-  { stem: 'He insisted ___ paying the bill.', choices: ['in', 'on', 'to', 'for'], correct: 1 },
-  { stem: 'The runway was wet, so the landing was ___.', choices: ['smoothly', 'smooth', 'smoothing', 'smoothed'], correct: 1 },
-  { stem: 'I\'m looking ___ my boarding pass.', choices: ['for', 'after', 'up', 'into'], correct: 0 },
-  { stem: 'Choose the synonym of "rapid":', choices: ['slow', 'quick', 'late', 'heavy'], correct: 1 },
-  { stem: 'The briefing will take place ___ the morning.', choices: ['on', 'in', 'at', 'by'], correct: 1 },
-  { stem: 'She suggested ___ earlier.', choices: ['to leave', 'leaving', 'leave', 'left'], correct: 1 },
-  { stem: 'There are ___ seats available.', choices: ['few', 'a little', 'much', 'little'], correct: 0 },
-  { stem: 'He speaks French well; ___, his English is excellent.', choices: ['however', 'moreover', 'although', 'unless'], correct: 1 },
-  { stem: 'The gate number has been ___.', choices: ['changed', 'change', 'changing', 'to change'], correct: 0 },
-  { stem: 'We ran ___ fuel during the simulation.', choices: ['out of', 'away from', 'off', 'down'], correct: 0 },
-  { stem: 'Which is correct?', choices: ['informations', 'an information', 'some information', 'many informations'], correct: 2 },
-  { stem: 'The co-pilot is ___ than the captain.', choices: ['young', 'younger', 'more young', 'youngest'], correct: 1 },
-  { stem: 'Passengers must remain seated ___ the seatbelt sign is off.', choices: ['until', 'during', 'while', 'unless'], correct: 0 },
-  { stem: 'I\'d like ___ cup of tea, please.', choices: ['other', 'another', 'more', 'else'], correct: 1 },
-  { stem: 'The flight was cancelled ___ bad weather.', choices: ['because', 'because of', 'due', 'thanks to'], correct: 1 },
-  { stem: 'He denied ___ the procedure.', choices: ['to ignore', 'ignoring', 'ignore', 'ignored'], correct: 1 },
-  { stem: 'A "brace" position is used ___ an emergency landing.', choices: ['in', 'for', 'during', 'at'], correct: 2 },
-  { stem: '"Sensible" in English usually means:', choices: ['sensitive', 'reasonable', 'emotional', 'delicate'], correct: 1 },
-  { stem: 'The altitude ___ steadily during the climb.', choices: ['rose', 'raised', 'risen', 'arose'], correct: 0 },
-  { stem: 'She is capable ___ handling pressure.', choices: ['of', 'for', 'to', 'with'], correct: 0 },
-  { stem: 'We\'d better ___ now or we\'ll be late.', choices: ['to go', 'go', 'going', 'went'], correct: 1 },
-];
-
 // ============================================================================
 // Helpers
 // ============================================================================
+
+function formatTime(ms: number): string {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 function loadSettings(): GameSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
@@ -146,28 +84,31 @@ function saveSettings(s: GameSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
   } catch {
-    /* ignore */
+    /* ignore quota */
   }
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const out = [...arr];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
-function pickQuestions(count: number): McqItem[] {
-  return shuffle(QUESTION_BANK).slice(0, Math.min(count, QUESTION_BANK.length));
-}
-
-function formatTime(ms: number): string {
-  const sec = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+function ExplainBody({ text }: { text: string }) {
+  return (
+    <div className="space-y-2 text-sm leading-relaxed sm:text-base">
+      {text.split('\n\n').map((para, i) => (
+        <p key={i}>
+          {para.split('\n').map((line, j) => (
+            <span key={j}>
+              {j > 0 ? <br /> : null}
+              {line.split(/(\*\*[^*]+\*\*)/g).map((chunk, k) =>
+                chunk.startsWith('**') && chunk.endsWith('**') ? (
+                  <strong key={k}>{chunk.slice(2, -2)}</strong>
+                ) : (
+                  <span key={k}>{chunk}</span>
+                ),
+              )}
+            </span>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 // ============================================================================
@@ -197,12 +138,15 @@ export default function AnglaisPsy0Test() {
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [flashIdx, setFlashIdx] = useState<number | null>(null);
   const [flashCorrect, setFlashCorrect] = useState<boolean | null>(null);
+  const [showExplain, setShowExplain] = useState(false);
   const advancingRef = useRef(false);
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const timerStartRef = useRef(0);
+  const originalTotalRef = useRef(0);
+  const pausedLeftRef = useRef(0);
   const questionStartRef = useRef(0);
   const perfSavedRef = useRef(false);
 
@@ -238,22 +182,57 @@ export default function AnglaisPsy0Test() {
     scorer.reset();
     perfSavedRef.current = false;
     advancingRef.current = false;
-    const qs = pickQuestions(settingsRef.current.totalQuestions);
+    const qs = pickAnglaisQuestions(settingsRef.current.totalQuestions);
     setQuestions(qs);
     setCurrentIdx(0);
     setResults([]);
     setFlashIdx(null);
     setFlashCorrect(null);
+    setShowExplain(false);
     setGameState('playing');
     questionStartRef.current = Date.now();
+    originalTotalRef.current = settingsRef.current.timeLimitSec * 1000;
+    pausedLeftRef.current = originalTotalRef.current;
     if (settingsRef.current.timeLimitSec > 0) {
       startTimer(settingsRef.current.timeLimitSec * 1000);
     }
   }, [scorer, startTimer]);
 
+  const pauseTimer = useCallback(() => {
+    if (settingsRef.current.timeLimitSec <= 0) return;
+    const remaining = Math.max(0, totalTime - (Date.now() - timerStartRef.current));
+    pausedLeftRef.current = remaining;
+    setTimeLeft(remaining);
+    clearTimer();
+  }, [clearTimer, totalTime]);
+
+  const resumeTimer = useCallback(() => {
+    if (settingsRef.current.timeLimitSec <= 0) return;
+    const left = pausedLeftRef.current;
+    if (left <= 0) {
+      finishGame();
+      return;
+    }
+    startTimer(left);
+  }, [finishGame, startTimer]);
+
+  const goNext = useCallback(() => {
+    setFlashIdx(null);
+    setFlashCorrect(null);
+    setShowExplain(false);
+    if (currentIdx + 1 >= questions.length) {
+      finishGame();
+      return;
+    }
+    setCurrentIdx((i) => i + 1);
+    questionStartRef.current = Date.now();
+    advancingRef.current = false;
+    resumeTimer();
+  }, [currentIdx, finishGame, questions.length, resumeTimer]);
+
   const answerQuestion = useCallback(
     (choiceIdx: number) => {
-      if (advancingRef.current || gameState !== 'playing') return;
+      if (advancingRef.current || gameState !== 'playing' || showExplain) return;
       const currentQ = questions[currentIdx];
       if (!currentQ) return;
 
@@ -270,38 +249,48 @@ export default function AnglaisPsy0Test() {
       };
       setResults((prev) => [...prev, result]);
 
-      const goNext = () => {
+      if (settingsRef.current.examMode) {
         if (currentIdx + 1 >= questions.length) {
           finishGame();
         } else {
           setCurrentIdx((i) => i + 1);
-          setFlashIdx(null);
-          setFlashCorrect(null);
           questionStartRef.current = Date.now();
           advancingRef.current = false;
         }
-      };
-
-      if (settingsRef.current.examMode) {
-        goNext();
       } else {
+        pauseTimer();
         setFlashIdx(choiceIdx);
         setFlashCorrect(isCorrect);
-        setTimeout(goNext, isCorrect ? 700 : 1800);
+        setShowExplain(true);
       }
     },
-    [currentIdx, finishGame, gameState, questions, scorer],
+    [
+      currentIdx,
+      finishGame,
+      gameState,
+      pauseTimer,
+      questions,
+      scorer,
+      showExplain,
+    ],
   );
 
   useEffect(() => {
-    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing') {
+    if (timeLeft <= 0 && totalTime > 0 && gameState === 'playing' && !showExplain) {
       finishGame();
     }
-  }, [timeLeft, totalTime, gameState, finishGame]);
+  }, [timeLeft, totalTime, gameState, finishGame, showExplain]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
     const onKey = (e: KeyboardEvent) => {
+      if (showExplain) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          goNext();
+        }
+        return;
+      }
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 4) {
         e.preventDefault();
@@ -310,7 +299,7 @@ export default function AnglaisPsy0Test() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [gameState, answerQuestion]);
+  }, [gameState, answerQuestion, goNext, showExplain]);
 
   // ---- MENU ----
   if (gameState === 'menu') {
@@ -320,7 +309,8 @@ export default function AnglaisPsy0Test() {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Anglais Psy0 — Cadets Air France</CardTitle>
             <CardDescription>
-              QCM de grammaire et vocabulaire — rythme type preselection
+              Grammaire, faux amis, textes, inférences et registre — comme le jour J, pas seulement des
+              phrases à trous
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -329,8 +319,14 @@ export default function AnglaisPsy0Test() {
                 <strong>{settings.totalQuestions} questions</strong> a choix multiples (4
                 reponses).
               </p>
-              <p>Grammaire, vocabulaire, prepositions, temps verbaux, faux amis.</p>
-              <p>Cliquez une reponse : hors mode examen, la bonne reponse s&apos;affiche un instant.</p>
+              <p>
+                Grammaire fine, faux amis, erreurs à repérer, sens d&apos;une phrase, inférence,
+                registre, et un texte à lire.
+              </p>
+              <p>
+                Hors mode examen, chaque réponse ouvre une <strong>correction avec la règle</strong>{' '}
+                (temps en pause). Cliquez Suivant — ou Entrée.
+              </p>
               {settings.timeLimitSec > 0 && (
                 <p>
                   Temps total :{' '}
@@ -407,7 +403,7 @@ export default function AnglaisPsy0Test() {
                   value={[settings.totalQuestions]}
                   onValueChange={([v]) => setSettings((s) => ({ ...s, totalQuestions: v }))}
                   min={10}
-                  max={30}
+                  max={50}
                   step={1}
                   className="mt-2"
                 />
@@ -507,9 +503,36 @@ export default function AnglaisPsy0Test() {
               </p>
             )}
 
+            {(() => {
+              const byKind = new Map<AnglaisKind, { ok: number; n: number }>();
+              questions.forEach((item, i) => {
+                const rec = byKind.get(item.kind) ?? { ok: 0, n: 0 };
+                rec.n += 1;
+                if (results[i]?.isCorrect) rec.ok += 1;
+                byKind.set(item.kind, rec);
+              });
+              const rows = [...byKind.entries()];
+              if (rows.length < 2) return null;
+              return (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-[#37322f]">Par type de question :</p>
+                  <div className="space-y-1.5">
+                    {rows.map(([kind, rec]) => (
+                      <div key={kind} className="flex items-center justify-between text-sm">
+                        <span className="text-[#605a57]">{ANGLAIS_KIND_LABELS[kind]}</span>
+                        <span className="font-medium tabular-nums text-[#37322f]">
+                          {rec.ok}/{rec.n}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="space-y-2">
               <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
-              <div className="max-h-64 space-y-1.5 overflow-y-auto">
+              <div className="max-h-[32rem] space-y-1.5 overflow-y-auto">
                 {questions.map((q, i) => {
                   const r = results[i];
                   const sel = r?.selectedIndex ?? null;
@@ -536,6 +559,9 @@ export default function AnglaisPsy0Test() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-400">{q.stem}</p>
+                      <div className="mt-2 border-t border-black/5 pt-2 text-[#605a57]">
+                        <ExplainBody text={explainAnglaisItem(q)} />
+                      </div>
                     </div>
                   );
                 })}
@@ -567,8 +593,15 @@ export default function AnglaisPsy0Test() {
 
   // ---- PLAYING ----
   const currentQ = questions[currentIdx];
-  const timerPercent = totalTime > 0 ? (timeLeft / totalTime) * 100 : 100;
+  const timerPercent =
+    originalTotalRef.current > 0 ? (timeLeft / originalTotalRef.current) * 100 : 100;
   const timerUrgent = timerPercent <= 20;
+  const readingSiblings = currentQ?.passage
+    ? questions.filter((item) => item.passage === currentQ.passage)
+    : [];
+  const readingPos = currentQ
+    ? readingSiblings.findIndex((item) => item.stem === currentQ.stem) + 1
+    : 0;
 
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: BG, color: NAVY }}>
@@ -607,6 +640,20 @@ export default function AnglaisPsy0Test() {
 
       <div className="flex flex-1 flex-col items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-2xl space-y-6">
+          {currentQ?.passage ? (
+            <div className="space-y-2">
+              <p className="text-center text-xs font-semibold tracking-wide opacity-50">
+                Texte — question {readingPos}/{readingSiblings.length} (vous pouvez relire)
+              </p>
+              <div
+                className="max-h-52 overflow-y-auto rounded-xl bg-white/90 p-4 text-left text-sm leading-relaxed shadow-sm sm:max-h-64 sm:text-base"
+                style={{ color: NAVY }}
+              >
+                {currentQ.passage}
+              </div>
+            </div>
+          ) : null}
+
           {/* Stem */}
           <p
             className="text-center text-lg font-semibold leading-relaxed sm:text-xl md:text-2xl"
@@ -630,7 +677,7 @@ export default function AnglaisPsy0Test() {
                 <button
                   key={i}
                   type="button"
-                  disabled={flashIdx !== null}
+                  disabled={flashIdx !== null || showExplain}
                   onClick={() => answerQuestion(i)}
                   className={`w-full rounded-xl border-2 px-5 py-4 text-left text-base font-medium shadow-sm transition-all sm:text-lg ${flashClass}`}
                   style={{ color: NAVY }}
@@ -642,9 +689,42 @@ export default function AnglaisPsy0Test() {
             })}
           </div>
 
-          <p className="text-center text-xs opacity-50" style={{ color: NAVY }}>
-            Touches 1–4 pour repondre rapidement
-          </p>
+          {showExplain && currentQ ? (
+            <div
+              className={`rounded-xl border-2 p-4 shadow-sm ${
+                flashCorrect ? 'border-green-600 bg-green-50' : 'border-red-600 bg-red-50'
+              }`}
+            >
+              <p
+                className={`mb-2 text-base font-bold ${
+                  flashCorrect ? 'text-green-800' : 'text-red-800'
+                }`}
+              >
+                {flashCorrect ? 'Correct' : 'Incorrect'} — {ANGLAIS_KIND_LABELS[currentQ.kind]}
+              </p>
+              {!flashCorrect && flashIdx !== null && (
+                <p className="mb-2 text-sm">
+                  Vous avez répondu : <strong>{currentQ.choices[flashIdx]}</strong>
+                  <br />
+                  Bonne réponse : <strong>{currentQ.choices[currentQ.correct]}</strong>
+                </p>
+              )}
+              {flashCorrect && (
+                <p className="mb-2 text-sm">
+                  Bonne réponse : <strong>{currentQ.choices[currentQ.correct]}</strong>
+                </p>
+              )}
+              <ExplainBody text={explainAnglaisItem(currentQ)} />
+              <Button size="lg" className="mt-4 w-full" onClick={goNext}>
+                {currentIdx + 1 >= questions.length ? 'Voir les résultats' : 'Question suivante'}
+              </Button>
+              <p className="mt-2 text-center text-xs opacity-60">Entrée pour continuer</p>
+            </div>
+          ) : (
+            <p className="text-center text-xs opacity-50" style={{ color: NAVY }}>
+              Touches 1–4 pour repondre rapidement
+            </p>
+          )}
         </div>
       </div>
     </div>

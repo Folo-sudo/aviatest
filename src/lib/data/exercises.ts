@@ -934,7 +934,7 @@ export const EXERCISES: ExerciseConfig[] = [
     description:
       'QCM d\'anglais rapide (grammaire et vocabulaire) pour la preselection',
     longDescription:
-      '30 questions a choix multiples en 7 min 30. Automatismes grammaire et vocabulaire anglais, style preselection Cadets Air France.',
+      '30 questions a choix multiples en 7 min 30. Grammaire, faux amis, reformulation, reperage d\'erreur, inference, registre et textes courts — style epreuve d\'anglais Cadets AF, plus seulement des phrases a trous.',
     types: ['anglais'],
     primaryType: 'anglais',
     competitions: ['psy0'],
@@ -945,6 +945,31 @@ export const EXERCISES: ExerciseConfig[] = [
     seoKeywords: ['anglais cadets air france', 'anglais psy0', 'qcm anglais pilote'],
     iconName: 'Languages',
     estimatedDuration: 8,
+    ready: true,
+  },
+  {
+    id: 'fiche-culture-aviation',
+    slug: 'fiche-culture-aviation',
+    title: 'Fiche culture aviation AF',
+    description:
+      'Air France, flotte, pionniers, aéroports : QCM de culture generale pour cadets PSY0',
+    longDescription:
+      'Fiche sans chrono. Plus de 900 questions : compagnie Air France (codes, hub, alliance, effectifs, filiales), flotte et moteurs, pionniers et dates, records, codes IATA/OACI, latitudes et longitudes des grands aeroports. Correction expliquee a chaque fois. Les chiffres de flotte sont dates (2025-2026).',
+    types: ['intellectuel'],
+    primaryType: 'intellectuel',
+    competitions: ['psy0'],
+    difficulty: 'difficile',
+    seoTitle: 'Fiche Culture Aviation Cadets Air France | AviaTest',
+    seoDescription:
+      'Entrainement culture generale aviation et Air France pour la preselection PSY0 Cadets.',
+    seoKeywords: [
+      'culture generale aviation',
+      'air france flotte',
+      'psy0 cadets',
+      'pionniers aviation',
+    ],
+    iconName: 'Landmark',
+    estimatedDuration: 20,
     ready: true,
   },
   // ---- Psy1 Cadets AF manquants (copie Pilotest) ----

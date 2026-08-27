@@ -100,6 +100,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Library: <Library className="h-5 w-5" />,
   Star: <Star className="h-5 w-5" />,
   Languages: <Languages className="h-5 w-5" />,
+  Landmark: <Landmark className="h-5 w-5" />,
   Car: <Car className="h-5 w-5" />,
   Route: <Route className="h-5 w-5" />,
   X: <X className="h-5 w-5" />,

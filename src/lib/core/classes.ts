@@ -58,6 +58,7 @@ const THRESHOLDS: Record<string, number[]> = {
   'mots-en-etoile': [0, 43, 56, 58, 78, 85, 91, 93, 96], // 8 ouvert (etait 91)
   'series-logiques': [0, 6, 24, 27, 54, 67, 83, 85, 95],
   'anglais-psy0': [0, 43, 47, 53, 60, 70, 77, 83, 90], // 9: 87→90
+  'fiche-culture-aviation': [0, 35, 45, 55, 65, 75, 85, 90, 95],
 
   // ---- PSY1 Cadets AF ----
   mathematiques: [0, 20, 27, 33, 43, 60, 77, 87, 93],

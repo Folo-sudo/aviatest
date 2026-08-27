@@ -38,6 +38,7 @@ const LINE_COLORS: Record<string, string> = {
   'mots-en-etoile': '#DB2777',
   'series-logiques': '#8B5CF6',
   'anglais-psy0': '#0EA5E9',
+  'fiche-culture-aviation': '#B45309',
   'calcul-mental-4': '#2563EB',
   'attention-1': '#7C3AED',
   'attention-2': '#A855F7',

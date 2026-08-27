@@ -45,6 +45,7 @@ export const desktopComponents: Record<string, ExerciseComponent> = {
   'mots-en-etoile': dynamic(() => import('@/components/exercises/MotsEnEtoileTest'), { ssr: false }),
   'series-logiques': dynamic(() => import('@/components/exercises/SeriesLogiquesTest'), { ssr: false }),
   'anglais-psy0': dynamic(() => import('@/components/exercises/AnglaisPsy0Test'), { ssr: false }),
+  'fiche-culture-aviation': dynamic(() => import('@/components/exercises/FicheCultureAviationTest'), { ssr: false }),
   'calcul-mental-4': dynamic(() => import('@/components/exercises/CalculMental4Test'), { ssr: false }),
   'attention-1': dynamic(() => import('@/components/exercises/Attention1Test'), { ssr: false }),
   'attention-2': dynamic(() => import('@/components/exercises/Attention2Test'), { ssr: false }),

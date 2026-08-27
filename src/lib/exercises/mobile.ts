@@ -163,6 +163,11 @@ const MOBILE_PROFILES: Record<string, ExerciseMobileProfile> = {
     experience: 'dedicated',
     note: 'QCM classique, compatible telephone avec boutons de reponse larges.',
   },
+  'fiche-culture-aviation': {
+    slug: 'fiche-culture-aviation',
+    experience: 'dedicated',
+    note: 'QCM de culture generale, lisible sur telephone avec correction sous la question.',
+  },
   'calcul-mental-4': {
     slug: 'calcul-mental-4',
     experience: 'dedicated',
