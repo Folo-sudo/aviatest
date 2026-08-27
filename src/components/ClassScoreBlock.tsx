@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { CLASS_COLORS, scoreToClass } from '@/lib/core/classes';
+import { CLASS_COLORS, classHint, scoreToClass } from '@/lib/core/classes';
 
 export function ClassHistogram({ value }: { value: number }) {
   return (
@@ -39,7 +39,10 @@ export function ClassScoreBlock({
 
   return (
     <div className="space-y-4 text-center">
-      <Badge className="text-lg px-4 py-1">Classe {cls}</Badge>
+      <div className="space-y-1">
+        <Badge className="text-lg px-4 py-1">Classe {cls}</Badge>
+        <p className="text-sm text-[#605a57]">{classHint(cls)}</p>
+      </div>
       <ClassHistogram value={cls} />
       <div>
         <p className="text-5xl font-bold text-[#37322f]">{shown}%</p>

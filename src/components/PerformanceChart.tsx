@@ -3,12 +3,12 @@
 import { useMemo } from 'react';
 import { type PerformanceEntry, scoreToStanine } from '@/lib/core/PerformanceTracker';
 
-// Band colors matching Pilotest style
+// Bandes : 7+ = niveau concours (cible)
 const BANDS = [
-  { min: 1, max: 3, color: '#FFE4E6' }, // rose - faible
-  { min: 3, max: 5, color: '#FEF3C7' }, // jaune - moyen-
-  { min: 5, max: 7, color: '#DCFCE7' }, // vert clair - moyen+
-  { min: 7, max: 9, color: '#DBEAFE' }, // bleu clair - bon
+  { min: 1, max: 4, color: '#FFE4E6' }, // insuffisant
+  { min: 4, max: 6, color: '#FEF3C7' }, // en construction
+  { min: 6, max: 7, color: '#DCFCE7' }, // approche
+  { min: 7, max: 9, color: '#DBEAFE' }, // concours / excellent
 ];
 
 // Exercise-specific line colors

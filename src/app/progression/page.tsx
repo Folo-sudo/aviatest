@@ -16,10 +16,10 @@ import {
   getAllExerciseStatsFromMap,
   clearAllPerformanceData,
   migratePerformanceData,
-  scoreToStanine,
   getPseudo,
   type ExerciseStats,
 } from '@/lib/core/PerformanceTracker';
+import { CONTEST_CLASS, scoreToClass } from '@/lib/core/classes';
 import PerformanceChart from '@/components/PerformanceChart';
 import AuthGate from '@/components/AuthGate';
 import {
@@ -30,12 +30,12 @@ import {
 
 function stanineBadge(score: number | null, exerciseId?: string) {
   if (score === null) return null;
-  const s = scoreToStanine(score, exerciseId);
+  const s = scoreToClass(score, exerciseId);
   let bg: string;
   let text: string;
-  if (s >= 7) { bg = '#DBEAFE'; text = '#1E40AF'; }
-  else if (s >= 5) { bg = '#DCFCE7'; text = '#166534'; }
-  else if (s >= 3) { bg = '#FEF3C7'; text = '#92400E'; }
+  if (s >= CONTEST_CLASS) { bg = '#DBEAFE'; text = '#1E40AF'; }
+  else if (s >= 6) { bg = '#DCFCE7'; text = '#166534'; }
+  else if (s >= 4) { bg = '#FEF3C7'; text = '#92400E'; }
   else { bg = '#FFE4E6'; text = '#991B1B'; }
   return (
     <span
@@ -199,6 +199,20 @@ function ProgressionContent() {
       ? Math.round(allStats.reduce((s, st) => s + st.avgScore, 0) / allStats.length)
       : 0;
 
+  const withClasses = exercisesWithStats.map(({ config, stats }) => ({
+    config,
+    stats,
+    lastClass: scoreToClass(stats.lastScore, config.id),
+    avgClass: scoreToClass(stats.avgScore, config.id),
+  }));
+  const contestReadyCount = withClasses.filter((row) => row.lastClass >= CONTEST_CLASS).length;
+  const toImprove = withClasses
+    .filter((row) => row.lastClass < CONTEST_CLASS)
+    .sort((a, b) => a.lastClass - b.lastClass || a.avgClass - b.avgClass);
+  const tableRows = [...withClasses].sort(
+    (a, b) => a.lastClass - b.lastClass || a.avgClass - b.avgClass,
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-slate-200">
@@ -253,8 +267,13 @@ function ProgressionContent() {
             </Card>
             <Card>
               <CardContent className="pt-4 pb-4 text-center">
-                <p className="text-3xl font-bold text-slate-700">{scoreBadge(globalAvg)}</p>
-                <p className="text-xs text-slate-500 mt-1">Stanine moyen</p>
+                <p className="text-3xl font-bold text-slate-700">
+                  {contestReadyCount}
+                  <span className="text-lg font-medium text-slate-400">
+                    {' '}/ {exercisesWithStats.length}
+                  </span>
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Classe 7+ (niveau concours)</p>
               </CardContent>
             </Card>
           </div>
@@ -277,6 +296,32 @@ function ProgressionContent() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {toImprove.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-xl font-bold text-slate-700 mb-2">A retravailler</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Classe 7 = niveau concours (cible). Classe 9 = excellent. Les tests ci-dessous
+              sont encore sous la barre.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {toImprove.map(({ config, lastClass }) => (
+                <Link key={config.id} href={`/exercices/${config.slug}`}>
+                  <Badge variant="outline" className="text-slate-600 hover:bg-slate-50">
+                    {config.title}
+                    <span className="ml-1.5 text-slate-400">cl. {lastClass}</span>
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {exercisesWithStats.length > 0 && toImprove.length === 0 && (
+          <p className="text-sm text-slate-500 mb-8">
+            Tous tes derniers resultats sont a la classe 7 ou plus — niveau concours.
+          </p>
         )}
 
         {exercisesWithStats.length > 0 && (
@@ -311,9 +356,13 @@ function ProgressionContent() {
 
         {exercisesWithStats.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-700 mb-2 flex items-center gap-2">
               <BarChart3 className="h-5 w-5" /> Classes
             </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Classe 7 = niveau concours (cible). Classe 9 = excellent. Tableau trie du plus
+              faible au plus fort (dernier resultat).
+            </p>
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -347,12 +396,23 @@ function ProgressionContent() {
                       </tr>
                     </thead>
                     <tbody>
-                      {exercisesWithStats.map(({ config, stats }) => {
-                        const stanAvg = scoreToStanine(stats.avgScore, config.id);
+                      {tableRows.map(({ config, stats, lastClass }) => {
                         return (
-                          <tr key={config.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                          <tr
+                            key={config.id}
+                            className={
+                              lastClass < CONTEST_CLASS
+                                ? 'border-b border-slate-100 bg-amber-50/40 hover:bg-amber-50/70'
+                                : 'border-b border-slate-100 hover:bg-slate-50/50'
+                            }
+                          >
                             <td className="py-3 px-4">
-                              <span className="font-medium text-slate-700">{config.title}</span>
+                              <Link
+                                href={`/exercices/${config.slug}`}
+                                className="font-medium text-slate-700 hover:underline"
+                              >
+                                {config.title}
+                              </Link>
                             </td>
                             <td className="py-3 px-3 text-center text-slate-500">
                               {stats.totalAttempts}
@@ -360,15 +420,7 @@ function ProgressionContent() {
                             <td className="py-3 px-3">
                               <div className="flex items-center justify-center gap-1">
                                 {stanineBadge(stats.worstScore, config.id)}
-                                <span
-                                  className="inline-flex items-center justify-center w-8 h-8 rounded-md text-sm font-bold"
-                                  style={{
-                                    backgroundColor: stanAvg >= 5 ? '#DCFCE7' : '#FEF3C7',
-                                    color: stanAvg >= 5 ? '#166534' : '#92400E',
-                                  }}
-                                >
-                                  {stanAvg}
-                                </span>
+                                {stanineBadge(stats.avgScore, config.id)}
                                 {stanineBadge(stats.bestScore, config.id)}
                               </div>
                             </td>

@@ -34,5 +34,6 @@ test('Calcul mental 1: settings, play, results', async ({ page }) => {
 
   await expect(page.getByText('Résultats')).toBeVisible();
   await expect(page.getByText(/Classe \d/)).toBeVisible();
+  await expect(page.getByText(/Niveau concours|Presque au niveau concours|A consolider|A retravailler|Solide|Excellent/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rejouer' })).toBeVisible();
 });
