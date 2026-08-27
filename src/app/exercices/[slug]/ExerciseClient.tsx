@@ -7,6 +7,8 @@ import StadiumBanner from '@/components/StadiumBanner';
 import StadiumPlayGate from '@/components/StadiumPlayGate';
 import DuelBanner from '@/components/DuelBanner';
 import DuelPlayGate from '@/components/DuelPlayGate';
+import EnchainementPlayGate from '@/components/enchainement/EnchainementPlayGate';
+import EnchainementSetupBanner from '@/components/enchainement/EnchainementSetupBanner';
 import {
   desktopComponents,
   getComponentLookupKey,
@@ -134,10 +136,13 @@ export default function ExerciseClient({
         />
         <StadiumBanner slug={slug} />
         <DuelBanner slug={slug} />
+        <EnchainementSetupBanner slug={slug} />
         <StadiumPlayGate slug={slug}>
-          <DuelPlayGate slug={slug}>
-            <ExerciseLoader slug={slug} variant={variant} isPhone={isPhone} />
-          </DuelPlayGate>
+          <EnchainementPlayGate slug={slug}>
+            <DuelPlayGate slug={slug}>
+              <ExerciseLoader slug={slug} variant={variant} isPhone={isPhone} />
+            </DuelPlayGate>
+          </EnchainementPlayGate>
         </StadiumPlayGate>
       </Suspense>
     </AuthGate>

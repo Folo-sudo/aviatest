@@ -32,6 +32,13 @@ export const EXERCISE_SETTINGS_KEYS: Record<string, string> = {
   'formes-glissees': 'aviatest-formes-glissees-settings',
   'quadrilogie-angles': 'aviatest-quadrilogie-angles-settings',
   efg: 'aviatest-efg-settings',
+  'clock-angle': 'aviatest-clock-angle-settings',
+  'pair-impair': 'aviatest-pair-impair-settings',
+  'un-mot-sur-deux': 'aviatest-un-mot-sur-deux-settings',
+  'shapes-colors': 'aviatest-shapes-colors-settings',
+  billes: 'aviatest-billes-settings',
+  'mental-rotation': 'aviatest-mental-rotation-settings',
+  compteurs: 'aviatest-compteurs-settings',
 };
 
 export const STADIUM_COMPETITION_KEY = 'aviatest-stadium-competition-id';

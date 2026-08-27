@@ -711,6 +711,36 @@ function HomeContent() {
         </div>
       </section>
 
+      <section className="container mx-auto px-4 pb-4">
+        <Link href="/enchainement" className="block">
+          <div
+            className="flex flex-col justify-between gap-3 rounded-[24px] px-6 py-5 transition-transform hover:scale-[1.01] sm:flex-row sm:items-center"
+            style={{
+              backgroundColor: homeStyles.colors.cardBg,
+              border: `1px solid ${homeStyles.colors.border}`,
+              boxShadow: homeStyles.shadows.soft,
+            }}
+          >
+            <div>
+              <h2 className="text-xl font-semibold" style={{ color: homeStyles.colors.text }}>
+                Enchaînement
+              </h2>
+              <p className="mt-1 max-w-xl text-sm" style={{ color: homeStyles.colors.textMuted }}>
+                Plusieurs tests, chacun avec ses réglages, lancés à la suite sans pause — comme un
+                examen.
+              </p>
+            </div>
+            <span
+              className="inline-flex items-center gap-1 text-sm font-medium"
+              style={{ color: homeStyles.colors.text }}
+            >
+              Composer un parcours
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        </Link>
+      </section>
+
       <section id="parcours" className="container mx-auto px-4 py-10 md:py-12">
         <div className="mb-6">
           <h2 className="text-3xl font-semibold" style={{ color: homeStyles.colors.text }}>

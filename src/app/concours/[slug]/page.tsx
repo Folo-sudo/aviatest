@@ -125,6 +125,17 @@ export default async function CompetitionPage({ params }: Props) {
               </div>
               <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-1">
                 <Link
+                  href="/enchainement"
+                  className="rounded-[24px] border border-[#e0dedb] bg-[#37322f] px-5 py-5 text-[#fbfaf9] shadow-[0_12px_28px_rgba(55,50,47,0.16)]"
+                >
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">Enchaînement</h2>
+                  </div>
+                  <p className="mt-2 text-sm text-white/80">
+                    Plusieurs tests, chacun ses réglages, sans pause entre les deux.
+                  </p>
+                </Link>
+                <Link
                   href="/stadium"
                   className="rounded-[24px] bg-[linear-gradient(135deg,#f59e0b_0%,#b45309_100%)] px-5 py-5 text-white shadow-[0_16px_36px_rgba(180,83,9,0.24)]"
                 >

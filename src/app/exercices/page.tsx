@@ -106,6 +106,12 @@ export default async function ExercicesPage({ searchParams }: Props) {
                 Par concours
               </Link>
               <Link
+                href="/enchainement"
+                className="rounded-full bg-[#37322f] px-5 py-3 text-sm font-semibold text-[#fbfaf9] shadow-[0_12px_28px_rgba(55,50,47,0.16)]"
+              >
+                Enchaînement
+              </Link>
+              <Link
                 href="/stadium"
                 className="rounded-full bg-[linear-gradient(135deg,#f59e0b_0%,#b45309_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(180,83,9,0.24)]"
               >
