@@ -541,7 +541,7 @@ function MenuScreen({ settings, onPlay, onSettings, onBack }: {
               <Play className="mr-2 h-5 w-5" /> Jouer
             </Button>
             <Button variant="outline" size="lg" className="w-full" onClick={onSettings}>
-              <Settings className="mr-2 h-5 w-5" /> Parametres
+              <Settings className="mr-2 h-5 w-5" /> Paramètres
             </Button>
             <Button variant="ghost" size="lg" className="w-full" onClick={onBack}>
               <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -561,7 +561,7 @@ function SettingsScreen({ settings, onChange, onBack }: {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
-        <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Paramètres</CardTitle></CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div>

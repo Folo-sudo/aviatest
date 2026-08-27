@@ -710,7 +710,7 @@ export default function AirwaysTest() {
           <CardContent className="space-y-3">
             {settings.examMode && (
               <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                Mode examen : pas de correction entre les planches.
+                Mode examen — pas de correction entre les questions
               </p>
             )}
             {settings.changingColors && (
@@ -719,7 +719,7 @@ export default function AirwaysTest() {
               </p>
             )}
             <Button size="lg" className="w-full" onClick={startGame}>
-              <Play className="mr-2 h-5 w-5" /> Commencer
+              <Play className="mr-2 h-5 w-5" /> Jouer
             </Button>
             <Button
               variant="outline"
@@ -727,7 +727,7 @@ export default function AirwaysTest() {
               className="w-full"
               onClick={() => setGameState('settings')}
             >
-              <Settings className="mr-2 h-5 w-5" /> Parametres
+              <Settings className="mr-2 h-5 w-5" /> Paramètres
             </Button>
             <Button
               variant="ghost"
@@ -748,7 +748,7 @@ export default function AirwaysTest() {
       <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: BG }}>
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Parametres — Airways</CardTitle>
+            <CardTitle>Paramètres — Airways</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -781,7 +781,7 @@ export default function AirwaysTest() {
               <div>
                 <Label>Mode examen</Label>
                 <p className="mt-0.5 text-xs text-[#605a57]">
-                  Pas de correction entre les planches
+                  Pas de correction entre les questions. Les résultats s’affichent à la fin.
                 </p>
               </div>
               <Switch

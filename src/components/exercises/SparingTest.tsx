@@ -341,7 +341,7 @@ export default function SparingTest({
 
                 <div className="flex flex-col gap-3">
                   <Button size="lg" className={`w-full ${cfg.accentBtn}`} onClick={startGame}>
-                    <Play className="mr-2 h-5 w-5" /> Commencer
+                    <Play className="mr-2 h-5 w-5" /> Jouer
                   </Button>
                   <Button
                     variant="ghost"

@@ -455,10 +455,10 @@ export default function CubesPsy1Test() {
               </div>
             </div>
             <Button size="lg" className="w-full" onClick={startGame}>
-              <Play className="mr-2 h-5 w-5" /> Commencer
+              <Play className="mr-2 h-5 w-5" /> Jouer
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setGameState('settings')}>
-              <Settings className="mr-2 h-5 w-5" /> Parametres
+              <Settings className="mr-2 h-5 w-5" /> Paramètres
             </Button>
             <Button variant="ghost" className="w-full" onClick={() => router.push('/')}>
               <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -473,7 +473,7 @@ export default function CubesPsy1Test() {
     return (
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
-          <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Paramètres</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             <div>
               <Label>Questions : {settings.totalQuestions}</Label>

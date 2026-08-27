@@ -1113,10 +1113,10 @@ export default function MatricesRavenTest() {
             </div>
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
+                <Play className="mr-2 h-5 w-5" /> Jouer
               </Button>
               <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" /> Parametres
+                <Settings className="mr-2 h-5 w-5" /> Paramètres
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -1134,7 +1134,7 @@ export default function MatricesRavenTest() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Parametres</CardTitle>
+            <CardTitle>Paramètres</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -1162,7 +1162,7 @@ export default function MatricesRavenTest() {
             <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-[#f7f5f3] p-4">
               <div>
                 <Label>Mode examen</Label>
-                <p className="text-xs text-[#605a57]">Pas de correction affichee entre les questions</p>
+                <p className="text-xs text-[#605a57]">Pas de correction entre les questions. Les résultats s’affichent à la fin.</p>
               </div>
               <Switch
                 checked={settings.examMode}

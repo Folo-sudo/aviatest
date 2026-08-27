@@ -342,7 +342,7 @@ export default function BoitesMotsTest() {
             </p>
             {settings.examMode && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
-                Mode examen — pas de retour visuel sur les placements
+                Mode examen — pas de correction entre les questions
               </div>
             )}
             <div className="flex flex-col gap-3">
@@ -350,7 +350,7 @@ export default function BoitesMotsTest() {
                 <Play className="mr-2 h-5 w-5" /> Jouer
               </Button>
               <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" /> Parametres
+                <Settings className="mr-2 h-5 w-5" /> Paramètres
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -367,7 +367,7 @@ export default function BoitesMotsTest() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Parametres</CardTitle>
+            <CardTitle>Paramètres</CardTitle>
             <CardDescription>Reglages enregistres localement</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

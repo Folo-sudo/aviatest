@@ -2,17 +2,16 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+} from '@/components/exercises/shell';
 import { Timer } from '@/lib/core/Timer';
 import { Scorer, ScoreData } from '@/lib/core/Scorer';
 import { TimerBar } from '@/lib/core/CanvasUI';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { WORD_THEMES } from '@/lib/data/word-themes';
 import { canvasPoint } from '@/lib/phone/canvasPoint';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
@@ -433,188 +432,90 @@ export default function UnMotSurDeuxTest() {
   // Menu screen
   if (gameState === 'menu') {
     return (
-      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Un Mot Sur Deux</CardTitle>
-            <CardDescription className="text-lg">
-              Test Psychotechnique - Pilote de Ligne
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center text-gray-600">
-              <p>Alternez entre deux thématiques</p>
-              <p>en respectant l&apos;ordre alphabétique</p>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={() => setGameState('playing')}
-              >
-                Jouer
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => setGameState('settings')}
-              >
-                Paramètres
-              </Button>
-              <Button
-                className="w-full"
-                variant="ghost"
-                onClick={() => router.push('/')}
-              >
-                Retour
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseMenu
+        title="Un Mot Sur Deux"
+        subtitle="Alternez entre deux thématiques en respectant l'ordre alphabétique"
+        stats={[
+          { value: numSeries, label: 'Séries' },
+          { value: `${timePerSeries}s`, label: 'Par série' },
+        ]}
+        onPlay={() => setGameState('playing')}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      />
     );
   }
 
-  // Settings screen
   if (gameState === 'settings') {
     return (
-      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Paramètres</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Mots min par thème: {minWords}</Label>
-              <Slider
-                value={[minWords]}
-                onValueChange={([v]) => {
-                  setMinWords(v);
-                  if (maxWords < v) setMaxWords(v);
-                }}
-                min={2}
-                max={12}
-                step={1}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Mots max par thème: {maxWords}</Label>
-              <Slider
-                value={[maxWords]}
-                onValueChange={([v]) => {
-                  setMaxWords(Math.max(v, minWords));
-                }}
-                min={2}
-                max={12}
-                step={1}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Temps par série: {timePerSeries}s</Label>
-              <Slider
-                value={[timePerSeries]}
-                onValueChange={([v]) => setTimePerSeries(v)}
-                min={15}
-                max={180}
-                step={15}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Nombre de séries: {numSeries}</Label>
-              <Slider
-                value={[numSeries]}
-                onValueChange={([v]) => setNumSeries(v)}
-                min={1}
-                max={30}
-                step={1}
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={() => setGameState('menu')}
-            >
-              Retour
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings onBack={() => setGameState('menu')}>
+        <SettingSlider
+          label="Mots min par thème"
+          value={minWords}
+          min={2}
+          max={12}
+          step={1}
+          onChange={(v) => {
+            setMinWords(v);
+            if (maxWords < v) setMaxWords(v);
+          }}
+        />
+        <SettingSlider
+          label="Mots max par thème"
+          value={maxWords}
+          min={2}
+          max={12}
+          step={1}
+          onChange={(v) => setMaxWords(Math.max(v, minWords))}
+        />
+        <SettingSlider
+          label="Temps par série"
+          value={timePerSeries}
+          min={15}
+          max={180}
+          step={15}
+          format={(v) => `${v}s`}
+          onChange={setTimePerSeries}
+        />
+        <SettingSlider
+          label="Nombre de séries"
+          value={numSeries}
+          min={1}
+          max={30}
+          step={1}
+          onChange={setNumSeries}
+        />
+      </ExerciseSettings>
     );
   }
 
-  // Results screen
   if (gameState === 'results' && scoreData) {
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
       savePerformanceResult('un-mot-sur-deux', scoreData.correct, numSeries);
     }
-    const perfEntries = loadEntries('un-mot-sur-deux');
     return (
-      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={'un-mot-sur-deux'}
-              percent={scoreData.percentage}
-              detail={`${scoreData.correct}/${scoreData.total} series reussies`}
-            />
-
-            <Separator />
-
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold">{seriesCompletedRef.current}/{numSeries}</div>
-                <div className="text-sm text-gray-500">Séries complétées</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{errorsRef.current}</div>
-                <div className="text-sm text-gray-500">Erreurs totales</div>
-              </div>
-            </div>
-
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId="un-mot-sur-deux" />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <Button
-                className="w-full"
-                onClick={() => setGameState('playing')}
-              >
-                Réessayer
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => setGameState('menu')}
-              >
-                Menu
-              </Button>
-              <Button
-                className="w-full"
-                variant="ghost"
-                onClick={() => router.push('/')}
-              >
-                Accueil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId="un-mot-sur-deux"
+        percent={scoreData.percentage}
+        detail={`${scoreData.correct}/${scoreData.total} séries réussies`}
+        onReplay={() => setGameState('playing')}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      >
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="rounded-lg bg-[#f7f5f3] p-4">
+            <p className="text-2xl font-bold text-[#37322f]">
+              {seriesCompletedRef.current}/{numSeries}
+            </p>
+            <p className="text-sm text-[#605a57]">Séries complétées</p>
+          </div>
+          <div className="rounded-lg bg-[#f7f5f3] p-4">
+            <p className="text-2xl font-bold text-[#37322f]">{errorsRef.current}</p>
+            <p className="text-sm text-[#605a57]">Erreurs totales</p>
+          </div>
+        </div>
+      </ExerciseResults>
     );
   }
 

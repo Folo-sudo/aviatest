@@ -2,15 +2,16 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, RotateCcw, Home, Settings, Trash2 } from 'lucide-react';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+  SettingSwitch,
+} from '@/components/exercises/shell';
+import { Trash2 } from 'lucide-react';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
@@ -783,58 +784,38 @@ export default function FormesGlisseesTest() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Formes glissees II</CardTitle>
-            <CardDescription className="mt-2 text-base">
-              Superposez les formes pour reproduire le motif cible
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <SuperpositionLegend />
-            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
-              <p>
-                <strong>{settings.numQuestions} questions</strong>,{' '}
-                <strong>{settings.timePerQuestionSec}s</strong> chacune.
-              </p>
-              <p>Selectionnez une forme en bas, puis cliquez sur la grille pour la placer.</p>
-              <p>L&apos;ordre de placement n&apos;a pas d&apos;importance. Toutes les formes ne sont pas forcement necessaires.</p>
+      <ExerciseMenu
+        title="Formes glissées II"
+        subtitle="Superposez les formes pour reproduire le motif cible"
+        stats={[
+          { value: settings.numQuestions, label: 'Questions' },
+          { value: `${settings.timePerQuestionSec}s`, label: 'Par question' },
+        ]}
+        examMode={settings.examMode}
+        extraBanners={
+          settings.changingColors ? (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-sm text-indigo-800">
+              Couleurs changeantes — palette aléatoire pour tout le test
             </div>
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg bg-[#f7f5f3] p-3">
-                <p className="text-xl font-bold text-[#37322f]">{settings.numQuestions}</p>
-                <p className="text-xs text-[#605a57]">Questions</p>
-              </div>
-              <div className="rounded-lg bg-[#f7f5f3] p-3">
-                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-[#605a57]">Par question</p>
-              </div>
-            </div>
-            {settings.examMode && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
-                Mode examen — pas de correction entre les questions
-              </div>
-            )}
-            {settings.changingColors && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-center text-sm text-indigo-700">
-                Couleurs changeantes — palette aleatoire pour tout le test
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startGame}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
-              </Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" /> Parametres
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <ArrowLeft className="mr-2 h-5 w-5" /> Retour
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : null
+        }
+        onPlay={startGame}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      >
+        <SuperpositionLegend />
+        <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
+          <p>
+            <strong>{settings.numQuestions} questions</strong>,{' '}
+            <strong>{settings.timePerQuestionSec}s</strong> chacune.
+          </p>
+          <p>Sélectionnez une forme en bas, puis cliquez sur la grille pour la placer.</p>
+          <p>
+            L&apos;ordre de placement n&apos;a pas d&apos;importance. Toutes les formes ne sont pas
+            forcément nécessaires.
+          </p>
+        </div>
+      </ExerciseMenu>
     );
   }
 
@@ -843,74 +824,46 @@ export default function FormesGlisseesTest() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>Parametres</CardTitle>
-            <CardDescription>Ajustez la duree et le nombre de questions</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label>Nombre de questions : {settings.numQuestions}</Label>
-              <Slider
-                value={[settings.numQuestions]}
-                onValueChange={([v]) => setSettings((s) => ({ ...s, numQuestions: v }))}
-                min={5}
-                max={20}
-                step={1}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>Temps par question : {settings.timePerQuestionSec}s</Label>
-              <Slider
-                value={[settings.timePerQuestionSec]}
-                onValueChange={([v]) => setSettings((s) => ({ ...s, timePerQuestionSec: v }))}
-                min={20}
-                max={90}
-                step={5}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>Nombre de formes : {settings.numShapes}</Label>
-              <Slider
-                value={[settings.numShapes]}
-                onValueChange={([v]) => setSettings((s) => ({ ...s, numShapes: v }))}
-                min={2}
-                max={4}
-                step={1}
-                className="mt-2"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Mode examen</Label>
-                <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
-              </div>
-              <Switch
-                checked={settings.examMode}
-                onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Couleurs changeantes</Label>
-                <p className="mt-0.5 text-xs text-[#605a57]">
-                  Deux teintes aleatoires, fixes pour toute la duree du test
-                </p>
-              </div>
-              <Switch
-                checked={settings.changingColors}
-                onCheckedChange={(v) => setSettings((s) => ({ ...s, changingColors: v }))}
-              />
-            </div>
-            <Button size="lg" className="w-full" onClick={() => setGameState('menu')}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Retour
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings
+        description="Ajustez la durée et le nombre de questions"
+        examMode={{
+          checked: settings.examMode,
+          onCheckedChange: (v) => setSettings((s) => ({ ...s, examMode: v })),
+        }}
+        onBack={() => setGameState('menu')}
+      >
+        <SettingSlider
+          label="Nombre de questions"
+          value={settings.numQuestions}
+          min={5}
+          max={20}
+          step={1}
+          onChange={(v) => setSettings((s) => ({ ...s, numQuestions: v }))}
+        />
+        <SettingSlider
+          label="Temps par question"
+          value={settings.timePerQuestionSec}
+          min={20}
+          max={90}
+          step={5}
+          format={(v) => `${v}s`}
+          onChange={(v) => setSettings((s) => ({ ...s, timePerQuestionSec: v }))}
+        />
+        <SettingSlider
+          label="Nombre de formes"
+          value={settings.numShapes}
+          min={2}
+          max={4}
+          step={1}
+          onChange={(v) => setSettings((s) => ({ ...s, numShapes: v }))}
+        />
+        <SettingSwitch
+          label="Couleurs changeantes"
+          hint="Deux teintes aléatoires, fixes pour toute la durée du test"
+          checked={settings.changingColors}
+          onCheckedChange={(v) => setSettings((s) => ({ ...s, changingColors: v }))}
+        />
+      </ExerciseSettings>
     );
   }
 
@@ -935,57 +888,34 @@ export default function FormesGlisseesTest() {
       savePerformanceResult(EXERCISE_ID, correct, total, avgMs);
     }
 
-    const perfEntries = loadEntries(EXERCISE_ID);
-
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={EXERCISE_ID}
-              percent={percent}
-              detail={`${correct} / ${total} reussies`}
-            />
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-lg bg-green-50 p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">{correct}</p>
-                <p className="text-xs text-green-700">Correct</p>
-              </div>
-              <div className="rounded-lg bg-red-50 p-3 text-center">
-                <p className="text-2xl font-bold text-red-600">{incorrect}</p>
-                <p className="text-xs text-red-700">Incorrect</p>
-              </div>
-              <div className="rounded-lg bg-[#f7f5f3] p-3 text-center">
-                <p className="text-2xl font-bold text-[#605a57]">{skipped}</p>
-                <p className="text-xs text-[#605a57]">Passe</p>
-              </div>
-            </div>
-            <div className="rounded-lg bg-amber-50 p-3 text-center">
-              <p className="text-2xl font-bold text-amber-600">{avgTime}s</p>
-              <p className="text-sm text-amber-700">Temps moyen</p>
-            </div>
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startGame}>
-                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <Home className="mr-2 h-5 w-5" /> Accueil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId={EXERCISE_ID}
+        percent={percent}
+        detail={`${correct} / ${total} réussies`}
+        onReplay={startGame}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      >
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-lg bg-green-50 p-3 text-center">
+            <p className="text-2xl font-bold text-green-600">{correct}</p>
+            <p className="text-xs text-green-700">Correct</p>
+          </div>
+          <div className="rounded-lg bg-red-50 p-3 text-center">
+            <p className="text-2xl font-bold text-red-600">{incorrect}</p>
+            <p className="text-xs text-red-700">Incorrect</p>
+          </div>
+          <div className="rounded-lg bg-[#f7f5f3] p-3 text-center">
+            <p className="text-2xl font-bold text-[#605a57]">{skipped}</p>
+            <p className="text-xs text-[#605a57]">Passé</p>
+          </div>
+        </div>
+        <div className="rounded-lg bg-amber-50 p-3 text-center">
+          <p className="text-2xl font-bold text-amber-600">{avgTime}s</p>
+          <p className="text-sm text-amber-700">Temps moyen</p>
+        </div>
+      </ExerciseResults>
     );
   }
 

@@ -285,16 +285,16 @@ export default function CalculMentalMobile() {
 
               {settings.examMode && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-700 text-center">
-                  Mode examen — resultats a la fin
+                  Mode examen — pas de correction entre les questions
                 </div>
               )}
 
               <div className="flex flex-col gap-2">
                 <Button size="lg" className="w-full h-12" onClick={startGame}>
-                  <Play className="mr-2 h-5 w-5" /> Commencer
+                  <Play className="mr-2 h-5 w-5" /> Jouer
                 </Button>
                 <Button variant="outline" size="lg" className="w-full h-12" onClick={() => setGameState('settings')}>
-                  <Settings className="mr-2 h-5 w-5" /> Parametres
+                  <Settings className="mr-2 h-5 w-5" /> Paramètres
                 </Button>
                 <Button variant="ghost" size="lg" className="w-full h-12" onClick={() => router.push('/telephone')}>
                   <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -314,7 +314,7 @@ export default function CalculMentalMobile() {
         <div className="max-w-lg mx-auto pt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Parametres</CardTitle>
+              <CardTitle>Paramètres</CardTitle>
               <CardDescription>Ajustez le test</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -344,7 +344,7 @@ export default function CalculMentalMobile() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions. Les résultats s’affichent à la fin.</p>
                 </div>
                 <Switch checked={settings.examMode} onCheckedChange={v => setSettings(s => ({ ...s, examMode: v }))} />
               </div>

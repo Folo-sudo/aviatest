@@ -503,16 +503,16 @@ export default function SpatialOrientationTest() {
 
             {settings.examMode && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
-                Mode examen — resultats uniquement a la fin
+                Mode examen — pas de correction entre les questions
               </div>
             )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
+                <Play className="mr-2 h-5 w-5" /> Jouer
               </Button>
               <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" /> Parametres
+                <Settings className="mr-2 h-5 w-5" /> Paramètres
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -532,7 +532,7 @@ export default function SpatialOrientationTest() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Parametres</CardTitle>
+            <CardTitle>Paramètres</CardTitle>
             <CardDescription>Ajustez le test a votre niveau</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -562,7 +562,7 @@ export default function SpatialOrientationTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions. Les résultats s’affichent à la fin.</p>
                 </div>
                 <Switch
                   checked={settings.examMode}

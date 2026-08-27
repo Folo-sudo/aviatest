@@ -2,16 +2,18 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings, Eye } from 'lucide-react';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+  SettingSwitch,
+} from '@/components/exercises/shell';
+import { ChevronRight, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ============================================================================
@@ -299,136 +301,105 @@ export default function CalculMentalTest() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Calcul Mental 1</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Resolvez des operations de calcul mental le plus vite possible
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
-              <p><strong>{settings.totalQuestions} operations</strong> a resoudre.</p>
-              <p>Chaque operation est une chaine de <strong>{settings.chainLength} termes</strong> (additions/soustractions de nombres a 2 chiffres).</p>
-              {settings.includeMultiply && (
-                <p>Certaines operations incluent des <strong>multiplications ab &times; cd</strong>.</p>
-              )}
-              {settings.timeLimitSec > 0 && (
-                <p>Temps total : <strong>{Math.floor(settings.timeLimitSec / 60)}min{settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}</strong>.</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-[#f7f5f3] rounded-lg">
-                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
-                <p className="text-xs text-[#605a57]">Questions</p>
-              </div>
-              <div className="p-3 bg-[#f7f5f3] rounded-lg">
-                <p className="text-xl font-bold text-[#37322f]">{settings.chainLength}</p>
-                <p className="text-xs text-[#605a57]">Termes</p>
-              </div>
-              <div className="p-3 bg-[#f7f5f3] rounded-lg">
-                <p className="text-xl font-bold text-[#37322f]">
-                  {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
-                </p>
-                <p className="text-xs text-[#605a57]">Temps total</p>
-              </div>
-            </div>
-
-            {settings.examMode && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-700 text-center">
-                ⚡ Mode examen — resultats uniquement a la fin
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startGame}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
-              </Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" /> Parametres
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <ArrowLeft className="mr-2 h-5 w-5" /> Retour
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseMenu
+        title="Calcul Mental 1"
+        subtitle="Résolvez des opérations de calcul mental le plus vite possible"
+        stats={[
+          { value: settings.totalQuestions, label: 'Questions' },
+          { value: settings.chainLength, label: 'Termes' },
+          {
+            value: settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E',
+            label: 'Temps total',
+          },
+        ]}
+        examMode={settings.examMode}
+        onPlay={startGame}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      >
+        <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
+          <p>
+            <strong>{settings.totalQuestions} opérations</strong> à résoudre.
+          </p>
+          <p>
+            Chaque opération est une chaîne de <strong>{settings.chainLength} termes</strong>{' '}
+            (additions/soustractions de nombres à 2 chiffres).
+          </p>
+          {settings.includeMultiply && (
+            <p>
+              Certaines opérations incluent des <strong>multiplications ab &times; cd</strong>.
+            </p>
+          )}
+          {settings.timeLimitSec > 0 && (
+            <p>
+              Temps total :{' '}
+              <strong>
+                {Math.floor(settings.timeLimitSec / 60)}min
+                {settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}
+              </strong>
+              .
+            </p>
+          )}
+        </div>
+      </ExerciseMenu>
     );
   }
 
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>Parametres</CardTitle>
-            <CardDescription>Ajustez le test a votre niveau</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-5">
-              <div>
-                <Label>Nombre de questions : {settings.totalQuestions}</Label>
-                <Slider
-                  value={[settings.totalQuestions]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, totalQuestions: v }))}
-                  min={1} max={30} step={1} className="mt-2"
-                />
-              </div>
-              <div>
-                <Label>Termes par chaine : {settings.chainLength}</Label>
-                <Slider
-                  value={[settings.chainLength]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, chainLength: v }))}
-                  min={3} max={15} step={1} className="mt-2"
-                />
-              </div>
-              <div>
-                <Label>Nombre max : {settings.maxNumber}</Label>
-                <Slider
-                  value={[settings.maxNumber]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, maxNumber: v }))}
-                  min={20} max={999} step={1} className="mt-2"
-                />
-              </div>
-              <div>
-                <Label>Temps total : {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}min${settings.timeLimitSec % 60 > 0 ? ` ${settings.timeLimitSec % 60}s` : ''}` : 'Illimite'}</Label>
-                <Slider
-                  value={[settings.timeLimitSec]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, timeLimitSec: v }))}
-                  min={0} max={1800} step={30} className="mt-2"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Multiplications ab &times; cd</Label>
-                  <p className="text-xs text-[#605a57] mt-0.5">Inclure des multiplications 2 chiffres</p>
-                </div>
-                <Switch
-                  checked={settings.includeMultiply}
-                  onCheckedChange={v => setSettings(s => ({ ...s, includeMultiply: v }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Mode examen</Label>
-                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
-                </div>
-                <Switch
-                  checked={settings.examMode}
-                  onCheckedChange={v => setSettings(s => ({ ...s, examMode: v }))}
-                />
-              </div>
-            </div>
-            <Button size="lg" className="w-full" onClick={() => setGameState('menu')}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Retour
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings
+        description="Ajustez le test à votre niveau"
+        examMode={{
+          checked: settings.examMode,
+          onCheckedChange: (v) => setSettings((s) => ({ ...s, examMode: v })),
+        }}
+        onBack={() => setGameState('menu')}
+      >
+        <SettingSlider
+          label="Nombre de questions"
+          value={settings.totalQuestions}
+          min={1}
+          max={30}
+          step={1}
+          onChange={(v) => setSettings((s) => ({ ...s, totalQuestions: v }))}
+        />
+        <SettingSlider
+          label="Termes par chaîne"
+          value={settings.chainLength}
+          min={3}
+          max={15}
+          step={1}
+          onChange={(v) => setSettings((s) => ({ ...s, chainLength: v }))}
+        />
+        <SettingSlider
+          label="Nombre max"
+          value={settings.maxNumber}
+          min={20}
+          max={999}
+          step={1}
+          onChange={(v) => setSettings((s) => ({ ...s, maxNumber: v }))}
+        />
+        <SettingSlider
+          label="Temps total"
+          value={settings.timeLimitSec}
+          min={0}
+          max={1800}
+          step={30}
+          format={(v) =>
+            v > 0
+              ? `${Math.floor(v / 60)}min${v % 60 > 0 ? ` ${v % 60}s` : ''}`
+              : 'Illimité'
+          }
+          onChange={(v) => setSettings((s) => ({ ...s, timeLimitSec: v }))}
+        />
+        <SettingSwitch
+          label="Multiplications ab × cd"
+          hint="Inclure des multiplications 2 chiffres"
+          checked={settings.includeMultiply}
+          onCheckedChange={(v) => setSettings((s) => ({ ...s, includeMultiply: v }))}
+        />
+      </ExerciseSettings>
     );
   }
 
@@ -444,76 +415,54 @@ export default function CalculMentalTest() {
       const avgMs = results.length > 0 ? results.reduce((s, r) => s + r.timeUsedMs, 0) / results.length : 0;
       savePerformanceResult('calcul-mental', scoreData.correct, questions.length, avgMs);
     }
-    const perfEntries = loadEntries('calcul-mental');
-
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={'calcul-mental'}
-              percent={scoreData.score}
-              detail={`${totalCorrect}/${results.length} correctes`}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-blue-600">{totalCorrect}/{results.length}</p>
-                <p className="text-sm text-blue-700">Correct</p>
-              </div>
-              <div className="p-4 bg-amber-50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-amber-600">{avgTime}s</p>
-                <p className="text-sm text-amber-700">Temps moyen</p>
-              </div>
-            </div>
-
-            {/* Per-question breakdown */}
-            <div className="space-y-2">
-              <p className="font-semibold text-[#37322f] text-sm">Detail par question :</p>
-              <div className="max-h-64 overflow-y-auto space-y-1.5">
-                {results.map((r, i) => (
-                  <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[#605a57]">Q{i + 1}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-400">{(r.timeUsedMs / 1000).toFixed(1)}s</span>
-                        <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                          {r.isCorrect ? '✓' : '✗'}
-                          {' '}
-                          {r.userAnswer !== null ? r.userAnswer : 'Pas de reponse'}
-                          {!r.isCorrect && <span className="text-green-600 ml-2">({r.question.answer})</span>}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-400 font-mono">{r.question.expression} = {r.question.answer}</p>
+      <ExerciseResults
+        exerciseId="calcul-mental"
+        percent={scoreData.score}
+        detail={`${totalCorrect}/${results.length} correctes`}
+        onReplay={startGame}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-lg bg-blue-50 p-4 text-center">
+            <p className="text-2xl font-bold text-blue-600">
+              {totalCorrect}/{results.length}
+            </p>
+            <p className="text-sm text-blue-700">Correct</p>
+          </div>
+          <div className="rounded-lg bg-amber-50 p-4 text-center">
+            <p className="text-2xl font-bold text-amber-600">{avgTime}s</p>
+            <p className="text-sm text-amber-700">Temps moyen</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-[#37322f]">Détail par question :</p>
+          <div className="max-h-64 space-y-1.5 overflow-y-auto">
+            {results.map((r, i) => (
+              <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-[#605a57]">Q{i + 1}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[#605a57]">{(r.timeUsedMs / 1000).toFixed(1)}s</span>
+                    <span
+                      className={
+                        r.isCorrect ? 'font-semibold text-green-600' : 'font-semibold text-red-600'
+                      }
+                    >
+                      {r.isCorrect ? '✓' : '✗'} {r.userAnswer !== null ? r.userAnswer : 'Pas de réponse'}
+                      {!r.isCorrect && <span className="ml-2 text-green-600">({r.question.answer})</span>}
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-mental" />
                 </div>
+                <p className="font-mono text-xs text-[#605a57]">
+                  {r.question.expression} = {r.question.answer}
+                </p>
               </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startGame}>
-                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <Home className="mr-2 h-5 w-5" /> Accueil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </div>
+      </ExerciseResults>
     );
   }
 

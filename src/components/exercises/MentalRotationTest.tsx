@@ -2,18 +2,16 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+} from '@/components/exercises/shell';
 import { Timer } from '@/lib/core/Timer';
 import { Scorer, ScoreData } from '@/lib/core/Scorer';
 import { TimerBar } from '@/lib/core/CanvasUI';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import * as THREE from 'three';
 import { canvasPoint } from '@/lib/phone/canvasPoint';
 
@@ -736,183 +734,86 @@ export default function MentalRotationTest() {
   // Menu screen
   if (gameState === 'menu') {
     return (
-      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Rotation Mentale 3D</CardTitle>
-            <CardDescription className="text-lg">
-              Test Psychotechnique - Visualisation spatiale
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center text-gray-600">
-              <p>Appliquez mentalement les rotations indiquées</p>
-              <p>et trouvez l&apos;orientation finale</p>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={() => setGameState('playing')}
-              >
-                Jouer
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => setGameState('settings')}
-              >
-                Paramètres
-              </Button>
-              <Button
-                className="w-full"
-                variant="ghost"
-                onClick={() => router.push('/')}
-              >
-                Retour
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseMenu
+        title="Rotation Mentale 3D"
+        subtitle="Appliquez mentalement les rotations indiquées et trouvez l'orientation finale"
+        stats={[
+          { value: numSequences, label: 'Questions' },
+          { value: `${timePerQuestion}s`, label: 'Par question' },
+        ]}
+        examMode={!showCorrections}
+        onPlay={() => setGameState('playing')}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      />
     );
   }
 
-  // Settings screen
   if (gameState === 'settings') {
     return (
-      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Paramètres</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Nombre de questions: {numSequences}</Label>
-              <Slider
-                value={[numSequences]}
-                onValueChange={([v]) => setNumSequences(v)}
-                min={10}
-                max={60}
-                step={5}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Temps par question: {timePerQuestion}s</Label>
-              <Slider
-                value={[timePerQuestion]}
-                onValueChange={([v]) => setTimePerQuestion(v)}
-                min={30}
-                max={120}
-                step={15}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Vitesse d&apos;animation: {animationSpeed.toFixed(1)}</Label>
-              <Slider
-                value={[animationSpeed]}
-                onValueChange={([v]) => setAnimationSpeed(v)}
-                min={1.0}
-                max={5.0}
-                step={0.5}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="corrections">Afficher les corrections</Label>
-              <Switch
-                id="corrections"
-                checked={showCorrections}
-                onCheckedChange={setShowCorrections}
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={() => setGameState('menu')}
-            >
-              Retour
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings
+        examMode={{
+          checked: !showCorrections,
+          onCheckedChange: (v) => setShowCorrections(!v),
+        }}
+        onBack={() => setGameState('menu')}
+      >
+        <SettingSlider
+          label="Nombre de questions"
+          value={numSequences}
+          min={10}
+          max={60}
+          step={5}
+          onChange={setNumSequences}
+        />
+        <SettingSlider
+          label="Temps par question"
+          value={timePerQuestion}
+          min={30}
+          max={120}
+          step={15}
+          format={(v) => `${v}s`}
+          onChange={setTimePerQuestion}
+        />
+        <SettingSlider
+          label="Vitesse d'animation"
+          value={animationSpeed}
+          min={1}
+          max={5}
+          step={0.5}
+          format={(v) => v.toFixed(1)}
+          onChange={setAnimationSpeed}
+        />
+      </ExerciseSettings>
     );
   }
 
-  // Results screen
   if (gameState === 'results' && scoreData) {
     const percentage = numSequences > 0 ? Math.floor((100 * scoreRef.current) / numSequences) : 0;
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
       savePerformanceResult('mental-rotation', scoreRef.current, numSequences);
     }
-    const perfEntries = loadEntries('mental-rotation');
-
     return (
-      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={'mental-rotation'}
-              percent={percentage}
-              detail={`${scoreRef.current}/${numSequences} reponses correctes`}
-            />
-
-            <Separator />
-
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold">{scoreRef.current}</div>
-                <div className="text-sm text-gray-500">Correct</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{numSequences - scoreRef.current}</div>
-                <div className="text-sm text-gray-500">Incorrect</div>
-              </div>
-            </div>
-
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId="mental-rotation" />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <Button
-                className="w-full"
-                onClick={() => setGameState('playing')}
-              >
-                Réessayer
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => setGameState('menu')}
-              >
-                Menu
-              </Button>
-              <Button
-                className="w-full"
-                variant="ghost"
-                onClick={() => router.push('/')}
-              >
-                Accueil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId="mental-rotation"
+        percent={percentage}
+        detail={`${scoreRef.current}/${numSequences} réponses correctes`}
+        onReplay={() => setGameState('playing')}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      >
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="rounded-lg bg-green-50 p-4">
+            <p className="text-2xl font-bold text-green-600">{scoreRef.current}</p>
+            <p className="text-sm text-green-700">Correct</p>
+          </div>
+          <div className="rounded-lg bg-red-50 p-4">
+            <p className="text-2xl font-bold text-red-600">{numSequences - scoreRef.current}</p>
+            <p className="text-sm text-red-700">Incorrect</p>
+          </div>
+        </div>
+      </ExerciseResults>
     );
   }
 

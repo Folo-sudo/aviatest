@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { ArrowLeft, Play, Settings, RotateCcw, Home, Eye, Check } from 'lucide-react';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+} from '@/components/exercises/shell';
+import { ArrowLeft, Eye, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
@@ -321,31 +322,20 @@ function MenuScreen({ settings, onPlay, onSettings, onBack }: {
   settings: GameSettings; onPlay: () => void; onSettings: () => void; onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Angles &ndash; Montres</CardTitle>
-          <CardDescription className="text-lg">Cochez les montres affichant le bon angle</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-[#f7f5f3] rounded-lg">
-              <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
-              <p className="text-sm text-[#605a57]">Questions</p>
-            </div>
-            <div className="p-4 bg-[#f7f5f3] rounded-lg">
-              <p className="text-2xl font-bold text-[#37322f]">{Math.floor(settings.totalDurationSec / 60)}:{(settings.totalDurationSec % 60).toString().padStart(2, '0')}</p>
-              <p className="text-sm text-[#605a57]">Temps total</p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <Button size="lg" className="w-full" onClick={onPlay}><Play className="mr-2 h-5 w-5" /> Jouer</Button>
-            <Button variant="outline" size="lg" className="w-full" onClick={onSettings}><Settings className="mr-2 h-5 w-5" /> Parametres</Button>
-            <Button variant="ghost" size="lg" className="w-full" onClick={onBack}><ArrowLeft className="mr-2 h-5 w-5" /> Retour</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <ExerciseMenu
+      title="Angles – Montres"
+      subtitle="Cochez les montres affichant le bon angle"
+      stats={[
+        { value: settings.numQuestions, label: 'Questions' },
+        {
+          value: `${Math.floor(settings.totalDurationSec / 60)}:${(settings.totalDurationSec % 60).toString().padStart(2, '0')}`,
+          label: 'Temps total',
+        },
+      ]}
+      onPlay={onPlay}
+      onSettings={onSettings}
+      onBack={onBack}
+    />
   );
 }
 
@@ -353,24 +343,25 @@ function SettingsScreen({ settings, onChange, onBack }: {
   settings: GameSettings; onChange: (s: GameSettings) => void; onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label>Nombre de questions: {settings.numQuestions}</Label>
-              <Slider value={[settings.numQuestions]} onValueChange={([v]) => onChange({ ...settings, numQuestions: v })} min={10} max={50} step={5} className="mt-2" />
-            </div>
-            <div>
-              <Label>Duree totale: {Math.floor(settings.totalDurationSec / 60)}:{(settings.totalDurationSec % 60).toString().padStart(2, '0')}</Label>
-              <Slider value={[settings.totalDurationSec]} onValueChange={([v]) => onChange({ ...settings, totalDurationSec: v })} min={120} max={1200} step={30} className="mt-2" />
-            </div>
-          </div>
-          <Button variant="outline" className="w-full" onClick={onBack}><ArrowLeft className="mr-2 h-4 w-4" /> Retour</Button>
-        </CardContent>
-      </Card>
-    </div>
+    <ExerciseSettings onBack={onBack}>
+      <SettingSlider
+        label="Nombre de questions"
+        value={settings.numQuestions}
+        min={10}
+        max={50}
+        step={5}
+        onChange={(v) => onChange({ ...settings, numQuestions: v })}
+      />
+      <SettingSlider
+        label="Durée totale"
+        value={settings.totalDurationSec}
+        min={120}
+        max={1200}
+        step={30}
+        format={(v) => `${Math.floor(v / 60)}:${(v % 60).toString().padStart(2, '0')}`}
+        onChange={(v) => onChange({ ...settings, totalDurationSec: v })}
+      />
+    </ExerciseSettings>
   );
 }
 
@@ -554,35 +545,21 @@ function ResultsScreen({ computeScore, onReplay, onMenu, onHome, onReview }: {
 }) {
   const { correct, total } = computeScore();
   const percent = total > 0 ? (correct / total) * 100 : 0;
-  const perfEntries = loadEntries(EXERCISE_ID);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-      <Card className="w-full max-w-3xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Angles &ndash; Montres</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <ClassScoreBlock
-            exerciseId={EXERCISE_ID}
-            percent={percent}
-            detail={`${correct} / ${total} correctes`}
-          />
-          {perfEntries.length >= 2 && (
-            <div className="border-t pt-4">
-              <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-              <div className="flex justify-center"><MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} /></div>
-            </div>
-          )}
-          <div className="flex flex-col gap-3">
-            <Button size="lg" className="w-full" onClick={onReview}><Eye className="mr-2 h-5 w-5" /> Revoir les reponses</Button>
-            <Button variant="outline" size="lg" className="w-full" onClick={onReplay}><RotateCcw className="mr-2 h-5 w-5" /> Refaire</Button>
-            <Button variant="outline" size="lg" className="w-full" onClick={onMenu}><ArrowLeft className="mr-2 h-5 w-5" /> Menu</Button>
-            <Button variant="ghost" size="lg" className="w-full" onClick={onHome}><Home className="mr-2 h-5 w-5" /> Accueil</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <ExerciseResults
+      exerciseId={EXERCISE_ID}
+      percent={percent}
+      detail={`${correct} / ${total} correctes`}
+      onReplay={onReplay}
+      onMenu={onMenu}
+      onHome={onHome}
+      extraActions={
+        <Button size="lg" className="w-full" variant="outline" onClick={onReview}>
+          <Eye className="mr-2 h-5 w-5" /> Revoir les réponses
+        </Button>
+      }
+    />
   );
 }
 

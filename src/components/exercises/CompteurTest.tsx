@@ -653,11 +653,11 @@ export function CompteurTest() {
               <p>8 compteurs cockpit sont affiches. Pour chaque colonne active, choisissez la case qui correspond a la valeur reelle, puis validez avec Suivant. Les compteurs a 0 ne sont pas evalues. Hors mode examen, la correction s&apos;affiche apres validation.</p>
             </div>
             {settings.examMode && (
-              <p className="text-center text-sm text-amber-700 font-medium">Mode examen actif</p>
+              <p className="text-center text-sm text-amber-700 font-medium">Mode examen — pas de correction entre les questions</p>
             )}
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}><Play className="mr-2 h-5 w-5" />Jouer</Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGs('settings')}><Settings className="mr-2 h-5 w-5" />Parametres</Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => setGs('settings')}><Settings className="mr-2 h-5 w-5" />Paramètres</Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}><ArrowLeft className="mr-2 h-5 w-5" />Retour</Button>
             </div>
           </CardContent>
@@ -671,7 +671,7 @@ export function CompteurTest() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
-          <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Paramètres</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             <div>
               <Label>Nombre de planches : {settings.numQuestions}</Label>
@@ -684,7 +684,7 @@ export function CompteurTest() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <Label>Mode examen</Label>
-                <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les planches</p>
+                <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions. Les résultats s’affichent à la fin.</p>
               </div>
               <Switch
                 checked={settings.examMode}

@@ -2,16 +2,16 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { classScaleIdForMemoryBack } from '@/lib/core/classes';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+} from '@/components/exercises/shell';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { canvasPoint } from '@/lib/phone/canvasPoint';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
@@ -435,117 +435,109 @@ export function MBackTest({ n: nProp }: { n?: number }) {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-bold">Memory Back</CardTitle>
-            <CardDescription className="text-lg">Test de memoire de travail — niveau actuel : M{n} Back</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label className="mb-2 block text-[#605a57]">Choisissez le niveau</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                {N_PRESETS.map((preset) => {
-                  const isSelected = nSelection === preset.value;
-                  return (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => selectPreset(preset.value)}
-                      className="rounded-lg py-3 px-2 text-center font-semibold transition-all"
-                      style={{
-                        border: `2px solid ${preset.color}`,
-                        backgroundColor: isSelected ? preset.color : 'white',
-                        color: isSelected ? 'white' : preset.color,
-                        boxShadow: isSelected ? `0 0 0 3px ${preset.color}33` : 'none',
-                        transform: isSelected ? 'scale(1.03)' : 'scale(1)',
-                      }}
-                    >
-                      {preset.label}
-                    </button>
-                  );
-                })}
+      <ExerciseMenu
+        title="Memory Back"
+        subtitle={`Test de mémoire de travail — niveau actuel : M${n} Back`}
+        stats={[
+          { value: settings.totalQuestions, label: 'Questions' },
+          { value: `${settings.scrollSpeed}s`, label: 'Par chiffre' },
+        ]}
+        examMode={!settings.showAnswer}
+        onPlay={startGame}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      >
+        <div>
+          <Label className="mb-2 block text-[#605a57]">Choisissez le niveau</Label>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {N_PRESETS.map((preset) => {
+              const isSelected = nSelection === preset.value;
+              return (
                 <button
+                  key={preset.value}
                   type="button"
-                  onClick={() => selectCustom(customN)}
-                  className="rounded-lg py-3 px-2 text-center font-semibold transition-all col-span-3 sm:col-span-1"
+                  onClick={() => selectPreset(preset.value)}
+                  className="rounded-lg px-2 py-3 text-center font-semibold transition-all"
                   style={{
-                    border: `2px solid ${CUSTOM_N_COLOR}`,
-                    backgroundColor: nSelection === 'custom' ? CUSTOM_N_COLOR : 'white',
-                    color: nSelection === 'custom' ? 'white' : CUSTOM_N_COLOR,
-                    boxShadow: nSelection === 'custom' ? `0 0 0 3px ${CUSTOM_N_COLOR}33` : 'none',
-                    transform: nSelection === 'custom' ? 'scale(1.03)' : 'scale(1)',
+                    border: `2px solid ${preset.color}`,
+                    backgroundColor: isSelected ? preset.color : 'white',
+                    color: isSelected ? 'white' : preset.color,
+                    boxShadow: isSelected ? `0 0 0 3px ${preset.color}33` : 'none',
+                    transform: isSelected ? 'scale(1.03)' : 'scale(1)',
                   }}
                 >
-                  Custom
+                  {preset.label}
                 </button>
-              </div>
-              {nSelection === 'custom' && (
-                <div className="mt-4 p-4 rounded-lg bg-[#f7f5f3] space-y-2">
-                  <Label>Niveau personnalise : M{customN} Back</Label>
-                  <Slider
-                    value={[customN]}
-                    onValueChange={([v]) => selectCustom(v)}
-                    min={CUSTOM_N_MIN}
-                    max={CUSTOM_N_MAX}
-                    step={1}
-                  />
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>{CUSTOM_N_MIN}</span>
-                    <span>{CUSTOM_N_MAX}</span>
-                  </div>
-                </div>
-              )}
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => selectCustom(customN)}
+              className="col-span-3 rounded-lg px-2 py-3 text-center font-semibold transition-all sm:col-span-1"
+              style={{
+                border: `2px solid ${CUSTOM_N_COLOR}`,
+                backgroundColor: nSelection === 'custom' ? CUSTOM_N_COLOR : 'white',
+                color: nSelection === 'custom' ? 'white' : CUSTOM_N_COLOR,
+                boxShadow: nSelection === 'custom' ? `0 0 0 3px ${CUSTOM_N_COLOR}33` : 'none',
+                transform: nSelection === 'custom' ? 'scale(1.03)' : 'scale(1)',
+              }}
+            >
+              Custom
+            </button>
+          </div>
+          {nSelection === 'custom' && (
+            <div className="mt-4 space-y-2 rounded-lg bg-[#f7f5f3] p-4">
+              <Label>Niveau personnalisé : M{customN} Back</Label>
+              <Slider
+                value={[customN]}
+                onValueChange={([v]) => selectCustom(v)}
+                min={CUSTOM_N_MIN}
+                max={CUSTOM_N_MAX}
+                step={1}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-[#f7f5f3] rounded-lg">
-                <p className="text-2xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
-                <p className="text-sm text-[#605a57]">Questions</p>
-              </div>
-              <div className="p-4 bg-[#f7f5f3] rounded-lg">
-                <p className="text-2xl font-bold text-[#37322f]">{settings.scrollSpeed}s</p>
-                <p className="text-sm text-[#605a57]">Par chiffre</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startGame}><Play className="mr-2 h-5 w-5" /> Jouer</Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}><Settings className="mr-2 h-5 w-5" /> Parametres</Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}><ArrowLeft className="mr-2 h-5 w-5" /> Retour</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </div>
+      </ExerciseMenu>
     );
   }
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label>Temps par chiffre: {settings.scrollSpeed}s</Label>
-                <Slider value={[settings.scrollSpeed]} onValueChange={([v]) => setSettings(s => ({ ...s, scrollSpeed: v }))} min={1} max={5} step={0.5} className="mt-2" />
-              </div>
-              <div>
-                <Label>Nombre de questions: {settings.totalQuestions}</Label>
-                <Slider value={[settings.totalQuestions]} onValueChange={([v]) => setSettings(s => ({ ...s, totalQuestions: v }))} min={10} max={100} step={10} className="mt-2" />
-              </div>
-              <div>
-                <Label>Probabilite OUI: {Math.round(settings.matchProbability * 100)}%</Label>
-                <Slider value={[settings.matchProbability]} onValueChange={([v]) => setSettings(s => ({ ...s, matchProbability: v }))} min={0.1} max={0.9} step={0.1} className="mt-2" />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Afficher la reponse</Label>
-                <Switch checked={settings.showAnswer} onCheckedChange={v => setSettings(s => ({ ...s, showAnswer: v }))} />
-              </div>
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}><ArrowLeft className="mr-2 h-4 w-4" /> Retour</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings
+        examMode={{
+          checked: !settings.showAnswer,
+          onCheckedChange: (v) => setSettings((s) => ({ ...s, showAnswer: !v })),
+        }}
+        onBack={() => setGameState('menu')}
+      >
+        <SettingSlider
+          label="Temps par chiffre"
+          value={settings.scrollSpeed}
+          min={1}
+          max={5}
+          step={0.5}
+          format={(v) => `${v}s`}
+          onChange={(v) => setSettings((s) => ({ ...s, scrollSpeed: v }))}
+        />
+        <SettingSlider
+          label="Nombre de questions"
+          value={settings.totalQuestions}
+          min={10}
+          max={100}
+          step={10}
+          onChange={(v) => setSettings((s) => ({ ...s, totalQuestions: v }))}
+        />
+        <SettingSlider
+          label="Probabilité OUI"
+          value={settings.matchProbability}
+          min={0.1}
+          max={0.9}
+          step={0.1}
+          format={(v) => `${Math.round(v * 100)}%`}
+          onChange={(v) => setSettings((s) => ({ ...s, matchProbability: v }))}
+        />
+      </ExerciseSettings>
     );
   }
 
@@ -555,45 +547,27 @@ export function MBackTest({ n: nProp }: { n?: number }) {
       perfSavedRef.current = true;
       savePerformanceResult(PERFORMANCE_ID, scoreData.correct, settings.totalQuestions);
     }
-    const perfEntries = loadEntries(PERFORMANCE_ID);
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={classScaleIdForMemoryBack(n)}
-              percent={scoreData.score}
-              detail={`${score}/${settings.totalQuestions} correctes`}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-red-50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-red-600">{errors}</p>
-                <p className="text-sm text-red-700">Erreurs</p>
-              </div>
-              <div className="p-4 bg-orange-50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-orange-600">{noResponse}</p>
-                <p className="text-sm text-orange-700">Sans reponse</p>
-              </div>
-            </div>
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId={PERFORMANCE_ID} />
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startGame}><RotateCcw className="mr-2 h-5 w-5" /> Rejouer</Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('menu')}><ArrowLeft className="mr-2 h-5 w-5" /> Menu</Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}><Home className="mr-2 h-5 w-5" /> Accueil</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId={classScaleIdForMemoryBack(n)}
+        chartId={PERFORMANCE_ID}
+        percent={scoreData.score}
+        detail={`${score}/${settings.totalQuestions} correctes`}
+        onReplay={startGame}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-lg bg-red-50 p-4 text-center">
+            <p className="text-2xl font-bold text-red-600">{errors}</p>
+            <p className="text-sm text-red-700">Erreurs</p>
+          </div>
+          <div className="rounded-lg bg-orange-50 p-4 text-center">
+            <p className="text-2xl font-bold text-orange-600">{noResponse}</p>
+            <p className="text-sm text-orange-700">Sans réponse</p>
+          </div>
+        </div>
+      </ExerciseResults>
     );
   }
 

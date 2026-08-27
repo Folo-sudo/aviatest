@@ -4,16 +4,15 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { Timer } from '@/lib/core/Timer';
 import { CanvasButton, TimerBar } from '@/lib/core/CanvasUI';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+} from '@/components/exercises/shell';
 import { useRouter } from 'next/navigation';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 import { PhoneNumpad } from '@/components/phone/PhoneDpad';
@@ -578,107 +577,59 @@ export function ClockAngleTest() {
   // Render based on game state
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Test des Angles d'Horloge</CardTitle>
-            <CardDescription className="text-lg">
-              Orientation spatiale avec referentiel horloge
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-[#f7f5f3] rounded-lg">
-                <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
-                <p className="text-sm text-[#605a57]">Questions</p>
-              </div>
-              <div className="p-4 bg-[#f7f5f3] rounded-lg">
-                <p className="text-2xl font-bold text-[#37322f]">{settings.timePerQuestion}s</p>
-                <p className="text-sm text-[#605a57]">Par question</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startPlaying}>
-                <Play className="mr-2 h-5 w-5" />
-                Jouer
-              </Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" />
-                Parametres
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <ArrowLeft className="mr-2 h-5 w-5" />
-                Retour
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseMenu
+        title="Test des Angles d'Horloge"
+        subtitle="Orientation spatiale avec référentiel horloge"
+        stats={[
+          { value: settings.numQuestions, label: 'Questions' },
+          { value: `${settings.timePerQuestion}s`, label: 'Par question' },
+        ]}
+        examMode={!settings.showFeedback}
+        onPlay={startPlaying}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      />
     );
   }
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>Parametres</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label>Nombre de questions: {settings.numQuestions}</Label>
-                <Slider
-                  value={[settings.numQuestions]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, numQuestions: v }))}
-                  min={5}
-                  max={50}
-                  step={5}
-                  className="mt-2"
-                />
-              </div>
-
-              <div>
-                <Label>Temps par question: {settings.timePerQuestion}s</Label>
-                <Slider
-                  value={[settings.timePerQuestion]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, timePerQuestion: v }))}
-                  min={10}
-                  max={60}
-                  step={5}
-                  className="mt-2"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label>Afficher la correction</Label>
-                <Switch
-                  checked={settings.showFeedback}
-                  onCheckedChange={(v) => setSettings(s => ({ ...s, showFeedback: v }))}
-                />
-              </div>
-
-              <div>
-                <Label>Duree du feedback: {settings.feedbackDuration}s</Label>
-                <Slider
-                  value={[settings.feedbackDuration]}
-                  onValueChange={([v]) => setSettings(s => ({ ...s, feedbackDuration: v }))}
-                  min={0.5}
-                  max={3}
-                  step={0.5}
-                  className="mt-2"
-                />
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings
+        examMode={{
+          checked: !settings.showFeedback,
+          onCheckedChange: (v) => setSettings((s) => ({ ...s, showFeedback: !v })),
+        }}
+        onBack={() => setGameState('menu')}
+      >
+        <SettingSlider
+          label="Nombre de questions"
+          value={settings.numQuestions}
+          min={5}
+          max={50}
+          step={5}
+          onChange={(v) => setSettings((s) => ({ ...s, numQuestions: v }))}
+        />
+        <SettingSlider
+          label="Temps par question"
+          value={settings.timePerQuestion}
+          min={10}
+          max={60}
+          step={5}
+          format={(v) => `${v}s`}
+          onChange={(v) => setSettings((s) => ({ ...s, timePerQuestion: v }))}
+        />
+        {settings.showFeedback ? (
+          <SettingSlider
+            label="Durée du feedback"
+            value={settings.feedbackDuration}
+            min={0.5}
+            max={3}
+            step={0.5}
+            format={(v) => `${v}s`}
+            onChange={(v) => setSettings((s) => ({ ...s, feedbackDuration: v }))}
+          />
+        ) : null}
+      </ExerciseSettings>
     );
   }
 
@@ -688,57 +639,26 @@ export function ClockAngleTest() {
       perfSavedRef.current = true;
       savePerformanceResult('clock-angle', scoreData.correct, settings.numQuestions);
     }
-    const perfEntries = loadEntries('clock-angle');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={'clock-angle'}
-              percent={scoreData.score}
-              detail={`${scoreData.correct} / ${scoreData.total} correctes`}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-green-50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-green-600">{scoreData.correct}</p>
-                <p className="text-sm text-green-700">Correctes</p>
-              </div>
-              <div className="p-4 bg-red-50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-red-600">{scoreData.wrong}</p>
-                <p className="text-sm text-red-700">Erreurs</p>
-              </div>
-            </div>
-
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId="clock-angle" />
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startPlaying}>
-                <RotateCcw className="mr-2 h-5 w-5" />
-                Rejouer
-              </Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('menu')}>
-                <ArrowLeft className="mr-2 h-5 w-5" />
-                Menu
-              </Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
-                <Home className="mr-2 h-5 w-5" />
-                Accueil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId="clock-angle"
+        percent={scoreData.score}
+        detail={`${scoreData.correct} / ${scoreData.total} correctes`}
+        onReplay={startPlaying}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-lg bg-green-50 p-4 text-center">
+            <p className="text-2xl font-bold text-green-600">{scoreData.correct}</p>
+            <p className="text-sm text-green-700">Correctes</p>
+          </div>
+          <div className="rounded-lg bg-red-50 p-4 text-center">
+            <p className="text-2xl font-bold text-red-600">{scoreData.wrong}</p>
+            <p className="text-sm text-red-700">Erreurs</p>
+          </div>
+        </div>
+      </ExerciseResults>
     );
   }
 

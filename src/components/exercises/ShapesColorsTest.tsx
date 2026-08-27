@@ -2,14 +2,15 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  SettingSlider,
+} from '@/components/exercises/shell';
 import { useRouter } from 'next/navigation';
 import { canvasPoint } from '@/lib/phone/canvasPoint';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
@@ -338,58 +339,50 @@ export function ShapesColorsTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Formes et Couleurs</CardTitle>
-            <CardDescription className="text-lg">Classifiez rapidement selon les regles</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-[#f7f5f3] rounded-lg">
-                <p className="text-2xl font-bold text-[#37322f]">{settings.numShapes}</p>
-                <p className="text-sm text-[#605a57]">Formes</p>
-              </div>
-              <div className="p-4 bg-[#f7f5f3] rounded-lg">
-                <p className="text-2xl font-bold text-[#37322f]">{settings.cycleDuration}s</p>
-                <p className="text-sm text-[#605a57]">Intervalle</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startTest}><Play className="mr-2 h-5 w-5" /> Commencer</Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}><Settings className="mr-2 h-5 w-5" /> Parametres</Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}><ArrowLeft className="mr-2 h-5 w-5" /> Retour</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseMenu
+        title="Formes et Couleurs"
+        subtitle="Classifiez rapidement selon les règles"
+        stats={[
+          { value: settings.numShapes, label: 'Formes' },
+          { value: `${settings.cycleDuration}s`, label: 'Intervalle' },
+        ]}
+        onPlay={startTest}
+        onSettings={() => setGameState('settings')}
+        onBack={() => router.push('/')}
+      />
     );
   }
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label>Nombre de formes: {settings.numShapes}</Label>
-                <Slider value={[settings.numShapes]} onValueChange={([v]) => setSettings(s => ({ ...s, numShapes: v }))} min={5} max={100} step={5} className="mt-2" />
-              </div>
-              <div>
-                <Label>Temps d'affichage: {settings.displayDuration}s</Label>
-                <Slider value={[settings.displayDuration]} onValueChange={([v]) => setSettings(s => ({ ...s, displayDuration: v }))} min={0.2} max={2} step={0.1} className="mt-2" />
-              </div>
-              <div>
-                <Label>Intervalle: {settings.cycleDuration}s</Label>
-                <Slider value={[settings.cycleDuration]} onValueChange={([v]) => setSettings(s => ({ ...s, cycleDuration: v }))} min={1} max={10} step={0.5} className="mt-2" />
-              </div>
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}><ArrowLeft className="mr-2 h-4 w-4" /> Retour</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseSettings onBack={() => setGameState('menu')}>
+        <SettingSlider
+          label="Nombre de formes"
+          value={settings.numShapes}
+          min={5}
+          max={100}
+          step={5}
+          onChange={(v) => setSettings((s) => ({ ...s, numShapes: v }))}
+        />
+        <SettingSlider
+          label="Temps d'affichage"
+          value={settings.displayDuration}
+          min={0.2}
+          max={2}
+          step={0.1}
+          format={(v) => `${v}s`}
+          onChange={(v) => setSettings((s) => ({ ...s, displayDuration: v }))}
+        />
+        <SettingSlider
+          label="Intervalle"
+          value={settings.cycleDuration}
+          min={1}
+          max={10}
+          step={0.5}
+          format={(v) => `${v}s`}
+          onChange={(v) => setSettings((s) => ({ ...s, cycleDuration: v }))}
+        />
+      </ExerciseSettings>
     );
   }
 
@@ -409,7 +402,9 @@ export function ShapesColorsTest() {
                 </ul>
               </div>
             ))}
-            <Button size="lg" className="w-full" onClick={startPlaying}>Commencer</Button>
+            <Button size="lg" className="w-full" onClick={startPlaying}>
+              Jouer
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -422,35 +417,15 @@ export function ShapesColorsTest() {
       perfSavedRef.current = true;
       savePerformanceResult('shapes-colors', scoreData.correct, settings.numShapes);
     }
-    const perfEntries = loadEntries('shapes-colors');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={'shapes-colors'}
-              percent={scoreData.score}
-              detail={`${scoreData.correct} / ${scoreData.total} correctes`}
-            />
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId="shapes-colors" />
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startTest}><RotateCcw className="mr-2 h-5 w-5" /> Rejouer</Button>
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('menu')}><ArrowLeft className="mr-2 h-5 w-5" /> Menu</Button>
-              <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}><Home className="mr-2 h-5 w-5" /> Accueil</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId="shapes-colors"
+        percent={scoreData.score}
+        detail={`${scoreData.correct} / ${scoreData.total} correctes`}
+        onReplay={startTest}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      />
     );
   }
 

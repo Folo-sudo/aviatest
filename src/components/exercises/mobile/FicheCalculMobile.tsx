@@ -167,7 +167,7 @@ export default function FicheCalculMobile() {
 
               <div className="flex flex-col gap-2">
                 <Button size="lg" className="w-full h-12" onClick={startSession}>
-                  <Play className="mr-2 h-5 w-5" /> Commencer
+                  <Play className="mr-2 h-5 w-5" /> Jouer
                 </Button>
                 <Button variant="ghost" size="lg" className="w-full h-12" onClick={() => router.push('/telephone')}>
                   <ArrowLeft className="mr-2 h-5 w-5" /> Retour

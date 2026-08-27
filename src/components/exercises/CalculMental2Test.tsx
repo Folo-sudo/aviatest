@@ -377,16 +377,16 @@ export default function CalculMental2Test() {
 
             {settings.examMode && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-700 text-center">
-                {'\u26A1'} Mode examen — resultats uniquement a la fin
+                Mode examen — pas de correction entre les questions
               </div>
             )}
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={startGame}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
+                <Play className="mr-2 h-5 w-5" /> Jouer
               </Button>
               <Button variant="outline" size="lg" className="w-full" onClick={() => setGameState('settings')}>
-                <Settings className="mr-2 h-5 w-5" /> Parametres
+                <Settings className="mr-2 h-5 w-5" /> Paramètres
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <ArrowLeft className="mr-2 h-5 w-5" /> Retour
@@ -404,7 +404,7 @@ export default function CalculMental2Test() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Parametres</CardTitle>
+            <CardTitle>Paramètres</CardTitle>
             <CardDescription>Ajustez le test a votre niveau</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -452,7 +452,7 @@ export default function CalculMental2Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions. Les résultats s’affichent à la fin.</p>
                 </div>
                 <Switch
                   checked={settings.examMode}

@@ -2,15 +2,15 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
-import { MiniPerformanceChart } from '@/components/PerformanceChart';
-import { ClassScoreBlock } from '@/components/ClassScoreBlock';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
+import { savePerformanceResult } from '@/lib/core/PerformanceTracker';
+import {
+  CorrectionBanner,
+  ExerciseMenu,
+  ExerciseResults,
+  ExerciseSettings,
+  PlayHeader,
+  SettingSlider,
+} from '@/components/exercises/shell';
 import { CATALOG_COLORS } from '@/lib/3d/shapeCatalog';
 import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
@@ -577,54 +577,15 @@ export default function EmpilementsTest() {
   if (gameState === 'results') {
     const { correct, total } = computeScore();
     const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-    const perfEntries = loadEntries(EXERCISE_ID);
-
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Résultats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ClassScoreBlock
-              exerciseId={EXERCISE_ID}
-              percent={percent}
-              detail={`${correct} / ${total} correctes`}
-            />
-            {perfEntries.length >= 2 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">
-                  Progression
-                </p>
-                <div className="flex justify-center">
-                  <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={startPlaying}>
-                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={() => setGameState('menu')}
-              >
-                <ArrowLeft className="mr-2 h-5 w-5" /> Menu
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                className="w-full"
-                onClick={() => router.push('/')}
-              >
-                <Home className="mr-2 h-5 w-5" /> Accueil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ExerciseResults
+        exerciseId={EXERCISE_ID}
+        percent={percent}
+        detail={`${correct} / ${total} correctes`}
+        onReplay={startPlaying}
+        onMenu={() => setGameState('menu')}
+        onHome={() => router.push('/')}
+      />
     );
   }
 
@@ -636,53 +597,24 @@ export default function EmpilementsTest() {
 
   return (
     <div className="min-h-screen bg-[#fbfaf9] flex flex-col">
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-base font-medium text-[#605a57]">
-          Question {currentIdx + 1} / {questions.length}
-        </p>
-        <p className="text-sm text-[#605a57]">
-          Score : {answers.filter((a) => a.correct).length}
-        </p>
-        <p
-          className={`text-sm font-semibold tabular-nums ${
-            timeLeft <= 3 ? 'text-red-600' : 'text-[#37322f]'
-          }`}
-        >
-          {timeLeft}s
-        </p>
-      </div>
-
-      <div className="px-4 pt-2">
-        <div className="h-2 bg-slate-300 rounded-full overflow-hidden">
-          <div
-            className={`h-full transition-all duration-1000 linear ${
-              timerRatio > 0.5
-                ? 'bg-emerald-500'
-                : timerRatio > 0.25
-                  ? 'bg-amber-500'
-                  : 'bg-red-500'
-            }`}
-            style={{ width: `${timerRatio * 100}%` }}
-          />
-        </div>
-      </div>
+      <PlayHeader
+        questionLabel={`Question ${currentIdx + 1} / ${questions.length}`}
+        score={`Score : ${answers.filter((a) => a.correct).length}`}
+        timeLeft={`${timeLeft}s`}
+        timerRatio={timerRatio}
+      />
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
         <p className="text-center text-[#37322f] font-medium text-lg max-w-xl">
           Parmi ces trois empilements, lequel est différent des deux autres ?
         </p>
         {feedback && !settings.examMode && (
-          <p
-            className={`text-center text-sm font-semibold ${
-              feedback.correct ? 'text-emerald-700' : 'text-red-700'
-            }`}
-          >
-            {feedback.selected == null
-              ? `Temps écoulé — la bonne réponse était ${q.answer}`
-              : feedback.correct
-                ? 'Correct'
-                : `Incorrect — la bonne réponse était ${q.answer}`}
-          </p>
+          <CorrectionBanner
+            outcome={
+              feedback.selected == null ? 'timeout' : feedback.correct ? 'correct' : 'incorrect'
+            }
+            expected={q.answer}
+          />
         )}
 
         <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full max-w-4xl">
@@ -739,50 +671,23 @@ function MenuScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Empilements</CardTitle>
-          <CardDescription className="text-lg">
-            Repérez l&apos;empilement différent (symétrie)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-[#f7f5f3] rounded-lg">
-              <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
-              <p className="text-sm text-[#605a57]">Questions</p>
-            </div>
-            <div className="p-4 bg-[#f7f5f3] rounded-lg">
-              <p className="text-2xl font-bold text-[#37322f]">
-                {settings.timePerQuestionSec}s
-              </p>
-              <p className="text-sm text-[#605a57]">Par question</p>
-            </div>
-          </div>
-          <p className="text-sm text-[#605a57] text-center">
-            Deux structures sont identiques a une rotation pres. La troisieme a subi une
-            symetrie : cliquez sur celle qui differe.
-          </p>
-          {settings.examMode && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-700">
-              Mode examen — pas de correction entre les questions
-            </div>
-          )}
-          <div className="flex flex-col gap-3">
-            <Button size="lg" className="w-full" onClick={onPlay}>
-              <Play className="mr-2 h-5 w-5" /> Jouer
-            </Button>
-            <Button variant="outline" size="lg" className="w-full" onClick={onSettings}>
-              <Settings className="mr-2 h-5 w-5" /> Parametres
-            </Button>
-            <Button variant="ghost" size="lg" className="w-full" onClick={onBack}>
-              <ArrowLeft className="mr-2 h-5 w-5" /> Retour
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <ExerciseMenu
+      title="Empilements"
+      subtitle="Repérez l'empilement différent (symétrie)"
+      stats={[
+        { value: settings.numQuestions, label: 'Questions' },
+        { value: `${settings.timePerQuestionSec}s`, label: 'Par question' },
+      ]}
+      examMode={settings.examMode}
+      onPlay={onPlay}
+      onSettings={onSettings}
+      onBack={onBack}
+    >
+      <p className="text-center text-sm text-[#605a57]">
+        Deux structures sont identiques à une rotation près. La troisième a subi une
+        symétrie : cliquez sur celle qui diffère.
+      </p>
+    </ExerciseMenu>
   );
 }
 
@@ -796,56 +701,31 @@ function SettingsScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>Parametres</CardTitle>
-          <CardDescription>Empilements</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label>Nombre de questions : {settings.numQuestions}</Label>
-              <Slider
-                value={[settings.numQuestions]}
-                onValueChange={([v]) =>
-                  onChange((s) => ({ ...s, numQuestions: v }))
-                }
-                min={5}
-                max={40}
-                step={5}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>Temps par question : {settings.timePerQuestionSec}s</Label>
-              <Slider
-                value={[settings.timePerQuestionSec]}
-                onValueChange={([v]) =>
-                  onChange((s) => ({ ...s, timePerQuestionSec: v }))
-                }
-                min={5}
-                max={30}
-                step={1}
-                className="mt-2"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Mode examen</Label>
-                <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
-              </div>
-              <Switch
-                checked={settings.examMode}
-                onCheckedChange={(v) => onChange((s) => ({ ...s, examMode: v }))}
-              />
-            </div>
-          </div>
-          <Button variant="outline" className="w-full" onClick={onBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Retour
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <ExerciseSettings
+      description="Empilements"
+      examMode={{
+        checked: settings.examMode,
+        onCheckedChange: (v) => onChange((s) => ({ ...s, examMode: v })),
+      }}
+      onBack={onBack}
+    >
+      <SettingSlider
+        label="Nombre de questions"
+        value={settings.numQuestions}
+        min={5}
+        max={40}
+        step={5}
+        onChange={(v) => onChange((s) => ({ ...s, numQuestions: v }))}
+      />
+      <SettingSlider
+        label="Temps par question"
+        value={settings.timePerQuestionSec}
+        min={5}
+        max={30}
+        step={1}
+        format={(v) => `${v}s`}
+        onChange={(v) => onChange((s) => ({ ...s, timePerQuestionSec: v }))}
+      />
+    </ExerciseSettings>
   );
 }

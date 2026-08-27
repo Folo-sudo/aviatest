@@ -199,7 +199,7 @@ export default function FicheCalculTest() {
 
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full" onClick={() => startSession()}>
-                <Play className="mr-2 h-5 w-5" /> Commencer
+                <Play className="mr-2 h-5 w-5" /> Jouer
               </Button>
               <Button variant="ghost" size="lg" className="w-full" onClick={() => router.push('/')}>
                 <ArrowLeft className="mr-2 h-5 w-5" /> Retour
