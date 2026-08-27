@@ -115,6 +115,15 @@ function currentPrefix(): string | null {
 // ============================================================================
 
 /**
+ * Score stored in localStorage: (correct / total) * 100, one decimal.
+ * Pass counts, never a percentage as `correct` (unless total === 100
+ * is an explicit percent-scale, e.g. séries logiques).
+ */
+export function scorePercent(correct: number, total: number): number {
+  return total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+}
+
+/**
  * Save a performance result for an exercise (uses current pseudo).
  * Score is always computed as (correct / total) * 100 to ensure
  * unanswered questions count against the score.
@@ -147,7 +156,7 @@ export function savePerformanceResult(
     const existing = loadEntries(exerciseId);
     const entry: PerformanceEntry = {
       date: new Date().toISOString(),
-      score: total > 0 ? Math.round((correct / total) * 1000) / 10 : 0,
+      score: scorePercent(correct, total),
       correct,
       total,
       avgTimeMs: Math.round(avgTimeMs),
@@ -329,7 +338,7 @@ export function migratePerformanceData(): void {
         let changed = false;
         for (const entry of entries) {
           if (entry.total > 0) {
-            const expected = Math.round((entry.correct / entry.total) * 1000) / 10;
+            const expected = scorePercent(entry.correct, entry.total);
             if (entry.score !== expected) {
               entry.score = expected;
               changed = true;

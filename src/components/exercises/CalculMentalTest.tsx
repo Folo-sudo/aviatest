@@ -15,6 +15,7 @@ import {
 } from '@/components/exercises/shell';
 import { ChevronRight, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { generateCalculMentalQuestion } from '@/lib/exercises/calculMental';
 
 // ============================================================================
 // Types
@@ -76,54 +77,8 @@ function saveSettings(s: GameSettings): void {
   } catch { /* ignore */ }
 }
 
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 function generateQuestion(settings: GameSettings): QuestionData {
-  const chainLength = settings.chainLength;
-  const maxNum = settings.maxNumber;
-
-  const terms: { sign: '+' | '-'; value: number }[] = [];
-  // First term: random sign
-  const firstSign = Math.random() < 0.5 ? '+' : '-';
-  const firstVal = randInt(10, maxNum);
-  terms.push({ sign: firstSign as '+' | '-', value: firstVal });
-
-  for (let i = 1; i < chainLength; i++) {
-    const sign = Math.random() < 0.5 ? '+' : '-';
-    const val = randInt(10, maxNum);
-    terms.push({ sign: sign as '+' | '-', value: val });
-  }
-
-  let answer = 0;
-  const parts: string[] = [];
-  for (const t of terms) {
-    if (t.sign === '+') {
-      answer += t.value;
-      parts.push(parts.length === 0 ? `${t.value}` : `+ ${t.value}`);
-    } else {
-      answer -= t.value;
-      parts.push(parts.length === 0 ? `- ${t.value}` : `- ${t.value}`);
-    }
-  }
-
-  // Append multiplication ab x cd at the end
-  if (settings.includeMultiply) {
-    const a = randInt(11, 99);
-    const b = randInt(11, 99);
-    const mulSign = Math.random() < 0.5 ? '+' : '-';
-    const mulResult = a * b;
-    if (mulSign === '+') {
-      answer += mulResult;
-      parts.push(`+ ${a} x ${b}`);
-    } else {
-      answer -= mulResult;
-      parts.push(`- ${a} x ${b}`);
-    }
-  }
-
-  return { expression: parts.join(' '), answer };
+  return generateCalculMentalQuestion(settings);
 }
 
 // ============================================================================

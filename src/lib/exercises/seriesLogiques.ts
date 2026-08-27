@@ -1235,3 +1235,31 @@ export function formatSeries(q: SeriesQuestion): string {
   const line = q.seriesItems.join('  ·  ');
   return hasBlank ? line : `${line}  ·  ??`;
 }
+
+export type SeriesAnswerOutcome = 'correct' | 'incorrect' | 'skipped';
+
+export interface SeriesSessionScore {
+  raw: number;
+  percent: number;
+  correct: number;
+  incorrect: number;
+  skipped: number;
+}
+
+/** Score brut Pilotest : +1 / −1/3, ramené en % du nombre de questions. */
+export function computeSeriesSessionScore(
+  results: { outcome: SeriesAnswerOutcome }[],
+  totalQuestions: number,
+): SeriesSessionScore {
+  let correct = 0;
+  let incorrect = 0;
+  let skipped = 0;
+  for (const r of results) {
+    if (r.outcome === 'correct') correct += 1;
+    else if (r.outcome === 'incorrect') incorrect += 1;
+    else skipped += 1;
+  }
+  const raw = correct - incorrect / 3;
+  const percent = totalQuestions > 0 ? Math.round((raw / totalQuestions) * 1000) / 10 : 0;
+  return { raw, percent, correct, incorrect, skipped };
+}

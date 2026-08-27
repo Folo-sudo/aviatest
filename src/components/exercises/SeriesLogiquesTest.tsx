@@ -12,6 +12,7 @@ import {
 } from '@/components/exercises/shell';
 import { useRouter } from 'next/navigation';
 import {
+  computeSeriesSessionScore,
   formatSeries,
   generateSeriesQuestions,
   type SeriesQuestion,
@@ -37,14 +38,6 @@ interface QuestionResult {
   selectedIndex: number | null;
   outcome: AnswerOutcome;
   timeUsedMs: number;
-}
-
-interface SessionScore {
-  raw: number;
-  percent: number;
-  correct: number;
-  incorrect: number;
-  skipped: number;
 }
 
 // ============================================================================
@@ -86,20 +79,6 @@ function saveSettings(s: GameSettings): void {
   } catch {
     /* ignore */
   }
-}
-
-function computeSessionScore(results: QuestionResult[], totalQuestions: number): SessionScore {
-  let correct = 0;
-  let incorrect = 0;
-  let skipped = 0;
-  for (const r of results) {
-    if (r.outcome === 'correct') correct += 1;
-    else if (r.outcome === 'incorrect') incorrect += 1;
-    else skipped += 1;
-  }
-  const raw = correct - incorrect / 3;
-  const percent = totalQuestions > 0 ? Math.round((raw / totalQuestions) * 1000) / 10 : 0;
-  return { raw, percent, correct, incorrect, skipped };
 }
 
 export default function SeriesLogiquesTest() {
@@ -334,7 +313,7 @@ export default function SeriesLogiquesTest() {
   // RESULTS
   // =========================================================================
   if (gameState === 'results') {
-    const score = computeSessionScore(results, questions.length || settings.totalQuestions);
+    const score = computeSeriesSessionScore(results, questions.length || settings.totalQuestions);
     const avgTime =
       results.length > 0
         ? Math.round((results.reduce((s, r) => s + r.timeUsedMs, 0) / results.length / 1000) * 10) / 10
