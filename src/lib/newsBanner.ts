@@ -1,7 +1,7 @@
-/** Une semaine après le 27 août 2026. */
+/** Une semaine après l’annonce anglais + fiche culture (27 août 2026). */
 export const NEWS_BANNER_EXPIRES_AT = Date.parse('2026-09-03T23:59:59+02:00');
 
-export const NEWS_BANNER_STORAGE_KEY = 'aviatest-news:2026-08-27';
+export const NEWS_BANNER_STORAGE_KEY = 'aviatest-news:2026-08-27-anglais-culture';
 
 export function isNewsBannerActive(now = Date.now()): boolean {
   return now < NEWS_BANNER_EXPIRES_AT;

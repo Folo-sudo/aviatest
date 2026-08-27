@@ -54,15 +54,35 @@ export default function NewsBanner() {
       <div className="container mx-auto flex items-start gap-3 px-4 py-2.5 sm:items-center">
         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#b45309] sm:mt-0" aria-hidden />
         <p className="min-w-0 flex-1 text-sm leading-snug sm:text-[15px]">
-          Petit tour de piste : tu peux maintenant{' '}
-          <Link href="/enchainement" className="font-semibold underline decoration-[#b45309]/50 underline-offset-2 hover:decoration-[#b45309]">
+          Refonte du test{' '}
+          <Link
+            href="/exercices/anglais-psy0"
+            className="font-semibold underline decoration-[#b45309]/50 underline-offset-2 hover:decoration-[#b45309]"
+          >
+            anglais PSY0
+          </Link>
+          , et ajout d&apos;une{' '}
+          <Link
+            href="/exercices/fiche-culture-aviation"
+            className="font-semibold underline decoration-[#b45309]/50 underline-offset-2 hover:decoration-[#b45309]"
+          >
+            fiche culture aviation AF
+          </Link>
+          {' '}(flotte, pionniers, aéroports). Tu peux aussi{' '}
+          <Link
+            href="/enchainement"
+            className="font-semibold underline decoration-[#0f766e]/50 underline-offset-2 hover:decoration-[#0f766e]"
+          >
             enchaîner plusieurs tests
           </Link>
-          {' '}d&apos;affilée. Et sur ta{' '}
-          <Link href="/progression" className="font-semibold underline decoration-[#0f766e]/50 underline-offset-2 hover:decoration-[#0f766e]">
+          {' '}et viser la classe 7 sur ta{' '}
+          <Link
+            href="/progression"
+            className="font-semibold underline decoration-[#0f766e]/50 underline-offset-2 hover:decoration-[#0f766e]"
+          >
             Progression
           </Link>
-          {', vise la classe 7.'}
+          .
         </p>
         <button
           type="button"
