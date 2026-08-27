@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import StructuredData from "@/components/seo/StructuredData";
+import NewsBanner from "@/components/NewsBanner";
 import {
   generateWebsiteStructuredData,
   generateOrganizationStructuredData,
@@ -110,6 +111,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} antialiased`}
       >
+        <NewsBanner />
         {children}
       </body>
     </html>
