@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, RotateCcw, Home, Settings, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types
@@ -68,7 +70,7 @@ interface QuestionResult {
 
 const EXERCISE_ID = 'matrices-raven';
 const SETTINGS_KEY = 'aviatest-matrices-raven-settings';
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 const CELL = 72;
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -924,6 +926,8 @@ function MatrixCell({
   empty?: boolean;
   highlight?: 'correct' | 'wrong' | null;
 }) {
+  const phone = usePhoneLayout();
+  const dim = phone ? 96 : CELL + 8;
   const border =
     highlight === 'correct'
       ? 'border-green-500 ring-2 ring-green-300'
@@ -933,10 +937,10 @@ function MatrixCell({
 
   return (
     <div
-      className={`flex items-center justify-center rounded-lg border-2 bg-white ${border} ${empty ? 'border-dashed bg-slate-50' : ''}`}
-      style={{ width: CELL + 8, height: CELL + 8 }}
+      className={`flex items-center justify-center rounded-lg border-2 bg-white ${border} ${empty ? 'border-dashed bg-[#f7f5f3]' : ''}`}
+      style={{ width: dim, height: dim }}
     >
-      {fig ? <FigureSvg fig={fig} /> : <span className="text-2xl text-slate-400">?</span>}
+      {fig ? <FigureSvg fig={fig} size={phone ? 88 : CELL} /> : <span className="text-2xl text-slate-400">?</span>}
     </div>
   );
 }
@@ -1089,22 +1093,22 @@ export default function MatricesRavenTest() {
             <CardDescription>Logique visuelle — completez la matrice 3×3</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>Identifiez la regle logique (progression, rotation, distribution, XOR...) et choisissez la figure manquante.</p>
-              <p className="text-xs text-slate-500">Difficulte progressive : les dernieres questions combinent plusieurs regles.</p>
+              <p className="text-xs text-[#605a57]">Difficulte progressive : les dernieres questions combinent plusieurs regles.</p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestion}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestion}s</p>
+                <p className="text-xs text-[#605a57]">Par question</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.examMode ? 'Oui' : 'Non'}</p>
-                <p className="text-xs text-slate-500">Mode examen</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.examMode ? 'Oui' : 'Non'}</p>
+                <p className="text-xs text-[#605a57]">Mode examen</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -1155,10 +1159,10 @@ export default function MatricesRavenTest() {
                 className="mt-2"
               />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-[#f7f5f3] p-4">
               <div>
                 <Label>Mode examen</Label>
-                <p className="text-xs text-slate-500">Pas de correction affichee entre les questions</p>
+                <p className="text-xs text-[#605a57]">Pas de correction affichee entre les questions</p>
               </div>
               <Switch
                 checked={settings.examMode}
@@ -1191,16 +1195,14 @@ export default function MatricesRavenTest() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={pct >= 75 ? 'default' : pct >= 50 ? 'secondary' : 'destructive'} className="mt-2">
-              {pct}%
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{correct}/{total}</p>
-              <p className="text-slate-500">reponses correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correct}/${total} reponses correctes`}
+            />
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
                 <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
@@ -1228,7 +1230,7 @@ export default function MatricesRavenTest() {
     return (
       <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
         <div className="border-b border-slate-200 bg-white/70 px-4 py-3 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-4xl items-center justify-between text-sm font-medium text-slate-700">
+          <div className="mx-auto flex max-w-4xl items-center justify-between text-sm font-medium text-[#37322f]">
             <span>Question {currentIdx + 1}/{questions.length}</span>
             <span>Score : {results.filter((r) => r.correct).length}/{results.length}</span>
           </div>
@@ -1261,15 +1263,15 @@ export default function MatricesRavenTest() {
 
           {/* Explanation */}
           <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="mb-2 text-sm font-semibold text-slate-600">Explication :</p>
+            <p className="mb-2 text-sm font-semibold text-[#605a57]">Explication :</p>
             {currentQ.rules.map((rule, i) => (
-              <p key={i} className="text-sm text-slate-700">{rule.explanation}</p>
+              <p key={i} className="text-sm text-[#37322f]">{rule.explanation}</p>
             ))}
           </div>
 
           {/* Matrix with correct answer shown */}
           <div className="flex flex-col items-center gap-4">
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Matrice</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#605a57]">Matrice</p>
             <div className="grid grid-cols-3 gap-2">
               {currentQ.matrix.map((cell, i) => {
                 if (i === 8) {
@@ -1285,21 +1287,21 @@ export default function MatricesRavenTest() {
               })}
             </div>
 
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Bonne reponse</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#605a57]">Bonne reponse</p>
             <div className="flex items-center gap-2">
               <div className="rounded-xl border-2 border-green-500 bg-white p-2 ring-2 ring-green-300">
                 <FigureSvg fig={currentQ.choices[currentQ.correctIdx]} />
               </div>
-              <span className="text-sm font-medium text-slate-600">Choix {currentQ.correctIdx + 1}</span>
+              <span className="text-sm font-medium text-[#605a57]">Choix {currentQ.correctIdx + 1}</span>
             </div>
 
             {!isCorrect && currentResult.selected !== null && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">Votre reponse :</span>
+                <span className="text-sm text-[#605a57]">Votre reponse :</span>
                 <div className="rounded-xl border-2 border-red-400 bg-white p-2">
                   <FigureSvg fig={currentQ.choices[currentResult.selected]} size={48} />
                 </div>
-                <span className="text-sm text-slate-500">Choix {currentResult.selected + 1}</span>
+                <span className="text-sm text-[#605a57]">Choix {currentResult.selected + 1}</span>
               </div>
             )}
           </div>
@@ -1322,7 +1324,7 @@ export default function MatricesRavenTest() {
   return (
     <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
       <div className="border-b border-slate-200 bg-white/70 px-4 py-3 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between text-sm font-medium text-slate-700">
+        <div className="mx-auto flex max-w-4xl items-center justify-between text-sm font-medium text-[#37322f]">
           <span>Question {currentIdx + 1}/{questions.length}</span>
           <span>{timeLeft}s</span>
           <span>Score : {results.filter((r) => r.correct).length}/{results.length}</span>
@@ -1332,7 +1334,7 @@ export default function MatricesRavenTest() {
             className="h-full transition-all"
             style={{
               width: `${timerPct}%`,
-              backgroundColor: timerPct < 20 ? '#dc2626' : '#0068C6',
+              backgroundColor: timerPct < 20 ? '#dc2626' : '#37322f',
             }}
           />
         </div>
@@ -1340,14 +1342,14 @@ export default function MatricesRavenTest() {
 
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-6">
         <div className="flex flex-col items-center gap-6">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Matrice</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-[#605a57]">Matrice</p>
           <div className="grid grid-cols-3 gap-2">
             {currentQ.matrix.map((cell, i) => (
               <MatrixCell key={i} fig={cell} empty={cell === null} />
             ))}
           </div>
 
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Choix</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-[#605a57]">Choix</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
             {currentQ.choices.map((choice, i) => {
               const isSelected = selected === i;
@@ -1364,7 +1366,7 @@ export default function MatricesRavenTest() {
                   }`}
                 >
                   <FigureSvg fig={choice} />
-                  <span className="mt-1 text-xs text-slate-500">{i + 1}</span>
+                  <span className="mt-1 text-xs text-[#605a57]">{i + 1}</span>
                 </button>
               );
             })}

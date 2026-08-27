@@ -216,7 +216,7 @@ export default function GlossaireAngleMobile() {
 
             {/* Rotation slider */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500">Rot :</span>
+              <span className="text-[#605a57]">Rot :</span>
               <input
                 type="range"
                 min={0}
@@ -248,7 +248,7 @@ export default function GlossaireAngleMobile() {
 
             {/* Presets */}
             <div>
-              <p className="text-[10px] text-slate-500 mb-1.5 text-center">Angles remarquables</p>
+              <p className="text-[10px] text-[#605a57] mb-1.5 text-center">Angles remarquables</p>
               <div className="grid grid-cols-8 gap-1">
                 {presets.map(a => (
                   <button
@@ -257,7 +257,7 @@ export default function GlossaireAngleMobile() {
                     className={`text-[10px] font-mono py-1.5 rounded transition-colors ${
                       ((angle % 360) + 360) % 360 === a
                         ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
+                        : 'bg-slate-100 text-[#605a57] hover:bg-slate-200 active:bg-slate-300'
                     }`}
                   >
                     {a}{'\u00B0'}

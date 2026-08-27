@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home, Play, RotateCcw, Settings } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -13,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
@@ -318,7 +318,7 @@ export default function BoitesMotsTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Boites a mots</CardTitle>
@@ -328,16 +328,16 @@ export default function BoitesMotsTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-2xl font-bold text-slate-700">{settings.numSeries}</p>
-                <p className="text-sm text-slate-500">Series</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-4">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numSeries}</p>
+                <p className="text-sm text-[#605a57]">Series</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-2xl font-bold text-slate-700">3-4</p>
-                <p className="text-sm text-slate-500">Boites par serie</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-4">
+                <p className="text-2xl font-bold text-[#37322f]">3-4</p>
+                <p className="text-sm text-[#605a57]">Boites par serie</p>
               </div>
             </div>
-            <p className="text-center text-sm text-slate-500">
+            <p className="text-center text-sm text-[#605a57]">
               Le premier mot d&apos;un theme fixe la boite correspondante. Minimisez les erreurs.
             </p>
             {settings.examMode && (
@@ -364,7 +364,7 @@ export default function BoitesMotsTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -397,7 +397,7 @@ export default function BoitesMotsTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de retour visuel sur les placements</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de retour visuel sur les placements</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -422,39 +422,32 @@ export default function BoitesMotsTest() {
     }
     const perfEntries = loadEntries(EXERCISE_ID);
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500">
-                {scoreData.correct}/{scoreData.total} placements corrects
-              </p>
-              <p className="mt-1 text-sm text-slate-400">{totalErrors} erreurs au total</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={scoreData.score}
+              detail={`${scoreData.correct}/${scoreData.total} placements corrects`}
+            />
+            <p className="text-center text-sm text-slate-400">{totalErrors} erreurs au total</p>
             <Separator />
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{settings.numSeries}</p>
-                <p className="text-sm text-slate-500">Series jouees</p>
+                <p className="text-sm text-[#605a57]">Series jouees</p>
               </div>
               <div>
                 <p className="text-2xl font-bold">{scoreData.maxStreak}</p>
-                <p className="text-sm text-slate-500">Meilleure serie</p>
+                <p className="text-sm text-[#605a57]">Meilleure serie</p>
               </div>
             </div>
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
                 </div>
@@ -487,7 +480,7 @@ export default function BoitesMotsTest() {
       }`}
     >
       <div className="w-full max-w-5xl rounded-xl border border-slate-300 bg-[#f0f0f0] p-6 shadow-lg">
-        <div className="mb-6 flex items-center justify-between text-base font-medium text-slate-600">
+        <div className="mb-6 flex items-center justify-between text-base font-medium text-[#605a57]">
           <span>Serie {seriesIndex + 1}/{settings.numSeries}</span>
           <span>Mot {Math.min(wordsDone + 1, wordsTotal)}/{wordsTotal}</span>
           <span className={totalErrors > 0 ? 'text-red-600' : ''}>Erreurs : {totalErrors}</span>
@@ -521,7 +514,7 @@ export default function BoitesMotsTest() {
                       className={`flex h-9 items-center justify-center rounded border text-sm font-medium ${
                         slot
                           ? 'border-slate-300 bg-slate-100 text-slate-800'
-                          : 'border-dashed border-slate-300 bg-slate-50 text-transparent'
+                          : 'border-dashed border-slate-300 bg-[#f7f5f3] text-transparent'
                       }`}
                     >
                       {slot ?? '.'}

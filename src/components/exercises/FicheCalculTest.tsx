@@ -172,7 +172,7 @@ export default function FicheCalculTest() {
   if (phase === 'menu') {
     const perfEntries = loadEntries('fiche-calcul');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Fiche Calcul</CardTitle>
@@ -181,7 +181,7 @@ export default function FicheCalculTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
+            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
               <p>Deux modes disponibles (onglets pendant le test) :</p>
               <p><strong>&times;</strong> Multiplications de 2 chiffres par 2 chiffres</p>
               <p><strong>+/&minus;</strong> Additions ou soustractions de nombres a 3 chiffres</p>
@@ -190,7 +190,7 @@ export default function FicheCalculTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="fiche-calcul" />
                 </div>
@@ -220,7 +220,7 @@ export default function FicheCalculTest() {
 
   if (showCorrection && lastResult) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-between mb-4">
             <Badge variant="outline" className="text-base px-3 py-1">
@@ -244,11 +244,11 @@ export default function FicheCalculTest() {
           {/* Mode tabs (also in correction view so user can switch) */}
           <div className="flex mb-3 rounded-lg border border-slate-200 overflow-hidden">
             <button type="button" onClick={() => switchMode('multiplication')}
-              className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'multiplication' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+              className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'multiplication' ? 'bg-slate-800 text-white' : 'bg-white text-[#605a57] hover:bg-slate-100'}`}>
               &times;
             </button>
             <button type="button" onClick={() => switchMode('plusminus')}
-              className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'plusminus' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+              className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'plusminus' ? 'bg-slate-800 text-white' : 'bg-white text-[#605a57] hover:bg-slate-100'}`}>
               + / &minus;
             </button>
           </div>
@@ -272,8 +272,8 @@ export default function FicheCalculTest() {
                   </>
                 )}
               </div>
-              <p className="text-sm text-slate-500">
-                Temps : <span className="font-semibold text-slate-700">{formatTime(lastResult.timeMs)}</span>
+              <p className="text-sm text-[#605a57]">
+                Temps : <span className="font-semibold text-[#37322f]">{formatTime(lastResult.timeMs)}</span>
               </p>
             </CardContent>
           </Card>
@@ -293,7 +293,7 @@ export default function FicheCalculTest() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-between mb-4">
           <Badge variant="outline" className="text-base px-3 py-1">
@@ -305,11 +305,11 @@ export default function FicheCalculTest() {
         {/* Mode tabs */}
         <div className="flex mb-3 rounded-lg border border-slate-200 overflow-hidden">
           <button type="button" onClick={() => switchMode('multiplication')}
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'multiplication' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+            className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'multiplication' ? 'bg-slate-800 text-white' : 'bg-white text-[#605a57] hover:bg-slate-100'}`}>
             &times;
           </button>
           <button type="button" onClick={() => switchMode('plusminus')}
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'plusminus' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
+            className={`flex-1 py-2 text-sm font-semibold transition-colors ${calcMode === 'plusminus' ? 'bg-slate-800 text-white' : 'bg-white text-[#605a57] hover:bg-slate-100'}`}>
             + / &minus;
           </button>
         </div>

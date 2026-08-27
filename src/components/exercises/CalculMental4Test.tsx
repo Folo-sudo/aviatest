@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,7 +60,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 const BG = '#d4d4d4';
 const NAVY = '#1a2b4a';
-const TIMER_BLUE = '#0068C6';
+const TIMER_BLUE = '#37322f';
 const TIMER_RED = '#dc2626';
 
 const NONE_IDX = -1;
@@ -353,7 +354,7 @@ export default function CalculMental4Test() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Calcul Mental 4</CardTitle>
@@ -362,7 +363,7 @@ export default function CalculMental4Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.numQuestions} operations</strong> a resoudre.
               </p>
@@ -375,17 +376,17 @@ export default function CalculMental4Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">7</p>
-                <p className="text-xs text-slate-500">Intervalles</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">7</p>
+                <p className="text-xs text-[#605a57]">Intervalles</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestionSec}s</p>
+                <p className="text-xs text-[#605a57]">Par question</p>
               </div>
             </div>
 
@@ -417,7 +418,7 @@ export default function CalculMental4Test() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -450,7 +451,7 @@ export default function CalculMental4Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -487,22 +488,17 @@ export default function CalculMental4Test() {
     const perfEntries = loadEntries('calcul-mental-4');
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="mt-1 text-slate-500">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'calcul-mental-4'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-blue-50 p-4 text-center">
@@ -518,12 +514,12 @@ export default function CalculMental4Test() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => (
-                  <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                  <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-slate-500">Q{i + 1}</span>
+                      <span className="text-[#605a57]">Q{i + 1}</span>
                       <span className={r.isCorrect ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
                         {r.isCorrect ? '\u2713' : '\u2717'}
                         {r.timedOut ? ' (temps ecoule)' : ''}
@@ -532,7 +528,7 @@ export default function CalculMental4Test() {
                     <p className="font-mono text-xs text-slate-400">
                       {r.question.expression} = {r.question.answer}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs text-[#605a57]">
                       Reponse correcte :{' '}
                       {r.question.correctIndices.length === 0
                         ? 'Pas de reponses'
@@ -545,7 +541,7 @@ export default function CalculMental4Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-mental-4" />
                 </div>
@@ -598,7 +594,7 @@ export default function CalculMental4Test() {
         {showCorrection && lastResult ? (
           <Card className="mr-6 py-8">
             <CardContent className="space-y-6">
-              <p className="text-center font-mono text-lg text-slate-500">{currentQ.expression}</p>
+              <p className="text-center font-mono text-lg text-[#605a57]">{currentQ.expression}</p>
               <p className="text-center text-2xl font-bold text-slate-800">= {currentQ.answer}</p>
 
               <div className="text-center">
@@ -613,7 +609,7 @@ export default function CalculMental4Test() {
                 {currentQ.intervals.map((iv, idx) => {
                   const isCorrectOpt = currentQ.correctIndices.includes(idx);
                   const wasSelected = lastResult.selected.has(idx);
-                  let style = 'bg-white border-2 border-slate-200 text-slate-600';
+                  let style = 'bg-white border-2 border-slate-200 text-[#605a57]';
                   if (isCorrectOpt && wasSelected) style = 'bg-green-100 border-2 border-green-500 text-green-800';
                   else if (isCorrectOpt && !wasSelected) style = 'bg-green-50 border-2 border-green-400 text-green-700';
                   else if (!isCorrectOpt && wasSelected) style = 'bg-red-100 border-2 border-red-500 text-red-800';
@@ -631,7 +627,7 @@ export default function CalculMental4Test() {
                         ? 'border-2 border-green-400 bg-green-50 text-green-700'
                         : lastResult.selected.has(NONE_IDX)
                           ? 'border-2 border-red-500 bg-red-100 text-red-800'
-                          : 'border-2 border-slate-200 bg-white text-slate-600'
+                          : 'border-2 border-slate-200 bg-white text-[#605a57]'
                   }`}
                 >
                   Pas de reponses
@@ -659,7 +655,7 @@ export default function CalculMental4Test() {
 
             <Card className="mr-6 mt-4 flex-1 py-6">
               <CardContent>
-                <p className="mb-3 text-center text-sm text-slate-500">
+                <p className="mb-3 text-center text-sm text-[#605a57]">
                   Cochez tous les intervalles qui contiennent le resultat :
                 </p>
                 <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
@@ -674,7 +670,7 @@ export default function CalculMental4Test() {
                         className={`rounded-lg px-3 py-3 text-sm font-semibold shadow-sm transition-all disabled:opacity-60 ${
                           isSelected
                             ? 'scale-[1.02] border-2 border-blue-500 bg-blue-100 text-blue-800'
-                            : 'border-2 border-transparent bg-white text-slate-700 hover:border-slate-300'
+                            : 'border-2 border-transparent bg-white text-[#37322f] hover:border-slate-300'
                         }`}
                       >
                         {formatInterval(iv)}
@@ -688,7 +684,7 @@ export default function CalculMental4Test() {
                     className={`col-span-2 rounded-lg px-3 py-3 text-sm font-semibold shadow-sm transition-all disabled:opacity-60 ${
                       selected.has(NONE_IDX)
                         ? 'scale-[1.02] border-2 border-blue-500 bg-blue-100 text-blue-800'
-                        : 'border-2 border-transparent bg-white text-slate-700 hover:border-slate-300'
+                        : 'border-2 border-transparent bg-white text-[#37322f] hover:border-slate-300'
                     }`}
                   >
                     Pas de reponses

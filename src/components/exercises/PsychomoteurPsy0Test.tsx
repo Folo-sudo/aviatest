@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import {
@@ -20,6 +20,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { PhoneDpad, type PhoneDir } from '@/components/phone/PhoneDpad';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types
@@ -377,6 +379,7 @@ function DirectionBadge({
 
 export default function PsychomoteurPsy0Test() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -703,7 +706,7 @@ export default function PsychomoteurPsy0Test() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Psychomoteur Psy0 AF Cadet</CardTitle>
@@ -712,7 +715,7 @@ export default function PsychomoteurPsy0Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>Fleches</strong> : maintenez la fleche dans le sens du
                 cercle (vert = correct).
@@ -727,23 +730,23 @@ export default function PsychomoteurPsy0Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.durationMin}m
                 </p>
-                <p className="text-xs text-slate-500">Duree</p>
+                <p className="text-xs text-[#605a57]">Duree</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.moveSpeed}
                 </p>
-                <p className="text-xs text-slate-500">Vitesse cercle</p>
+                <p className="text-xs text-[#605a57]">Vitesse cercle</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.shapeIntervalSec}s
                 </p>
-                <p className="text-xs text-slate-500">Formes</p>
+                <p className="text-xs text-[#605a57]">Formes</p>
               </div>
             </div>
 
@@ -777,7 +780,7 @@ export default function PsychomoteurPsy0Test() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -802,7 +805,7 @@ export default function PsychomoteurPsy0Test() {
                 <Label>
                   Vitesse du cercle : {settings.moveSpeed} %/s
                 </Label>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[#605a57]">
                   Defaut 12 (proche Pilotest). Plus bas = plus lent.
                 </p>
                 <Slider
@@ -888,24 +891,16 @@ export default function PsychomoteurPsy0Test() {
   if (gameState === 'results' && finalScore) {
     const perfEntries = loadEntries('psychomoteur-psy0');
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={
-                finalScore.overallPct >= 75
-                  ? 'default'
-                  : finalScore.overallPct >= 50
-                    ? 'secondary'
-                    : 'destructive'
-              }
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {finalScore.overallPct}%
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <ClassScoreBlock
+              exerciseId={'psychomoteur-psy0'}
+              percent={finalScore.overallPct}
+            />
             <div className="grid grid-cols-3 gap-3">
               {[
                 ['Suivi', finalScore.trackingPct],
@@ -914,17 +909,17 @@ export default function PsychomoteurPsy0Test() {
               ].map(([label, pct]) => (
                 <div
                   key={label as string}
-                  className="rounded-lg bg-slate-50 p-4 text-center"
+                  className="rounded-lg bg-[#f7f5f3] p-4 text-center"
                 >
-                  <p className="text-2xl font-bold text-slate-700">{pct}%</p>
-                  <p className="text-xs text-slate-500">{label}</p>
+                  <p className="text-2xl font-bold text-[#37322f]">{pct}%</p>
+                  <p className="text-xs text-[#605a57]">{label}</p>
                 </div>
               ))}
             </div>
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">
                   Progression
                 </p>
                 <div className="flex justify-center">
@@ -999,6 +994,18 @@ export default function PsychomoteurPsy0Test() {
         </div>
       </div>
 
+      {phone && (
+        <div className="flex justify-center py-2">
+          <PhoneDpad
+            held={heldDir}
+            onHold={(dir: PhoneDir | null) => {
+              heldDirRef.current = dir;
+              setHeldDir(dir);
+            }}
+          />
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-[20] items-center gap-2 px-2">
         <div
           className="flex h-[10vmin] w-[10vmin] shrink-0 items-center justify-center rounded-lg"
@@ -1049,11 +1056,11 @@ export default function PsychomoteurPsy0Test() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-[18] items-center gap-4 px-4">
+      <div className={`flex min-h-0 items-center gap-3 px-4 ${phone ? 'flex-[22]' : 'flex-[18]'}`}>
         <button
           type="button"
           onClick={handleSpace}
-          className="rounded-xl px-6 py-2 text-lg font-semibold text-white shadow"
+          className={`rounded-xl text-lg font-semibold text-white shadow ${phone ? 'h-14 flex-1' : 'px-6 py-2'}`}
           style={{
             backgroundColor:
               spaceFlash === 'ok'
@@ -1068,7 +1075,7 @@ export default function PsychomoteurPsy0Test() {
         <button
           type="button"
           onClick={handleF}
-          className="rounded-xl px-5 py-2 text-lg font-semibold text-white shadow"
+          className={`rounded-xl text-lg font-semibold text-white shadow ${phone ? 'h-14 flex-1' : 'px-5 py-2'}`}
           style={{
             backgroundColor:
               fFlash === 'ok'

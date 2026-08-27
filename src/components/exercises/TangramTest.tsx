@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, RotateCcw, Home, Settings, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types
@@ -324,7 +326,7 @@ function CatalogLegend({ cellSize = 34 }: { cellSize?: number }) {
       {CATALOG_ORDER.map((letter) => (
         <div key={letter} className="flex flex-col items-center gap-0.5">
           <BrickShape letter={letter} size={cellSize} />
-          <span className="text-xs font-bold text-slate-700">{letter}</span>
+          <span className="text-xs font-bold text-[#37322f]">{letter}</span>
         </div>
       ))}
     </div>
@@ -377,6 +379,7 @@ function CompositeFigure({ grid, cellSize = 52 }: { grid: BrickLetter[][]; cellS
 
 export default function TangramTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -542,7 +545,7 @@ export default function TangramTest() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Tangram</CardTitle>
@@ -551,7 +554,7 @@ export default function TangramTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 Un catalogue de <strong>10 briques</strong> (U, S, R, Q, P, O, W, T, V, X).
               </p>
@@ -572,24 +575,24 @@ export default function TangramTest() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">5</p>
-                <p className="text-xs text-slate-500">Choix</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">5</p>
+                <p className="text-xs text-[#605a57]">Choix</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
-            <div className="rounded-lg bg-slate-50 p-4">
-              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-lg bg-[#f7f5f3] p-4">
+              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-[#605a57]">
                 Catalogue de briques
               </p>
               <CatalogLegend cellSize={28} />
@@ -623,7 +626,7 @@ export default function TangramTest() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -661,7 +664,7 @@ export default function TangramTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -697,27 +700,19 @@ export default function TangramTest() {
     }
 
     const perfEntries = loadEntries('tangram');
-    const grade = percent >= 75 ? 'Excellent' : percent >= 50 ? 'Bien' : percent >= 25 ? 'Passable' : 'A revoir';
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{percent}%</p>
-              <p className="mt-1 text-slate-500">
-                {correct} / {total} bonnes reponses
-              </p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'tangram'}
+              percent={percent}
+              detail={`${correct} / ${total} bonnes reponses`}
+            />
 
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-green-50 p-3 text-center">
@@ -728,9 +723,9 @@ export default function TangramTest() {
                 <p className="text-2xl font-bold text-red-600">{incorrect}</p>
                 <p className="text-xs text-red-700">Incorrect</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-600">{skipped}</p>
-                <p className="text-xs text-slate-500">Passe</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3 text-center">
+                <p className="text-2xl font-bold text-[#605a57]">{skipped}</p>
+                <p className="text-xs text-[#605a57]">Passe</p>
               </div>
             </div>
 
@@ -740,22 +735,22 @@ export default function TangramTest() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => {
                   const correctAnswer = r.question.choices[r.question.correctIndex];
                   const selected = r.selectedIndex !== null ? r.question.choices[r.selectedIndex] : null;
                   return (
-                    <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                    <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-slate-500">Q{i + 1}</span>
+                        <span className="text-[#605a57]">Q{i + 1}</span>
                         <span
                           className={
                             r.outcome === 'correct'
                               ? 'font-semibold text-green-600'
                               : r.outcome === 'incorrect'
                                 ? 'font-semibold text-red-600'
-                                : 'font-semibold text-slate-500'
+                                : 'font-semibold text-[#605a57]'
                           }
                         >
                           {r.outcome === 'correct' ? '\u2713' : r.outcome === 'incorrect' ? '\u2717' : '\u2014'}{' '}
@@ -773,7 +768,7 @@ export default function TangramTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="tangram" />
                 </div>
@@ -811,7 +806,7 @@ export default function TangramTest() {
       {/* Main: figure left, MCQ right */}
       <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-center">
         <div className="flex flex-1 items-center justify-center">
-          {currentQ && <CompositeFigure grid={currentQ.grid} cellSize={56} />}
+          {currentQ && <CompositeFigure grid={currentQ.grid} cellSize={phone ? 64 : 56} />}
         </div>
 
         <div className="mx-auto w-full max-w-sm shrink-0 space-y-2 lg:max-w-md">
@@ -824,13 +819,16 @@ export default function TangramTest() {
             else if (isSelected && !showCorrection) rowClass = 'border-slate-600 bg-slate-100';
 
             return (
-              <div
+              <button
                 key={i}
-                className={`rounded border-2 px-3 py-2.5 text-sm font-medium leading-snug sm:text-base ${rowClass}`}
+                type="button"
+                disabled={locked}
+                onClick={() => handleChoice(i)}
+                className={`w-full rounded-xl border-2 px-3 py-3 text-left text-sm font-medium leading-snug sm:text-base ${rowClass}`}
               >
                 <span className="mr-2 font-bold">{i + 1})</span>
                 {choice}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -863,7 +861,7 @@ export default function TangramTest() {
                 <div className="h-8 w-2 overflow-hidden rounded-full bg-slate-400">
                   <div className={`w-full ${timerColor}`} style={{ height: `${timerPercent}%` }} />
                 </div>
-                <span className="font-mono text-sm text-slate-700 tabular-nums">
+                <span className="font-mono text-sm text-[#37322f] tabular-nums">
                   {Math.ceil(timeLeft / 1000)}s
                 </span>
               </div>

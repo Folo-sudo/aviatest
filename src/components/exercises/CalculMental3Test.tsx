@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -378,7 +379,7 @@ export default function CalculMental3Test() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Calcul Mental 3</CardTitle>
@@ -387,7 +388,7 @@ export default function CalculMental3Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
+            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
               <p><strong>{settings.totalQuestions} systemes</strong> a resoudre.</p>
               <p>Chaque systeme contient 3 equations a 3 inconnues (A, B, C).</p>
               <p>Resolvez A et C d&apos;abord, puis substituez pour trouver <strong>B</strong>.</p>
@@ -400,19 +401,19 @@ export default function CalculMental3Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Systemes</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Systemes</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">3</p>
-                <p className="text-xs text-slate-500">Equations</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">3</p>
+                <p className="text-xs text-[#605a57]">Equations</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
@@ -442,7 +443,7 @@ export default function CalculMental3Test() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -485,7 +486,7 @@ export default function CalculMental3Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Multiplications ab &times; cd</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Ajouter un terme ab &times; cd dans l&apos;equation de B</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Ajouter un terme ab &times; cd dans l&apos;equation de B</p>
                 </div>
                 <Switch
                   checked={settings.includeMultiply}
@@ -495,7 +496,7 @@ export default function CalculMental3Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les systemes</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les systemes</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -527,22 +528,17 @@ export default function CalculMental3Test() {
     const perfEntries = loadEntries('calcul-mental-3');
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1 mt-2"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500 mt-1">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'calcul-mental-3'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
@@ -556,12 +552,12 @@ export default function CalculMental3Test() {
             </div>
 
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail par systeme :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail par systeme :</p>
               <div className="max-h-72 overflow-y-auto space-y-2">
                 {results.map((r, i) => (
-                  <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                  <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-slate-500">S{i + 1}</span>
+                      <span className="text-[#605a57]">S{i + 1}</span>
                       <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                         {r.isCorrect ? '\u2713' : '\u2717'}
                         {' B = '}
@@ -577,7 +573,7 @@ export default function CalculMental3Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-mental-3" />
                 </div>
@@ -608,7 +604,7 @@ export default function CalculMental3Test() {
   const eq3 = currentSys ? formatEquation3(currentSys) : '';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="w-full max-w-4xl relative">
         {/* Vertical timer bar */}
         {settings.timeLimitSec > 0 && (
@@ -631,12 +627,12 @@ export default function CalculMental3Test() {
         {showCorrection ? (
           <Card className="text-center py-10 mr-6">
             <CardContent className="space-y-6">
-              <div className="text-left max-w-md mx-auto space-y-1 font-mono text-sm text-slate-600">
+              <div className="text-left max-w-md mx-auto space-y-1 font-mono text-sm text-[#605a57]">
                 <p>{eq1}</p>
                 <p>{eq2}</p>
                 <p>{eq3}</p>
               </div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-[#605a57]">
                 A = {currentSys.valueA}, C = {currentSys.valueC}
               </div>
               <div className="space-y-2">
@@ -662,7 +658,7 @@ export default function CalculMental3Test() {
         ) : (
           <Card className="text-center py-10 mr-6">
             <CardContent className="space-y-6">
-              <p className="text-lg text-slate-500 mb-4">Resoudre le systeme d&apos;equations ci-dessous :</p>
+              <p className="text-lg text-[#605a57] mb-4">Resoudre le systeme d&apos;equations ci-dessous :</p>
 
               {/* System display with curly brace */}
               <div className="flex items-center justify-center gap-4">
@@ -680,7 +676,7 @@ export default function CalculMental3Test() {
               </div>
 
               <div className="flex items-center justify-center gap-3 max-w-md mx-auto mt-6">
-                <span className="text-lg font-bold text-slate-700">B =</span>
+                <span className="text-lg font-bold text-[#37322f]">B =</span>
                 <input
                   ref={inputRef}
                   type="number"

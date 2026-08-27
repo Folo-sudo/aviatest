@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -187,18 +188,6 @@ function scoreGrid(grid: CalcGrid, selected: Set<number>, validated: boolean): n
 
   const raw = (correctHits / numFalse) - (falseAlarms / (GRID_SIZE - numFalse));
   return Math.max(0, Math.min(1, raw));
-}
-
-function scoreToClass(percent: number): number {
-  if (percent >= 96) return 9;
-  if (percent >= 92) return 8;
-  if (percent >= 85) return 7;
-  if (percent >= 75) return 6;
-  if (percent >= 60) return 5;
-  if (percent >= 44) return 4;
-  if (percent >= 24) return 3;
-  if (percent >= 7) return 2;
-  return 1;
 }
 
 function formatMMSS(sec: number): string {
@@ -477,7 +466,7 @@ function MenuScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Grilles de calculs</CardTitle>
@@ -487,16 +476,16 @@ function MenuScreen({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">{settings.numGrids}</p>
-              <p className="text-sm text-slate-500">Grilles</p>
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">{settings.numGrids}</p>
+              <p className="text-sm text-[#605a57]">Grilles</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">{settings.timePerGridSec}s</p>
-              <p className="text-sm text-slate-500">Par grille</p>
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">{settings.timePerGridSec}s</p>
+              <p className="text-sm text-[#605a57]">Par grille</p>
             </div>
           </div>
-          <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-1">
+          <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-1">
             <p>Grille 3&times;3 de calculs simples (+, &minus;, &times;, &divide;).</p>
             <p>0 a 4 calculs faux par grille. Validez obligatoirement avant expiration.</p>
           </div>
@@ -532,7 +521,7 @@ function SettingsScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle>Parametres</CardTitle>
@@ -564,7 +553,7 @@ function SettingsScreen({
             <div className="flex items-center justify-between">
               <div>
                 <Label>Mode examen</Label>
-                <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les grilles</p>
+                <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les grilles</p>
               </div>
               <Switch
                 checked={settings.examMode}
@@ -624,7 +613,7 @@ function PlayingScreen({
       </div>
 
       <div className="flex-1 flex flex-col p-4 min-h-screen">
-        <p className="text-base text-slate-600 mb-4">
+        <p className="text-base text-[#605a57] mb-4">
           {showCorrection ? (
             'Correction — vert = bon choix, rouge = erreur'
           ) : (
@@ -651,11 +640,11 @@ function PlayingScreen({
         <div className="border-t border-slate-400 pt-3 mt-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="text-base font-medium text-slate-700 whitespace-nowrap">
+              <span className="text-base font-medium text-[#37322f] whitespace-nowrap">
                 {gridIdx + 1} / {totalGrids}
               </span>
               {!showCorrection && (
-                <span className="text-base text-slate-600 font-mono tabular-nums">
+                <span className="text-base text-[#605a57] font-mono tabular-nums">
                   {formatMMSS(remainingSec)}
                 </span>
               )}
@@ -670,7 +659,7 @@ function PlayingScreen({
                         current
                           ? 'w-4 bg-amber-500'
                           : done
-                            ? 'w-2 bg-slate-500'
+                            ? 'w-2 bg-[#37322f]'
                             : 'w-2 bg-slate-300'
                       }`}
                     />
@@ -750,33 +739,6 @@ function CalcCellButton({
 // Results
 // ============================================================================
 
-const STANINE_COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#facc15', '#a3e635',
-  '#22c55e', '#14b8a6', '#0ea5e9', '#6366f1',
-];
-
-function Histogram({ stanine }: { stanine: number }) {
-  return (
-    <div className="flex items-end justify-center gap-1 h-24">
-      {STANINE_COLORS.map((color, i) => {
-        const cls = i + 1;
-        const height = 20 + cls * 8;
-        return (
-          <div
-            key={cls}
-            className="w-8 rounded-t transition-opacity"
-            style={{
-              height: `${height}px`,
-              backgroundColor: color,
-              opacity: cls === stanine ? 1 : 0.25,
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 function ResultsScreen({
   computeScore,
   gridResults,
@@ -795,55 +757,41 @@ function ResultsScreen({
   onReview: () => void;
 }) {
   const { percent, gridScores } = computeScore();
-  const cls = scoreToClass(percent);
   const perfEntries = loadEntries(EXERCISE_ID);
   const validatedCount = gridResults.filter((r) => r?.validated).length;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">Grilles de calculs</CardTitle>
-          <Badge
-            variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'}
-            className="text-lg px-4 py-1 mx-auto"
-          >
-            Classe {cls}
-          </Badge>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500 uppercase">Score</p>
-            <p className="text-5xl font-bold text-slate-700 mt-1">{percent.toFixed(1)} %</p>
-            <p className="text-slate-500 mt-1">
-              {validatedCount} / {totalGrids} grilles validees
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-slate-500 uppercase mb-2">Performance</p>
-            <Histogram stanine={cls} />
-          </div>
+          <ClassScoreBlock
+            exerciseId={EXERCISE_ID}
+            percent={percent}
+            detail={`${validatedCount} / ${totalGrids} grilles validees`}
+          />
 
           {gridScores.length > 0 && (
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail par grille :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail par grille :</p>
               <div className="max-h-40 overflow-y-auto space-y-1">
                 {gridScores.map((s, i) => {
                   const r = gridResults[i];
                   return (
                     <div
                       key={i}
-                      className="flex items-center justify-between bg-slate-50 rounded px-3 py-1.5 text-sm"
+                      className="flex items-center justify-between bg-[#f7f5f3] rounded px-3 py-1.5 text-sm"
                     >
-                      <span className="text-slate-600">Grille {i + 1}</span>
+                      <span className="text-[#605a57]">Grille {i + 1}</span>
                       <span>
                         {!r?.validated ? (
                           <span className="text-red-600">Non validee (0 %)</span>
                         ) : (
                           <span
                             className={
-                              s >= 0.99 ? 'text-green-600 font-semibold' : 'text-slate-700'
+                              s >= 0.99 ? 'text-green-600 font-semibold' : 'text-[#37322f]'
                             }
                           >
                             {(s * 100).toFixed(0)} %
@@ -859,7 +807,7 @@ function ResultsScreen({
 
           {perfEntries.length >= 2 && (
             <div className="border-t pt-4">
-              <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+              <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
               <div className="flex justify-center">
                 <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
               </div>
@@ -935,7 +883,7 @@ function ReviewScreen({
         </div>
       </div>
 
-      <div className="text-center text-sm text-slate-600 mb-4">
+      <div className="text-center text-sm text-[#605a57] mb-4">
         {result?.validated ? (
           <span>
             Score : <strong>{((result.score * 100)).toFixed(0)} %</strong>

@@ -150,7 +150,7 @@ export default function FicheCalculMobile() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-1.5">
+              <div className="bg-[#f7f5f3] rounded-lg p-3 text-sm text-[#605a57] space-y-1.5">
                 <p>Multiplications de <strong>2 chiffres par 2 chiffres</strong> sans fin.</p>
                 <p>Correction immediate apres chaque reponse.</p>
                 <p><strong>&quot;Voir la reponse&quot;</strong> pour passer plus vite.</p>
@@ -158,7 +158,7 @@ export default function FicheCalculMobile() {
 
               {perfEntries.length >= 2 && (
                 <div className="border-t pt-3">
-                  <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                  <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                   <div className="flex justify-center">
                     <MiniPerformanceChart entries={perfEntries} exerciseId="fiche-calcul" />
                   </div>
@@ -230,8 +230,8 @@ export default function FicheCalculMobile() {
                   </>
                 )}
               </div>
-              <p className="text-sm text-slate-500">
-                Temps : <span className="font-semibold text-slate-700">{formatTime(lastResult.timeMs)}</span>
+              <p className="text-sm text-[#605a57]">
+                Temps : <span className="font-semibold text-[#37322f]">{formatTime(lastResult.timeMs)}</span>
               </p>
             </CardContent>
           </Card>

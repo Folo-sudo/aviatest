@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +54,7 @@ interface AnswerRecord {
 
 const EXERCISE_ID = 'lecture-textes';
 const SETTINGS_KEY = 'aviatest-lecture-textes-settings';
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 
 const DEFAULT_SETTINGS: GameSettings = {
   numTexts: 5,
@@ -506,17 +507,17 @@ export default function LectureTextesTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numTexts}</p>
-                <p className="text-xs text-slate-500">Textes</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numTexts}</p>
+                <p className="text-xs text-[#605a57]">Textes</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerTextSec}s</p>
-                <p className="text-xs text-slate-500">Lecture</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerTextSec}s</p>
+                <p className="text-xs text-[#605a57]">Lecture</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.answerMode === 'oneByOne' ? '1×1' : 'Lot'}</p>
-                <p className="text-xs text-slate-500">Mode reponses</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.answerMode === 'oneByOne' ? '1×1' : 'Lot'}</p>
+                <p className="text-xs text-[#605a57]">Mode reponses</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -567,20 +568,20 @@ export default function LectureTextesTest() {
                 className="mt-2"
               />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-[#f7f5f3] p-4">
               <div>
                 <Label>Mode examen</Label>
-                <p className="text-xs text-slate-500">Pas de correction affichee</p>
+                <p className="text-xs text-[#605a57]">Pas de correction affichee</p>
               </div>
               <Switch
                 checked={settings.examMode}
                 onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))}
               />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-[#f7f5f3] p-4">
               <div>
                 <Label>Reponses une par une</Label>
-                <p className="text-xs text-slate-500">Sinon : toutes les questions puis valider</p>
+                <p className="text-xs text-[#605a57]">Sinon : toutes les questions puis valider</p>
               </div>
               <Switch
                 checked={settings.answerMode === 'oneByOne'}
@@ -613,13 +614,14 @@ export default function LectureTextesTest() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={pct >= 75 ? 'default' : 'secondary'}>{pct}%</Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{correct}/{total}</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correct}/${total} correctes`}
+            />
             {perfEntries.length >= 2 && (
               <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
             )}
@@ -643,7 +645,7 @@ export default function LectureTextesTest() {
     return (
       <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
         <div className="border-b border-slate-200 bg-white/70 px-4 py-3">
-          <div className="mx-auto flex max-w-3xl items-center justify-between text-sm font-medium text-slate-700">
+          <div className="mx-auto flex max-w-3xl items-center justify-between text-sm font-medium text-[#37322f]">
             <span>Texte {textIdx + 1}/{texts.length}</span>
             <span>{timeLeft}s</span>
             <Badge variant="outline">{currentText.topic}</Badge>
@@ -651,13 +653,13 @@ export default function LectureTextesTest() {
           <div className="mx-auto mt-2 h-2 max-w-3xl rounded-full bg-slate-200">
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${timerPct}%`, backgroundColor: '#0068C6' }}
+              style={{ width: `${timerPct}%`, backgroundColor: '#37322f' }}
             />
           </div>
         </div>
         <div className="mx-auto w-full max-w-3xl flex-1 p-6">
           <h2 className="mb-4 text-2xl font-bold text-slate-800">{currentText.title}</h2>
-          <p className="leading-relaxed text-slate-700">{currentText.body}</p>
+          <p className="leading-relaxed text-[#37322f]">{currentText.body}</p>
           <Button
             className="mt-8"
             size="lg"
@@ -682,7 +684,7 @@ export default function LectureTextesTest() {
       return (
         <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
           <div className="border-b border-slate-200 bg-white/70 px-4 py-3">
-            <div className="mx-auto flex max-w-3xl justify-between text-sm font-medium text-slate-700">
+            <div className="mx-auto flex max-w-3xl justify-between text-sm font-medium text-[#37322f]">
               <span>Texte {textIdx + 1} — Question {qIdx + 1}/3</span>
               <span>Score : {results.filter((r) => r.correct).length}/{results.length}</span>
             </div>
@@ -718,7 +720,7 @@ export default function LectureTextesTest() {
                         : 'border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50'
                   }`}
                 >
-                  <span className="font-semibold text-slate-500">{i + 1}. </span>{opt}
+                  <span className="font-semibold text-[#605a57]">{i + 1}. </span>{opt}
                 </button>
                 );
               })}
@@ -736,7 +738,7 @@ export default function LectureTextesTest() {
     return (
       <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
         <div className="border-b border-slate-200 bg-white/70 px-4 py-3">
-          <div className="mx-auto max-w-3xl text-sm font-medium text-slate-700">
+          <div className="mx-auto max-w-3xl text-sm font-medium text-[#37322f]">
             Texte {textIdx + 1}/{texts.length} — Repondez aux 3 questions
           </div>
         </div>

@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, ChevronRight, Home, Play, RotateCcw, Settings, XCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -11,6 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import {
   type CubeFaceId,
   type LayoutId,
@@ -52,7 +52,7 @@ interface QuestionResult {
 
 const EXERCISE_ID = 'cubes-psy1';
 const SETTINGS_KEY = 'aviatest-cubes-psy1-settings';
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 const FACE_SIZE = 72;
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -295,7 +295,7 @@ function CubeNetNumbered({
               height: cell,
             }}
           >
-            <span className="absolute left-1 top-0 text-xs font-bold text-slate-500">{num}</span>
+            <span className="absolute left-1 top-0 text-xs font-bold text-[#605a57]">{num}</span>
             {sym ? <SymbolSvg id={sym} size={FACE_SIZE - 8} /> : <span className="text-slate-300">?</span>}
           </button>
         );
@@ -307,7 +307,7 @@ function CubeNetNumbered({
 function ViewCard({ label, symbol }: { label: string; symbol: SymbolId }) {
   return (
     <div className="flex flex-col items-center rounded-lg border-2 border-slate-300 bg-white p-4">
-      <p className="mb-2 text-xs font-semibold uppercase text-slate-500">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase text-[#605a57]">{label}</p>
       <SymbolSvg id={symbol} size={80} />
     </div>
   );
@@ -441,17 +441,17 @@ export default function CubesPsy1Test() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Temps</p>
+                <p className="text-xs text-[#605a57]">Temps</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.examMode ? 'Oui' : 'Non'}</p>
-                <p className="text-xs text-slate-500">Examen</p>
+                <p className="text-xs text-[#605a57]">Examen</p>
               </div>
             </div>
             <Button size="lg" className="w-full" onClick={startGame}>
@@ -483,7 +483,7 @@ export default function CubesPsy1Test() {
               <Label>Temps : {settings.timePerQuestionSec}s</Label>
               <Slider value={[settings.timePerQuestionSec]} onValueChange={([v]) => setSettings((s) => ({ ...s, timePerQuestionSec: v }))} min={45} max={120} step={5} className="mt-2" />
             </div>
-            <div className="flex items-center justify-between rounded-lg border bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border bg-[#f7f5f3] p-4">
               <Label>Mode examen</Label>
               <Switch checked={settings.examMode} onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))} />
             </div>
@@ -508,11 +508,14 @@ export default function CubesPsy1Test() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle>Resultats</CardTitle>
-            <Badge>{pct}%</Badge>
+            <CardTitle>Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-center text-5xl font-bold">{correct}/{total}</p>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correct}/${total} correctes`}
+            />
             {perfEntries.length >= 2 && <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />}
             <Button className="w-full" onClick={startGame}><RotateCcw className="mr-2 h-5 w-5" /> Rejouer</Button>
             <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}>Menu</Button>
@@ -539,7 +542,7 @@ export default function CubesPsy1Test() {
           <span>Score : {results.filter((r) => r.correct).length}/{results.length}</span>
         </div>
         <div className="mx-auto mt-2 h-2 max-w-5xl rounded-full bg-slate-200">
-          <div className="h-full rounded-full" style={{ width: `${timerPct}%`, backgroundColor: timerPct < 20 ? '#dc2626' : '#0068C6' }} />
+          <div className="h-full rounded-full" style={{ width: `${timerPct}%`, backgroundColor: timerPct < 20 ? '#dc2626' : '#37322f' }} />
         </div>
       </div>
 
@@ -553,7 +556,7 @@ export default function CubesPsy1Test() {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border bg-white/80 p-5">
-            <p className="mb-4 text-sm font-semibold uppercase text-slate-600">Vues du cube</p>
+            <p className="mb-4 text-sm font-semibold uppercase text-[#605a57]">Vues du cube</p>
             <div className="flex flex-wrap justify-center gap-4">
               {currentQ.views.map((v) => {
                 const face = currentQ.logicalCube[v.face];
@@ -564,7 +567,7 @@ export default function CubesPsy1Test() {
           </div>
 
           <div className="rounded-xl border bg-white/80 p-5">
-            <p className="mb-4 text-sm font-semibold uppercase text-slate-600">
+            <p className="mb-4 text-sm font-semibold uppercase text-[#605a57]">
               {showSolution ? 'Solution' : 'Developpement numerote'}
             </p>
             <div className="flex justify-center">
@@ -581,7 +584,7 @@ export default function CubesPsy1Test() {
 
         {!showCorrection && (
           <div className="rounded-xl border bg-white/80 p-5">
-            <p className="mb-3 text-sm font-semibold uppercase text-slate-600">Symboles — cliquez puis placez sur un numero</p>
+            <p className="mb-3 text-sm font-semibold uppercase text-[#605a57]">Symboles — cliquez puis placez sur un numero</p>
             <div className="flex flex-wrap justify-center gap-3">
               {SYMBOL_IDS.map((sym) => (
                 <button

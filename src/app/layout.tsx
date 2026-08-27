@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import StructuredData from "@/components/seo/StructuredData";
@@ -24,6 +24,13 @@ const playfairDisplay = Playfair_Display({
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://aviatest.fr";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#fbfaf9",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

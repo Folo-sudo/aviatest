@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Timer } from '@/lib/core/Timer';
 import { Scorer, ScoreData } from '@/lib/core/Scorer';
 import { TimerBar } from '@/lib/core/CanvasUI';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import * as THREE from 'three';
+import { canvasPoint } from '@/lib/phone/canvasPoint';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
@@ -182,14 +183,14 @@ function drawRotationIndicator(
   }
 
   // Angle text
-  ctx.font = 'bold 20px Arial';
-  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 18px ui-sans-serif, system-ui, sans-serif';
+  ctx.fillStyle = '#37322f';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(`${Math.round(angle)}°`, x, y);
 
   // Axis label
-  ctx.font = '16px Arial';
+  ctx.font = '14px ui-sans-serif, system-ui, sans-serif';
   ctx.fillText(`Axe ${axis}`, x, y + radius + 15);
 }
 
@@ -208,6 +209,36 @@ export default function MentalRotationTest() {
   const [timePerQuestion, setTimePerQuestion] = useState(60);
   const [showCorrections, setShowCorrections] = useState(true);
   const [animationSpeed, setAnimationSpeed] = useState(2.0);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('aviatest-mental-rotation-settings');
+      if (!raw) return;
+      const p = JSON.parse(raw) as Partial<{
+        numSequences: number;
+        timePerQuestion: number;
+        showCorrections: boolean;
+        animationSpeed: number;
+      }>;
+      if (p.numSequences) setNumSequences(p.numSequences);
+      if (p.timePerQuestion) setTimePerQuestion(p.timePerQuestion);
+      if (typeof p.showCorrections === 'boolean') setShowCorrections(p.showCorrections);
+      if (p.animationSpeed) setAnimationSpeed(p.animationSpeed);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'aviatest-mental-rotation-settings',
+        JSON.stringify({ numSequences, timePerQuestion, showCorrections, animationSpeed }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [numSequences, timePerQuestion, showCorrections, animationSpeed]);
 
   // Game refs
   const timerRef = useRef<Timer | null>(null);
@@ -518,42 +549,42 @@ export default function MentalRotationTest() {
       }
 
       // Render
-      ctx.fillStyle = '#D0D0D0';
+      ctx.fillStyle = '#fbfaf9';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Main area
-      ctx.fillStyle = '#E6E6E6';
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(50, 20, canvas.width - 70, canvas.height - 40);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#e0dedb';
+      ctx.lineWidth = 1.5;
       ctx.strokeRect(50, 20, canvas.width - 70, canvas.height - 40);
 
       // Timer bar
       timerBarRef.current?.draw(ctx);
 
       // Title
-      ctx.font = 'bold 28px Arial';
-      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 26px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#37322f';
       ctx.textAlign = 'left';
       ctx.fillText('Test de Rotation Mentale 3D', 70, 50);
 
       // Score
-      ctx.font = '20px Arial';
+      ctx.font = '18px ui-sans-serif, system-ui, sans-serif';
       ctx.fillText(`Score : ${scoreRef.current} / ${totalQuestionsRef.current}`, 70, 80);
 
       // Progress
-      ctx.font = '16px Arial';
-      ctx.fillStyle = '#505050';
+      ctx.font = '15px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#605a57';
       ctx.fillText(`Question ${totalQuestionsRef.current + 1} / ${numSequences}`, 250, 83);
 
       // Instructions
-      ctx.font = '16px Arial';
-      ctx.fillStyle = '#000000';
+      ctx.font = '16px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#37322f';
       ctx.textAlign = 'center';
       ctx.fillText('Appliquez mentalement les rotations suivantes :', canvas.width / 2, 140);
 
       // Reference label
-      ctx.font = '16px Arial';
+      ctx.font = '15px ui-sans-serif, system-ui, sans-serif';
       ctx.textAlign = 'center';
       const refLabel = animatingRef.current ? 'Animation en cours...' : 'Position de référence';
       ctx.fillText(refLabel, canvas.width - 160, 80);
@@ -575,16 +606,16 @@ export default function MentalRotationTest() {
       });
 
       // Separator line
-      ctx.strokeStyle = '#505050';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#e0dedb';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(30, 380);
-      ctx.lineTo(canvas.width - 30, 380);
+      ctx.moveTo(50, 380);
+      ctx.lineTo(canvas.width - 20, 380);
       ctx.stroke();
 
       // Question
-      ctx.font = '20px Arial';
-      ctx.fillStyle = '#000000';
+      ctx.font = '18px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#37322f';
       ctx.textAlign = 'center';
       ctx.fillText("Quelle est l'orientation finale ?", canvas.width / 2, 410);
 
@@ -593,10 +624,10 @@ export default function MentalRotationTest() {
       answerChoicesRef.current.forEach((choice, i) => {
         // Background based on feedback
         if (choice.feedback === 'correct') {
-          ctx.fillStyle = '#C8FFC8';
+          ctx.fillStyle = '#dcfce7';
           ctx.fillRect(choice.x, choice.y, choice.width, choice.height);
         } else if (choice.feedback === 'wrong') {
-          ctx.fillStyle = '#FFC8C8';
+          ctx.fillStyle = '#fee2e2';
           ctx.fillRect(choice.x, choice.y, choice.width, choice.height);
         }
 
@@ -607,24 +638,24 @@ export default function MentalRotationTest() {
         }
 
         // Border
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = choice.feedback === 'correct' ? '#16a34a' : choice.feedback === 'wrong' ? '#dc2626' : '#e0dedb';
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(choice.x, choice.y, choice.width, choice.height);
 
         // Button
         const btnY = choice.y + choice.height + 5;
-        let btnColor = '#E6E6E6';
-        if (choice.feedback === 'correct') btnColor = '#96FF96';
-        else if (choice.feedback === 'wrong') btnColor = '#FF9696';
-        else if (choice.selected) btnColor = '#ADD8E6';
-        else if (choice.hovered) btnColor = '#C8C8C8';
+        let btnColor = '#fbfaf9';
+        if (choice.feedback === 'correct') btnColor = '#dcfce7';
+        else if (choice.feedback === 'wrong') btnColor = '#fee2e2';
+        else if (choice.selected) btnColor = '#ede9e4';
+        else if (choice.hovered) btnColor = '#f3f1ef';
 
         ctx.fillStyle = btnColor;
         ctx.fillRect(choice.x, btnY, choice.width, 30);
         ctx.strokeRect(choice.x, btnY, choice.width, 30);
 
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#000000';
+        ctx.font = '15px ui-sans-serif, system-ui, sans-serif';
+        ctx.fillStyle = '#37322f';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(choice.selected ? `${i + 1} ✓` : `${i + 1}`, choice.x + choice.width / 2, btnY + 15);
@@ -633,13 +664,13 @@ export default function MentalRotationTest() {
       // Next button
       const nextBtnX = canvas.width / 2 - 60;
       const nextBtnY = canvas.height - 60;
-      ctx.fillStyle = '#E6E6E6';
+      ctx.fillStyle = '#37322f';
       ctx.fillRect(nextBtnX, nextBtnY, 120, 40);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#37322f';
+      ctx.lineWidth = 1;
       ctx.strokeRect(nextBtnX, nextBtnY, 120, 40);
-      ctx.font = '16px Arial';
-      ctx.fillStyle = '#000000';
+      ctx.font = '15px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#fbfaf9';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('Suivant', canvas.width / 2, nextBtnY + 20);
@@ -662,9 +693,7 @@ export default function MentalRotationTest() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = canvasPoint(e, canvas, canvas.width, canvas.height);
 
     // Check answer choice buttons
     if (!answeredRef.current && !animatingRef.current) {
@@ -695,9 +724,7 @@ export default function MentalRotationTest() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = canvasPoint(e, canvas, canvas.width, canvas.height);
 
     answerChoicesRef.current.forEach(choice => {
       const btnY = choice.y + choice.height + 5;
@@ -709,7 +736,7 @@ export default function MentalRotationTest() {
   // Menu screen
   if (gameState === 'menu') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Rotation Mentale 3D</CardTitle>
@@ -757,7 +784,7 @@ export default function MentalRotationTest() {
   // Settings screen
   if (gameState === 'settings') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Paramètres</CardTitle>
@@ -827,20 +854,17 @@ export default function MentalRotationTest() {
     const perfEntries = loadEntries('mental-rotation');
 
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-primary mb-2">
-                {percentage}%
-              </div>
-              <Badge variant={percentage >= 70 ? 'default' : 'destructive'}>
-                {scoreRef.current}/{numSequences} réponses correctes
-              </Badge>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'mental-rotation'}
+              percent={percentage}
+              detail={`${scoreRef.current}/${numSequences} reponses correctes`}
+            />
 
             <Separator />
 
@@ -857,7 +881,7 @@ export default function MentalRotationTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="mental-rotation" />
                 </div>
@@ -894,14 +918,14 @@ export default function MentalRotationTest() {
 
   // Playing screen
   return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center">
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#fbfaf9] p-2">
       <canvas
         ref={canvasRef}
         width={1000}
         height={650}
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
-        className="border border-gray-400 cursor-pointer"
+        className="phone-scale cursor-pointer rounded-xl border border-gray-400"
       />
     </div>
   );

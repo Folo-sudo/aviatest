@@ -12,54 +12,50 @@ export interface ExerciseMobileProfile {
   note: string;
 }
 
-const DEDICATED_MOBILE_SLUGS = new Set([
-  'calcul-mental',
-  'calcul-mental-2',
-  'calcul-mental-3',
-  'fiche-angles',
-  'fiche-calcul',
-  'glossaire-angles',
-]);
+/** Slugs with a separate mobile component (the rest share the desktop test + PhoneLayout). */
+const DEDICATED_MOBILE_SLUGS = new Set(
+  EXERCISES.filter((exercise) => exercise.ready).map((exercise) => exercise.slug),
+);
 
 const MOBILE_PROFILES: Record<string, ExerciseMobileProfile> = {
   'angles-horloge': {
     slug: 'angles-horloge',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'QCM visuel simple, exploitable sur telephone avec cibles tactiles confortables.',
   },
   'pair-impair': {
     slug: 'pair-impair',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Grille dense et alternance rapide, une version mobile dediee avec grosses cellules serait preferable.',
   },
   'un-mot-sur-deux': {
     slug: 'un-mot-sur-deux',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Selection alphabetique sur beaucoup de mots, necessite une densite et un espacement retravailles.',
   },
   'formes-couleurs': {
     slug: 'formes-couleurs',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Interaction binaire et lisibilite correcte, adaptation responsive suffisante a court terme.',
   },
   'jeu-des-billes': {
     slug: 'jeu-des-billes',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Puzzle de planification tres visuel, trop compact sans composition mobile dediee.',
   },
   'memory-back': {
     slug: 'memory-back',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Flux sequentiel simple, utilisable sur telephone si le bouton de reponse reste bien accessible.',
   },
   'rotation-mentale-3d': {
     slug: 'rotation-mentale-3d',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Lecture 3D fine, un ecran telephone reduit trop la precision visuelle.',
   },
   'calcul-memorisation': {
     slug: 'calcul-memorisation',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Double tache tres chargee, demande une orchestration mobile specifique.',
   },
   'calcul-mental': {
@@ -69,7 +65,7 @@ const MOBILE_PROFILES: Record<string, ExerciseMobileProfile> = {
   },
   'attention-3': {
     slug: 'attention-3',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Sequence lineaire lisible sur telephone si la typo et le contraste restent larges.',
   },
   'calcul-mental-2': {
@@ -99,137 +95,137 @@ const MOBILE_PROFILES: Record<string, ExerciseMobileProfile> = {
   },
   'compteurs': {
     slug: 'compteurs',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Lecture simultanee de 8 compteurs trop petite sur telephone sans mise en page alternative.',
   },
   'quadrilogie-angles': {
     slug: 'quadrilogie-angles',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Precision angulaire et densite graphique demandent une vraie variante mobile.',
   },
   'psychomoteur-psy0': {
     slug: 'psychomoteur-psy0',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Depend du clavier et du multitache temps reel, peu ergonomique sur telephone.',
   },
   'angles-montres': {
     slug: 'angles-montres',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: '8 montres simultanees et precision angulaire rendent le telephone limite.',
   },
   airways: {
     slug: 'airways',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Tableau strategique multi-zones, interaction trop fine pour telephone sans redesign.',
   },
   empilements: {
     slug: 'empilements',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Comparaison spatiale fine entre structures, experience smartphone insuffisante.',
   },
   'objets-3d': {
     slug: 'objets-3d',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Choix de points de vue trop detaille pour petit ecran.',
   },
   'formes-glissees': {
     slug: 'formes-glissees',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Glisser deposer sur grille centrale, demande une interface tactile specifique.',
   },
   'cubes-psy0': {
     slug: 'cubes-psy0',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Manipulation de patrons et rotations de faces, trop charge sans variante mobile.',
   },
   'grilles-calculs': {
     slug: 'grilles-calculs',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Peut fonctionner sur telephone avec cases tactiles larges et scroll horizontal evite.',
   },
   'boites-mots': {
     slug: 'boites-mots',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Classement lexical faisable sur telephone si les zones de depot restent larges.',
   },
   'mots-en-etoile': {
     slug: 'mots-en-etoile',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Assemblage spatial de mots complexe, peu confortable sur petit ecran.',
   },
   'series-logiques': {
     slug: 'series-logiques',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'QCM textuel bien adapte au telephone si la lecture est aerée.',
   },
   'anglais-psy0': {
     slug: 'anglais-psy0',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'QCM classique, compatible telephone avec boutons de reponse larges.',
   },
   'calcul-mental-4': {
     slug: 'calcul-mental-4',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Selection d intervalles multiple, praticable sur telephone avec grosses cibles.',
   },
   'attention-1': {
     slug: 'attention-1',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Memoire puis reponse oui non, utilisable si les cadrans gardent une taille lisible.',
   },
   'attention-2': {
     slug: 'attention-2',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Comptage sur tableaux denses, trop serre pour telephone sans simplification visuelle.',
   },
   mathematiques: {
     slug: 'mathematiques',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Problemes et QCM, majoritairement textuels donc gerables sur telephone.',
   },
   efg: {
     slug: 'efg',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Selection logique possible sur telephone, selon la densite des propositions.',
   },
   tangram: {
     slug: 'tangram',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Manipulation spatiale fine, meilleur avec une interface tactile repensee.',
   },
   'spatial-orientation': {
     slug: 'spatial-orientation',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Orientation spatiale detaillee, precision visuelle limitee sur telephone.',
   },
   'cubes-psy1': {
     slug: 'cubes-psy1',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Exercice cube avancé, ecran trop petit pour une lecture fiable.',
   },
   'voitures-basic': {
     slug: 'voitures-basic',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Logique sequentielle lisible si les options restent clairement separees.',
   },
   'voitures-sequentiel': {
     slug: 'voitures-sequentiel',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Peut fonctionner sur telephone si la progression reste une etape a la fois.',
   },
   'matrices-raven': {
     slug: 'matrices-raven',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Comparaison de matrices et petits details graphiques, experience telephone fragile.',
   },
   'lecture-textes': {
     slug: 'lecture-textes',
-    experience: 'responsive',
+    experience: 'dedicated',
     note: 'Lecture longue mais compatible telephone avec bonne hierarchie typographique.',
   },
   'psychomoteur-enac': {
     slug: 'psychomoteur-enac',
-    experience: 'needs-work',
+    experience: 'dedicated',
     note: 'Psychomoteur temps reel probablement dependant du clavier et d une grande surface.',
   },
 };
@@ -262,13 +258,13 @@ export function getExerciseMobileProfile(slug: string): ExerciseMobileProfile {
   const canonicalSlug = getCanonicalExerciseSlug(slug);
   return MOBILE_PROFILES[canonicalSlug] ?? {
     slug: canonicalSlug,
-    experience: 'responsive',
-    note: 'Version telephone a confirmer apres revue ergonomique detaillee.',
+    experience: 'dedicated',
+    note: 'Interface telephone : cibles tactiles, lecture claire, mise en page dediee.',
   };
 }
 
 export function getPreferredExerciseHref(slug: string, isPhone: boolean): string {
-  return isPhone && hasDedicatedMobileVariant(slug)
+  return isPhone
     ? `/telephone/${getCanonicalExerciseSlug(slug)}`
     : `/exercices/${slug}`;
 }

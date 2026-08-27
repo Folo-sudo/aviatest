@@ -4,14 +4,17 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
+import { classScaleIdForMemoryBack } from '@/lib/core/classes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { canvasPoint } from '@/lib/phone/canvasPoint';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 type InternalState = 'sliding' | 'memorize' | 'waiting' | 'feedback';
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
@@ -78,6 +81,7 @@ function savePersistedNSelection(settings: MBackPersistedSettings): void {
 
 export function MBackTest({ n: nProp }: { n?: number }) {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const searchParams = useSearchParams();
 
   const [nSelection, setNSelection] = useState<NSelection>(2);
@@ -408,14 +412,13 @@ export function MBackTest({ n: nProp }: { n?: number }) {
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (internalState !== 'waiting') return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const { x, y } = canvasPoint(e, canvas, width, height);
 
-    if (y >= 310 && y <= 360) {
-      if (x >= width/2 - 140 && x <= width/2 - 20) checkAnswer(true);
-      if (x >= width/2 + 20 && x <= width/2 + 140) checkAnswer(false);
+    if (y >= 290 && y <= 380) {
+      if (x >= width/2 - 160 && x <= width/2 - 10) checkAnswer(true);
+      if (x >= width/2 + 10 && x <= width/2 + 160) checkAnswer(false);
     }
   };
 
@@ -432,7 +435,7 @@ export function MBackTest({ n: nProp }: { n?: number }) {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-4xl font-bold">Memory Back</CardTitle>
@@ -440,7 +443,7 @@ export function MBackTest({ n: nProp }: { n?: number }) {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label className="mb-2 block text-slate-600">Choisissez le niveau</Label>
+              <Label className="mb-2 block text-[#605a57]">Choisissez le niveau</Label>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {N_PRESETS.map((preset) => {
                   const isSelected = nSelection === preset.value;
@@ -478,7 +481,7 @@ export function MBackTest({ n: nProp }: { n?: number }) {
                 </button>
               </div>
               {nSelection === 'custom' && (
-                <div className="mt-4 p-4 rounded-lg bg-slate-50 space-y-2">
+                <div className="mt-4 p-4 rounded-lg bg-[#f7f5f3] space-y-2">
                   <Label>Niveau personnalise : M{customN} Back</Label>
                   <Slider
                     value={[customN]}
@@ -495,13 +498,13 @@ export function MBackTest({ n: nProp }: { n?: number }) {
               )}
             </div>
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-sm text-slate-500">Questions</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-sm text-[#605a57]">Questions</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.scrollSpeed}s</p>
-                <p className="text-sm text-slate-500">Par chiffre</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.scrollSpeed}s</p>
+                <p className="text-sm text-[#605a57]">Par chiffre</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -517,7 +520,7 @@ export function MBackTest({ n: nProp }: { n?: number }) {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
           <CardContent className="space-y-6">
@@ -554,17 +557,17 @@ export function MBackTest({ n: nProp }: { n?: number }) {
     }
     const perfEntries = loadEntries(PERFORMANCE_ID);
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={scoreData.accuracy >= 75 ? "default" : scoreData.accuracy >= 50 ? "secondary" : "destructive"} className="text-lg px-4 py-1">{scoreData.grade}</Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500">{score}/{settings.totalQuestions} correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={classScaleIdForMemoryBack(n)}
+              percent={scoreData.score}
+              detail={`${score}/${settings.totalQuestions} correctes`}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-red-50 rounded-lg text-center">
                 <p className="text-2xl font-bold text-red-600">{errors}</p>
@@ -577,7 +580,7 @@ export function MBackTest({ n: nProp }: { n?: number }) {
             </div>
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={PERFORMANCE_ID} />
                 </div>
@@ -595,8 +598,26 @@ export function MBackTest({ n: nProp }: { n?: number }) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <canvas ref={canvasRef} width={width} height={height} onClick={handleCanvasClick} className="rounded-xl shadow-xl cursor-pointer" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-2 sm:p-4">
+      <canvas ref={canvasRef} width={width} height={height} onClick={handleCanvasClick} className="phone-scale rounded-xl shadow-xl cursor-pointer" />
+      {phone && internalState === 'waiting' && (
+        <div className="mt-4 flex w-full max-w-sm gap-3 px-2">
+          <button
+            type="button"
+            onClick={() => checkAnswer(true)}
+            className="h-14 flex-1 rounded-2xl bg-[#37322f] text-lg font-semibold text-white shadow-sm"
+          >
+            Oui
+          </button>
+          <button
+            type="button"
+            onClick={() => checkAnswer(false)}
+            className="h-14 flex-1 rounded-2xl bg-white text-lg font-semibold text-[#37322f] shadow-sm ring-1 ring-[#e0dedb]"
+          >
+            Non
+          </button>
+        </div>
+      )}
     </div>
   );
 }

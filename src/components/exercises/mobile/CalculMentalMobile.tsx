@@ -5,6 +5,7 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -256,7 +257,7 @@ export default function CalculMentalMobile() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-1">
+              <div className="bg-[#f7f5f3] rounded-lg p-3 text-sm text-[#605a57] space-y-1">
                 <p><strong>{settings.totalQuestions} operations</strong> a resoudre.</p>
                 <p>Chaine de <strong>{settings.chainLength} termes</strong>.</p>
                 {settings.includeMultiply && <p>Inclut des <strong>multiplications ab x cd</strong>.</p>}
@@ -266,19 +267,19 @@ export default function CalculMentalMobile() {
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">{settings.totalQuestions}</p>
-                  <p className="text-xs text-slate-500">Questions</p>
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                  <p className="text-xs text-[#605a57]">Questions</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">{settings.chainLength}</p>
-                  <p className="text-xs text-slate-500">Termes</p>
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">{settings.chainLength}</p>
+                  <p className="text-xs text-[#605a57]">Termes</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">
                     {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                   </p>
-                  <p className="text-xs text-slate-500">Temps</p>
+                  <p className="text-xs text-[#605a57]">Temps</p>
                 </div>
               </div>
 
@@ -336,14 +337,14 @@ export default function CalculMentalMobile() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Multiplications ab x cd</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Inclure des multiplications</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Inclure des multiplications</p>
                 </div>
                 <Switch checked={settings.includeMultiply} onCheckedChange={v => setSettings(s => ({ ...s, includeMultiply: v }))} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les questions</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
                 </div>
                 <Switch checked={settings.examMode} onCheckedChange={v => setSettings(s => ({ ...s, examMode: v }))} />
               </div>
@@ -370,19 +371,14 @@ export default function CalculMentalMobile() {
         <div className="max-w-lg mx-auto pt-4">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Resultats</CardTitle>
-              <Badge
-                variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-                className="text-base px-3 py-1 mt-2"
-              >
-                {scoreData.grade}
-              </Badge>
+              <CardTitle className="text-2xl">Résultats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-slate-700">{scoreData.score}%</p>
-                <p className="text-slate-500 mt-1">Bonnes reponses</p>
-              </div>
+              <ClassScoreBlock
+                exerciseId={'calcul-mental'}
+                percent={scoreData.score}
+                detail={`${totalCorrect}/${results.length} correctes`}
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-blue-50 rounded-lg text-center">
@@ -396,12 +392,12 @@ export default function CalculMentalMobile() {
               </div>
 
               <div className="space-y-2">
-                <p className="font-semibold text-slate-700 text-sm">Detail :</p>
+                <p className="font-semibold text-[#37322f] text-sm">Detail :</p>
                 <div className="max-h-56 overflow-y-auto space-y-1.5">
                   {results.map((r, i) => (
-                    <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                    <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-slate-500">Q{i + 1}</span>
+                        <span className="text-[#605a57]">Q{i + 1}</span>
                         <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                           {r.isCorrect ? '\u2713' : '\u2717'} {r.userAnswer !== null ? r.userAnswer : '?'}
                           {!r.isCorrect && <span className="text-green-600 ml-2">({r.question.answer})</span>}
@@ -449,7 +445,7 @@ export default function CalculMentalMobile() {
             {currentIdx + 1} / {settings.totalQuestions}
           </Badge>
           {settings.timeLimitSec > 0 && (
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-[#605a57]">
               {Math.floor(timeLeft / 60000)}:{String(Math.floor((timeLeft % 60000) / 1000)).padStart(2, '0')}
             </span>
           )}
@@ -458,7 +454,7 @@ export default function CalculMentalMobile() {
         {showCorrection ? (
           <Card className="text-center py-6">
             <CardContent className="space-y-4">
-              <div className="flex flex-wrap justify-center gap-1 text-sm font-mono text-slate-500">
+              <div className="flex flex-wrap justify-center gap-1 text-sm font-mono text-[#605a57]">
                 {currentQ.terms.map((term, i) => (
                   <span key={i}>{term}</span>
                 ))}

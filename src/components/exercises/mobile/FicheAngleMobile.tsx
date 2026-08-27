@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { ArrowLeft, Play, RotateCcw, Home, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -388,7 +389,7 @@ export default function FicheAngleMobile() {
                 onClick={() => startFiche('unsigned')}
               >
                 <span className="font-semibold">Angle non oriente</span>
-                <span className="font-normal text-xs text-slate-600">
+                <span className="font-normal text-xs text-[#605a57]">
                   100 angles, x et 360 - x acceptes (app Python)
                 </span>
               </Button>
@@ -409,21 +410,21 @@ export default function FicheAngleMobile() {
       : 0;
     const perfect = results.filter(r => r.error === 0).length;
     const close = results.filter(r => r.error <= 10).length;
+    const percent = results.length > 0 ? Math.round((close / results.length) * 100) : 0;
 
     return (
       <div className="min-h-screen p-4" style={{ backgroundColor: '#fbfaf9' }}>
         <div className="max-w-md mx-auto pt-4">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Resultats</CardTitle>
-              <Badge
-                variant={avgError <= 10 ? 'default' : avgError <= 25 ? 'secondary' : 'destructive'}
-                className="text-base px-3 py-1 mt-2"
-              >
-                Erreur moy. {avgError}{'\u00B0'}
-              </Badge>
+              <CardTitle className="text-2xl">Résultats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <ClassScoreBlock
+                exerciseId={'fiche-angles'}
+                percent={percent}
+                detail={`${close} / ${results.length} a 10° ou moins`}
+              />
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2 bg-green-50 rounded-lg">
                   <p className="text-xl font-bold text-green-600">{perfect}</p>
@@ -440,12 +441,12 @@ export default function FicheAngleMobile() {
               </div>
 
               <div className="space-y-2">
-                <p className="font-semibold text-slate-700 text-sm">Detail :</p>
+                <p className="font-semibold text-[#37322f] text-sm">Detail :</p>
                 <div className="max-h-56 overflow-y-auto space-y-1.5">
                   {results.map((r, i) => (
-                    <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm flex justify-between items-center">
-                      <span className="text-slate-500">#{i + 1}</span>
-                      <span className="font-mono text-slate-600">
+                    <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm flex justify-between items-center">
+                      <span className="text-[#605a57]">#{i + 1}</span>
+                      <span className="font-mono text-[#605a57]">
                         {mode === 'unsigned'
                           ? `${formatUnsignedExpected(r.question.answer)}\u00B0 \u2192 ${r.userAngle}\u00B0`
                           : `${r.question.answer >= 0 ? '+' : ''}${r.question.answer}\u00B0 \u2192 ${r.userAngle >= 0 ? '+' : ''}${r.userAngle}\u00B0`}
@@ -515,14 +516,14 @@ export default function FicheAngleMobile() {
                 <div className="flex gap-4">
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-blue-600" />
-                    <span className="text-slate-600">A</span>
+                    <span className="text-[#605a57]">A</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-600" />
-                    <span className="text-slate-600">O</span>
+                    <span className="text-[#605a57]">O</span>
                   </div>
                 </div>
-                <p className="text-slate-700 font-semibold">
+                <p className="text-[#37322f] font-semibold">
                   {mode === 'unsigned'
                     ? `Bonnes reponses : ${formatUnsignedExpected(currentQ.answer)}\u00B0`
                     : `A\u2192O = ${currentQ.answer >= 0 ? '+' : ''}${currentQ.answer}\u00B0`}
@@ -554,7 +555,7 @@ export default function FicheAngleMobile() {
 
         <Card className="mb-3">
           <CardContent className="pt-3 pb-2">
-            <p className="text-center text-sm text-slate-500 mb-2">
+            <p className="text-center text-sm text-[#605a57] mb-2">
               {mode === 'unsigned' ? (
                 <>
                   Angle non oriente entre <span className="text-blue-600 font-bold">A</span> et{' '}

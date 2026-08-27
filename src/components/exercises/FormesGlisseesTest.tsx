@@ -4,13 +4,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, RotateCcw, Home, Settings, Trash2 } from 'lucide-react';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types & constants
@@ -510,16 +511,16 @@ function SuperpositionLegend({ palette = DEFAULT_PALETTE }: { palette?: ColorPal
         {rules.map(([a, b, r], i) => (
           <div
             key={i}
-            className="flex items-center justify-center gap-3 rounded-full border border-slate-100 bg-slate-50 px-5 py-2.5"
+            className="flex items-center justify-center gap-3 rounded-full border border-slate-100 bg-[#f7f5f3] px-5 py-2.5"
           >
             <ColorSwatch color={a} size="lg" palette={palette} />
-            <span className="text-base font-medium text-slate-500">+</span>
+            <span className="text-base font-medium text-[#605a57]">+</span>
             <ColorSwatch color={b} size="lg" palette={palette} />
-            <span className="text-base font-medium text-slate-500">=</span>
+            <span className="text-base font-medium text-[#605a57]">=</span>
             <ColorSwatch color={r} size="lg" palette={palette} />
           </div>
         ))}
-        <p className="mt-2 text-center text-xs text-slate-500">
+        <p className="mt-2 text-center text-xs text-[#605a57]">
           Trois couches : appliquer la regle deux fois. Case vide = gris de fond.
         </p>
       </div>
@@ -533,6 +534,8 @@ function SuperpositionLegend({ palette = DEFAULT_PALETTE }: { palette?: ColorPal
 
 export default function FormesGlisseesTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
+  const gridCell = phone ? 46 : CELL_PX;
   const perfSavedRef = useRef(false);
   const questionStartRef = useRef(0);
   const advancingRef = useRef(false);
@@ -780,7 +783,7 @@ export default function FormesGlisseesTest() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Formes glissees II</CardTitle>
@@ -790,7 +793,7 @@ export default function FormesGlisseesTest() {
           </CardHeader>
           <CardContent className="space-y-5">
             <SuperpositionLegend />
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.numQuestions} questions</strong>,{' '}
                 <strong>{settings.timePerQuestionSec}s</strong> chacune.
@@ -799,13 +802,13 @@ export default function FormesGlisseesTest() {
               <p>L&apos;ordre de placement n&apos;a pas d&apos;importance. Toutes les formes ne sont pas forcement necessaires.</p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestionSec}s</p>
+                <p className="text-xs text-[#605a57]">Par question</p>
               </div>
             </div>
             {settings.examMode && (
@@ -840,7 +843,7 @@ export default function FormesGlisseesTest() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -883,7 +886,7 @@ export default function FormesGlisseesTest() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Mode examen</Label>
-                <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
               </div>
               <Switch
                 checked={settings.examMode}
@@ -893,7 +896,7 @@ export default function FormesGlisseesTest() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Couleurs changeantes</Label>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[#605a57]">
                   Deux teintes aleatoires, fixes pour toute la duree du test
                 </p>
               </div>
@@ -933,28 +936,19 @@ export default function FormesGlisseesTest() {
     }
 
     const perfEntries = loadEntries(EXERCISE_ID);
-    const grade =
-      percent >= 80 ? 'Excellent' : percent >= 60 ? 'Bien' : percent >= 40 ? 'Passable' : 'A revoir';
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={percent >= 80 ? 'default' : percent >= 60 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{percent}%</p>
-              <p className="mt-1 text-slate-500">
-                {correct} / {total} reussies
-              </p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={percent}
+              detail={`${correct} / ${total} reussies`}
+            />
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-green-50 p-3 text-center">
                 <p className="text-2xl font-bold text-green-600">{correct}</p>
@@ -964,9 +958,9 @@ export default function FormesGlisseesTest() {
                 <p className="text-2xl font-bold text-red-600">{incorrect}</p>
                 <p className="text-xs text-red-700">Incorrect</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-600">{skipped}</p>
-                <p className="text-xs text-slate-500">Passe</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3 text-center">
+                <p className="text-2xl font-bold text-[#605a57]">{skipped}</p>
+                <p className="text-xs text-[#605a57]">Passe</p>
               </div>
             </div>
             <div className="rounded-lg bg-amber-50 p-3 text-center">
@@ -975,7 +969,7 @@ export default function FormesGlisseesTest() {
             </div>
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
                 </div>
@@ -1017,7 +1011,7 @@ export default function FormesGlisseesTest() {
               className="h-full transition-all duration-100"
               style={{
                 width: `${timerPercent}%`,
-                backgroundColor: timerPercent > 20 ? '#0068C6' : '#dc2626',
+                backgroundColor: timerPercent > 20 ? '#37322f' : '#dc2626',
               }}
             />
           </div>
@@ -1044,6 +1038,7 @@ export default function FormesGlisseesTest() {
               onCellHover={handleGhostHover}
               onCellLeave={() => setGhostPos(null)}
               palette={palette}
+              cellSize={gridCell}
             />
             <div className="flex gap-2">
               <Button
@@ -1063,6 +1058,7 @@ export default function FormesGlisseesTest() {
             grid={currentPuzzle.target}
             label="Figures a reproduire"
             palette={palette}
+            cellSize={gridCell}
           />
         </div>
 
@@ -1074,7 +1070,7 @@ export default function FormesGlisseesTest() {
             <p className="text-xl font-bold text-red-700">
               {results[results.length - 1]?.outcome === 'skipped' ? 'Passe' : 'Incorrect'}
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+            <p className="mt-2 text-sm leading-relaxed text-[#37322f]">
               Les formes cochees sont placees comme dans la solution. Les couleurs de la grille
               de gauche doivent alors coincider avec la figure a reproduire (superposition :
               identiques → fonce, differentes → clair).
@@ -1101,11 +1097,12 @@ export default function FormesGlisseesTest() {
                     setSelectedPieceId((prev) => (prev === piece.id ? null : piece.id));
                     setGhostPos(null);
                   }}
+                  cellSize={phone ? 28 : 22}
                 />
                 {showCorrection && (
                   <span
                     className={`text-[11px] font-medium ${
-                      solutionIds.has(piece.id) ? 'text-green-700' : 'text-slate-500'
+                      solutionIds.has(piece.id) ? 'text-green-700' : 'text-[#605a57]'
                     }`}
                   >
                     {solutionIds.has(piece.id) ? 'Utilisee' : 'Pas utilisee'}
@@ -1115,7 +1112,7 @@ export default function FormesGlisseesTest() {
             ))}
           </div>
           {selectedPieceId && (
-            <p className="mt-2 text-center text-sm text-slate-600">
+            <p className="mt-2 text-center text-sm text-[#605a57]">
               Cliquez sur votre grille pour placer le coin haut-gauche de la forme
             </p>
           )}

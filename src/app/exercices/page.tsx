@@ -10,9 +10,7 @@ import {
 } from '@/lib/data/exercises';
 import { isPhoneRequest } from '@/lib/device';
 import {
-  getExerciseMobileProfile,
   getPreferredExerciseHref,
-  hasDedicatedMobileVariant,
 } from '@/lib/exercises/mobile';
 import StructuredData from '@/components/seo/StructuredData';
 import { generateBreadcrumbStructuredData } from '@/lib/seo/structured-data';
@@ -143,11 +141,10 @@ export default async function ExercicesPage({ searchParams }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {readyExercises.map((exercise) => {
               const primaryType = EXERCISE_TYPES[exercise.primaryType];
-              const mobileProfile = getExerciseMobileProfile(exercise.slug);
               const exerciseUrl = getPreferredExerciseHref(exercise.slug, isPhone);
 
               return (
-                <Link key={exercise.id} href={exerciseUrl} target="_blank">
+                <Link key={exercise.id} href={exerciseUrl} target={isPhone ? undefined : '_blank'}>
                   <article
                     className="h-full rounded-[24px] border border-[#e0dedb] bg-white p-6 transition-transform hover:scale-[1.012]"
                     style={{
@@ -165,40 +162,15 @@ export default async function ExercicesPage({ searchParams }: Props) {
                       >
                         {primaryType.label}
                       </span>
-                      <div className="flex items-center gap-2">
-                        {isPhone && (
-                          <span
-                            className="text-[10px] px-1.5 py-0.5 rounded"
-                            style={{
-                              backgroundColor: hasDedicatedMobileVariant(exercise.slug)
-                                ? '#dbeafe'
-                                : mobileProfile.experience === 'responsive'
-                                  ? '#ecfeff'
-                                  : '#ffedd5',
-                              color: hasDedicatedMobileVariant(exercise.slug)
-                                ? '#1d4ed8'
-                                : mobileProfile.experience === 'responsive'
-                                  ? '#0f766e'
-                                  : '#9a3412',
-                            }}
-                          >
-                            {hasDedicatedMobileVariant(exercise.slug)
-                              ? 'Mobile'
-                              : mobileProfile.experience === 'responsive'
-                                ? 'Compatible'
-                                : 'A optimiser'}
-                          </span>
-                        )}
-                        <span className="text-xs text-[#605a57]">
-                          {getDifficultyLabel(exercise.difficulty)}
-                        </span>
-                      </div>
+                      <span className="text-xs text-[#605a57]">
+                        {getDifficultyLabel(exercise.difficulty)}
+                      </span>
                     </div>
                     <h2 className="text-lg font-semibold text-[#37322f] mb-2">
                       {exercise.title}
                     </h2>
                     <p className="text-sm text-[#605a57] mb-3">
-                      {isPhone ? mobileProfile.note : exercise.description}
+                      {exercise.description}
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
                       {exercise.types.slice(1).map((type) => (

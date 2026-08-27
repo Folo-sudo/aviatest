@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -314,7 +315,7 @@ export default function AnglaisPsy0Test() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Anglais Psy0 — Cadets Air France</CardTitle>
@@ -323,7 +324,7 @@ export default function AnglaisPsy0Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.totalQuestions} questions</strong> a choix multiples (4
                 reponses).
@@ -343,21 +344,21 @@ export default function AnglaisPsy0Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">4</p>
-                <p className="text-xs text-slate-500">Choix</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">4</p>
+                <p className="text-xs text-[#605a57]">Choix</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitSec > 0
                     ? `${Math.floor(settings.timeLimitSec / 60)}m${settings.timeLimitSec % 60 ? String(settings.timeLimitSec % 60).padStart(2, '0') : ''}`
                     : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps</p>
+                <p className="text-xs text-[#605a57]">Temps</p>
               </div>
             </div>
 
@@ -392,7 +393,7 @@ export default function AnglaisPsy0Test() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -430,7 +431,7 @@ export default function AnglaisPsy0Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#605a57]">
                     Pas de correction entre les questions
                   </p>
                 </div>
@@ -475,22 +476,17 @@ export default function AnglaisPsy0Test() {
     const perfEntries = loadEntries(EXERCISE_ID);
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={pct >= 75 ? 'default' : pct >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{pct}%</p>
-              <p className="mt-1 text-slate-500">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correctCount}/${totalQ} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-blue-50 p-4 text-center">
@@ -506,21 +502,21 @@ export default function AnglaisPsy0Test() {
             </div>
 
             {unanswered > 0 && (
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-sm text-[#605a57]">
                 {unanswered} question{unanswered > 1 ? 's' : ''} sans reponse (temps ecoule)
               </p>
             )}
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {questions.map((q, i) => {
                   const r = results[i];
                   const sel = r?.selectedIndex ?? null;
                   return (
-                    <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                    <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                       <div className="mb-1 flex items-center justify-between">
-                        <span className="text-slate-500">Q{i + 1}</span>
+                        <span className="text-[#605a57]">Q{i + 1}</span>
                         <span
                           className={
                             r
@@ -548,7 +544,7 @@ export default function AnglaisPsy0Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
                 </div>
@@ -629,7 +625,7 @@ export default function AnglaisPsy0Test() {
                 ? 'border-green-600 bg-green-100'
                 : isPickedWrong
                   ? 'border-red-600 bg-red-100'
-                  : 'border-transparent bg-white hover:bg-slate-50 active:scale-[0.99]';
+                  : 'border-transparent bg-white hover:bg-[#f7f5f3] active:scale-[0.99]';
               return (
                 <button
                   key={i}

@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Timer } from '@/lib/core/Timer';
 import { Scorer, ScoreData } from '@/lib/core/Scorer';
 import { TimerBar } from '@/lib/core/CanvasUI';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { WORD_THEMES } from '@/lib/data/word-themes';
+import { canvasPoint } from '@/lib/phone/canvasPoint';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
@@ -34,6 +36,7 @@ interface ExpectedWord {
 
 export default function UnMotSurDeuxTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -47,6 +50,36 @@ export default function UnMotSurDeuxTest() {
   const [maxWords, setMaxWords] = useState(8);
   const [timePerSeries, setTimePerSeries] = useState(60);
   const [numSeries, setNumSeries] = useState(10);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('aviatest-un-mot-sur-deux-settings');
+      if (!raw) return;
+      const p = JSON.parse(raw) as Partial<{
+        minWords: number;
+        maxWords: number;
+        timePerSeries: number;
+        numSeries: number;
+      }>;
+      if (p.minWords) setMinWords(p.minWords);
+      if (p.maxWords) setMaxWords(p.maxWords);
+      if (p.timePerSeries) setTimePerSeries(p.timePerSeries);
+      if (p.numSeries) setNumSeries(p.numSeries);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'aviatest-un-mot-sur-deux-settings',
+        JSON.stringify({ minWords, maxWords, timePerSeries, numSeries }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [minWords, maxWords, timePerSeries, numSeries]);
 
   // Game refs for playing state
   const timerRef = useRef<Timer | null>(null);
@@ -206,10 +239,12 @@ export default function UnMotSurDeuxTest() {
       return;
     }
 
+    const extra = phone ? 14 : 0;
     const clickedCircle = circlesRef.current.find(c => {
       const dx = x - c.x;
       const dy = y - c.y;
-      return dx * dx + dy * dy <= c.radius * c.radius && !c.highlighted;
+      const r = c.radius + extra;
+      return dx * dx + dy * dy <= r * r && !c.highlighted;
     });
 
     if (clickedCircle) {
@@ -230,7 +265,7 @@ export default function UnMotSurDeuxTest() {
         errorFlashTimeRef.current = performance.now();
       }
     }
-  }, [completeSeries]);
+  }, [completeSeries, phone]);
 
   // Reset current series after error
   const resetCurrentSeries = useCallback(() => {
@@ -256,17 +291,17 @@ export default function UnMotSurDeuxTest() {
     const textColor = '#FFFF00';
 
     if (circle.isStart) {
-      ctx.font = '22px Arial';
-      ctx.fillStyle = '#C8C8C8';
+      ctx.font = '22px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#37322f';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('START', circle.x, circle.y - 18);
 
-      ctx.font = '20px Arial';
+      ctx.font = '20px ui-sans-serif, system-ui, sans-serif';
       ctx.fillStyle = textColor;
       ctx.fillText(circle.word, circle.x, circle.y + 12);
     } else {
-      ctx.font = '20px Arial';
+      ctx.font = '20px ui-sans-serif, system-ui, sans-serif';
       ctx.fillStyle = textColor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -333,7 +368,7 @@ export default function UnMotSurDeuxTest() {
       if (isErrorFlashRef.current) {
         ctx.fillStyle = '#DC3C3C';
       } else {
-        ctx.fillStyle = '#C8C8C8';
+        ctx.fillStyle = '#fbfaf9';
       }
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -352,8 +387,8 @@ export default function UnMotSurDeuxTest() {
       timerBarRef.current?.draw(ctx);
 
       // Draw info
-      ctx.font = '20px Arial';
-      ctx.fillStyle = '#000000';
+      ctx.font = '20px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#37322f';
       ctx.textAlign = 'left';
       ctx.fillText(
         `Série: ${currentSeriesRef.current}/${numSeries}  |  Complétées: ${seriesCompletedRef.current}  |  Erreurs: ${errorsRef.current}`,
@@ -362,8 +397,8 @@ export default function UnMotSurDeuxTest() {
       );
 
       // Theme names
-      ctx.font = '18px Arial';
-      ctx.fillStyle = '#646464';
+      ctx.font = '18px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = '#605a57';
       ctx.fillText(`${theme1NameRef.current} vs ${theme2NameRef.current}`, 60, 25);
 
       // Time remaining
@@ -391,17 +426,14 @@ export default function UnMotSurDeuxTest() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
+    const { x, y } = canvasPoint(e, canvas, canvas.width, canvas.height);
     checkClick(x, y);
   }, [checkClick]);
 
   // Menu screen
   if (gameState === 'menu') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Un Mot Sur Deux</CardTitle>
@@ -449,7 +481,7 @@ export default function UnMotSurDeuxTest() {
   // Settings screen
   if (gameState === 'settings') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Paramètres</CardTitle>
@@ -524,20 +556,17 @@ export default function UnMotSurDeuxTest() {
     }
     const perfEntries = loadEntries('un-mot-sur-deux');
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#fbfaf9] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-primary mb-2">
-                {scoreData.percentage}%
-              </div>
-              <Badge variant={scoreData.percentage >= 70 ? 'default' : 'destructive'}>
-                {scoreData.correct}/{scoreData.total} séries réussies
-              </Badge>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'un-mot-sur-deux'}
+              percent={scoreData.percentage}
+              detail={`${scoreData.correct}/${scoreData.total} series reussies`}
+            />
 
             <Separator />
 
@@ -554,7 +583,7 @@ export default function UnMotSurDeuxTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="un-mot-sur-deux" />
                 </div>
@@ -591,13 +620,13 @@ export default function UnMotSurDeuxTest() {
 
   // Playing screen
   return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center">
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#fbfaf9] p-2">
       <canvas
         ref={canvasRef}
         width={900}
         height={600}
         onClick={handleCanvasClick}
-        className="border border-gray-400 cursor-pointer"
+        className="phone-scale cursor-pointer rounded-xl border border-gray-400"
       />
     </div>
   );

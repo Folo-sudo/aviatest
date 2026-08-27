@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -396,7 +397,7 @@ export default function CalculMemoTest() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Calcul & Memorisation</CardTitle>
@@ -405,7 +406,7 @@ export default function CalculMemoTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
+            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
               <p><strong>10 salves</strong> successives.</p>
               <p>Chaque salve alterne :</p>
               <ul className="list-disc list-inside ml-2 space-y-1">
@@ -418,23 +419,23 @@ export default function CalculMemoTest() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.totalSalves}</p>
-                <p className="text-xs text-slate-500">Salves</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalSalves}</p>
+                <p className="text-xs text-[#605a57]">Salves</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.minLetters === settings.maxLetters
                     ? settings.minLetters
                     : `${settings.minLetters}-${settings.maxLetters}`}
                 </p>
-                <p className="text-xs text-slate-500">Lettres/salve</p>
+                <p className="text-xs text-[#605a57]">Lettres/salve</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.calcTimeMs / 1000}s / {settings.letterTimeMs / 1000}s
                 </p>
-                <p className="text-xs text-slate-500">Calcul / Lettre</p>
+                <p className="text-xs text-[#605a57]">Calcul / Lettre</p>
               </div>
             </div>
 
@@ -464,7 +465,7 @@ export default function CalculMemoTest() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -553,7 +554,7 @@ export default function CalculMemoTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de score entre les salves</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de score entre les salves</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -587,22 +588,17 @@ export default function CalculMemoTest() {
     const perfEntries = loadEntries('calcul-memo');
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1 mt-2"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500 mt-1">Lettres restituees correctement</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'calcul-memo'}
+              percent={scoreData.score}
+              detail={`${totalLettersCorrect}/${totalLetters} lettres`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
@@ -617,17 +613,17 @@ export default function CalculMemoTest() {
 
             {/* Per-salve breakdown */}
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail par salve :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail par salve :</p>
               <div className="max-h-48 overflow-y-auto space-y-1">
                 {salveResults.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between bg-slate-50 rounded px-3 py-1.5 text-sm">
-                    <span className="text-slate-600">Salve {i + 1}</span>
+                  <div key={i} className="flex items-center justify-between bg-[#f7f5f3] rounded px-3 py-1.5 text-sm">
+                    <span className="text-[#605a57]">Salve {i + 1}</span>
                     <span>
                       <span className={r.correctCount === r.letters.length ? 'text-green-600 font-semibold' : 'text-red-600'}>
                         {r.correctCount}/{r.letters.length} lettres
                       </span>
                       <span className="text-slate-400 mx-2">|</span>
-                      <span className={r.calcCorrect === r.calcTotal ? 'text-green-600' : 'text-slate-500'}>
+                      <span className={r.calcCorrect === r.calcTotal ? 'text-green-600' : 'text-[#605a57]'}>
                         {r.calcCorrect}/{r.calcTotal} calculs
                       </span>
                     </span>
@@ -638,7 +634,7 @@ export default function CalculMemoTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-memo" />
                 </div>
@@ -664,7 +660,7 @@ export default function CalculMemoTest() {
   const timerColor = timerPercent > 50 ? 'bg-amber-500' : timerPercent > 20 ? 'bg-orange-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -672,7 +668,7 @@ export default function CalculMemoTest() {
             Salve {salveIndex + 1} / {settings.totalSalves}
           </Badge>
           {phase.kind !== 'countdown' && phase.kind !== 'recall' && (
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-[#605a57]">
               Lettres memorisees : {salveLettersRef.current.length} / {salveTotalLettersRef.current}
             </div>
           )}
@@ -692,7 +688,7 @@ export default function CalculMemoTest() {
         {phase.kind === 'countdown' && (
           <Card className="text-center py-16">
             <CardContent>
-              <p className="text-slate-500 mb-4 text-lg">Salve {salveIndex + 1} — Preparez-vous</p>
+              <p className="text-[#605a57] mb-4 text-lg">Salve {salveIndex + 1} — Preparez-vous</p>
               <p className="text-8xl font-bold text-amber-500 animate-pulse">{phase.value}</p>
               <p className="text-sm text-slate-400 mt-4">{salveTotalLettersRef.current} lettres a memoriser</p>
             </CardContent>
@@ -739,7 +735,7 @@ export default function CalculMemoTest() {
               <div className="inline-flex items-center justify-center w-32 h-32 bg-amber-500 rounded-2xl shadow-lg mx-auto">
                 <span className="text-7xl font-bold text-white">{phase.letter}</span>
               </div>
-              <p className="text-slate-500">
+              <p className="text-[#605a57]">
                 Lettre {salveLettersRef.current.length} / {salveTotalLettersRef.current}
               </p>
               <Button
@@ -778,11 +774,11 @@ export default function CalculMemoTest() {
                         if (showFeedback) {
                           if (isCorrect) btnClass += 'bg-green-100 border-green-500 text-green-700';
                           else if (isWrong) btnClass += 'bg-red-100 border-red-500 text-red-700';
-                          else btnClass += 'bg-slate-50 border-slate-200 text-slate-400';
+                          else btnClass += 'bg-[#f7f5f3] border-slate-200 text-slate-400';
                         } else if (isSelected) {
                           btnClass += 'bg-amber-100 border-amber-500 text-amber-700';
                         } else {
-                          btnClass += 'bg-white border-slate-200 text-slate-700 hover:border-amber-400 hover:bg-amber-50';
+                          btnClass += 'bg-white border-slate-200 text-[#37322f] hover:border-amber-400 hover:bg-amber-50';
                         }
 
                         return (
@@ -826,13 +822,13 @@ export default function CalculMemoTest() {
                   </div>
 
                   {/* Calc results - shown after letter validation */}
-                  <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
-                    <p className="text-sm font-semibold text-slate-600 mb-2">
+                  <div className="bg-[#f7f5f3] rounded-lg p-3 space-y-1.5">
+                    <p className="text-sm font-semibold text-[#605a57] mb-2">
                       Resultats calculs : {salveCalcCorrectRef.current}/{salveCalcTotalRef.current}
                     </p>
                     {salveCalcRecordsRef.current.map((calc, i) => (
                       <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="font-mono text-slate-700">{calc.expr}</span>
+                        <span className="font-mono text-[#37322f]">{calc.expr}</span>
                         <span className="flex items-center gap-2">
                           {calc.userAnswer !== null ? (
                             <>

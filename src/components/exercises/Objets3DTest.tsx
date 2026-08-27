@@ -3,16 +3,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as THREE from 'three';
-import { savePerformanceResult, loadEntries, scoreToStanine } from '@/lib/core/PerformanceTracker';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { createShapeMesh } from '@/lib/3d/shapeCatalog';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types & constants
@@ -330,6 +331,7 @@ function ViewpointSelector({
   showFeedback,
   disabled,
   onSelect,
+  large = false,
 }: {
   scene: THREE.Scene;
   selected: number | null;
@@ -337,13 +339,14 @@ function ViewpointSelector({
   showFeedback: boolean;
   disabled: boolean;
   onSelect: (n: number) => void;
+  large?: boolean;
 }) {
-  const btnSize = 44;
+  const btnSize = large ? 52 : 44;
   const halfBtn = btnSize / 2;
-  const size = 320;
+  const size = large ? 300 : 320;
   const center = size / 2;
-  const radius = 138;
-  const mapSize = 212;
+  const radius = large ? 128 : 138;
+  const mapSize = large ? 196 : 212;
 
   return (
     <div className="relative mx-auto" style={{ width: size, height: size }}>
@@ -373,7 +376,7 @@ function ViewpointSelector({
         const x = center + Math.cos(angle) * radius - halfBtn;
         const y = center + Math.sin(angle) * radius - halfBtn;
 
-        let ringClass = 'bg-white border-slate-400 hover:border-slate-600 hover:bg-slate-50';
+        let ringClass = 'bg-white border-slate-400 hover:border-slate-600 hover:bg-[#f7f5f3]';
         if (showFeedback && correct === num) {
           ringClass = 'bg-emerald-100 border-emerald-600 text-emerald-800';
         } else if (showFeedback && selected === num && selected !== correct) {
@@ -405,6 +408,7 @@ function ViewpointSelector({
 
 export default function Objets3DTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -541,7 +545,7 @@ export default function Objets3DTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Objets 3D</CardTitle>
@@ -551,18 +555,18 @@ export default function Objets3DTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-sm text-slate-500">Questions</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-sm text-[#605a57]">Questions</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">
                   {settings.timePerQuestionSec}s
                 </p>
-                <p className="text-sm text-slate-500">Par question</p>
+                <p className="text-sm text-[#605a57]">Par question</p>
               </div>
             </div>
-            <p className="text-sm text-slate-500 text-center">
+            <p className="text-sm text-[#605a57] text-center">
               Observez la scene desertique et indiquez quel numero de point de vue (1 a 8)
               correspond a la photo affichee.
             </p>
@@ -590,7 +594,7 @@ export default function Objets3DTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -623,7 +627,7 @@ export default function Objets3DTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#605a57]">
                     Pas de correction prolongee entre les questions
                   </p>
                 </div>
@@ -645,29 +649,23 @@ export default function Objets3DTest() {
   if (gameState === 'results') {
     const { correct, total } = computeScore();
     const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-    const stanine = scoreToStanine(percent);
     const perfEntries = loadEntries(EXERCISE_ID);
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1"
-            >
-              Classe {stanine}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{percent}%</p>
-              <p className="text-slate-500">{correct} / {total} correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={percent}
+              detail={`${correct} / ${total} correctes`}
+            />
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
                 </div>
@@ -695,21 +693,21 @@ export default function Objets3DTest() {
 
   const progress = (currentIdx + 1) / questions.length;
   const timerRatio = timeLeft / settings.timePerQuestionSec;
-  const sceneWidth = 480;
-  const sceneHeight = 360;
+  const sceneWidth = phone ? 340 : 480;
+  const sceneHeight = phone ? 255 : 360;
 
   return (
     <div className="min-h-screen bg-[#e8e8e8] flex flex-col">
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-base font-medium text-slate-600">
+        <p className="text-base font-medium text-[#605a57]">
           Question {currentIdx + 1} / {questions.length}
         </p>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[#605a57]">
           Score : {answers.filter((a) => a.correct).length}
         </p>
         <p
           className={`text-sm font-semibold tabular-nums ${
-            timeLeft <= 3 ? 'text-red-600' : 'text-slate-700'
+            timeLeft <= 3 ? 'text-red-600' : 'text-[#37322f]'
           }`}
         >
           {timeLeft}s
@@ -729,7 +727,7 @@ export default function Objets3DTest() {
 
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 gap-6 max-w-5xl mx-auto w-full">
         <div className="flex flex-col items-center gap-3">
-          <p className="text-base text-slate-600 text-center font-medium">
+          <p className="text-base text-[#605a57] text-center font-medium">
             Plan vu de haut — cliquez le numero du point de vue
           </p>
           <ViewpointSelector
@@ -739,6 +737,7 @@ export default function Objets3DTest() {
             showFeedback={!!feedback && !settings.examMode}
             disabled={!!feedback || advancingRef.current}
             onSelect={handleAnswer}
+            large={phone}
           />
         </div>
 
@@ -758,7 +757,7 @@ export default function Objets3DTest() {
       <div className="px-4 pb-4 max-w-5xl mx-auto w-full">
         <div className="h-1.5 bg-slate-300 rounded-full overflow-hidden">
           <div
-            className="h-full bg-slate-500 transition-all"
+            className="h-full bg-[#37322f] transition-all"
             style={{ width: `${progress * 100}%` }}
           />
         </div>

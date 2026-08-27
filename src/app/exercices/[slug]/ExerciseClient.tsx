@@ -10,11 +10,11 @@ import DuelPlayGate from '@/components/DuelPlayGate';
 import {
   desktopComponents,
   getComponentLookupKey,
-  getExercisePhoneExperience,
   getPreferredVariant,
   mobileComponents,
   type ExerciseVariant,
 } from '@/components/exercises/exerciseRegistry';
+import { PhoneLayoutProvider } from '@/components/phone/PhoneLayout';
 import {
   startExercisePresence,
   stopExercisePresence,
@@ -95,32 +95,15 @@ function ExerciseLoader({
     );
   }
 
-  const phoneExperience = getExercisePhoneExperience(slug);
-
-  // Special case for m-back / memory-back with n query param (legacy deep links)
-  if ((slug === 'm-back' || slug === 'memory-back') && n) {
-    return (
-      <>
-        {isPhone && variant === 'auto' && phoneExperience !== 'dedicated' && (
-          <div className="bg-[#fff7ed] px-4 py-3 text-sm text-[#9a3412] border-b border-[#fed7aa]">
-            Version telephone dediee non disponible pour ce test. Affichage de la version standard.
-          </div>
-        )}
-        <Component n={parseInt(n, 10)} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      {isPhone && variant === 'auto' && phoneExperience !== 'dedicated' && (
-        <div className="bg-[#fff7ed] px-4 py-3 text-sm text-[#9a3412] border-b border-[#fed7aa]">
-          Version telephone dediee non disponible pour ce test. Affichage de la version standard.
-        </div>
-      )}
+  const phone = isPhone || variant === 'mobile';
+  const inner =
+    (slug === 'm-back' || slug === 'memory-back') && n ? (
+      <Component n={parseInt(n, 10)} />
+    ) : (
       <Component />
-    </>
-  );
+    );
+
+  return <PhoneLayoutProvider active={phone}>{inner}</PhoneLayoutProvider>;
 }
 
 export default function ExerciseClient({

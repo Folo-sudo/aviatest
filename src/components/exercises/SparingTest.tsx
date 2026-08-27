@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Play, Heart } from 'lucide-react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { BoxingGlovesIcon } from '@/components/icons/BoxingGlovesIcon';
 import { isStadiumHeld } from '@/lib/stadium/hold';
 import { Button } from '@/components/ui/button';
@@ -321,7 +322,7 @@ export default function SparingTest({
                 </div>
 
                 {bestScore > 0 && (
-                  <p className="text-center text-sm text-slate-500">
+                  <p className="text-center text-sm text-[#605a57]">
                     Meilleur score local :{' '}
                     <span className="font-semibold text-slate-800">{bestScore}</span>
                   </p>
@@ -329,7 +330,7 @@ export default function SparingTest({
 
                 {perfEntries.length >= 2 && (
                   <div className="border-t pt-4">
-                    <p className="mb-2 text-center text-sm font-medium text-slate-500">
+                    <p className="mb-2 text-center text-sm font-medium text-[#605a57]">
                       Progression
                     </p>
                     <div className="flex justify-center">
@@ -373,10 +374,11 @@ export default function SparingTest({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`rounded-xl bg-white p-6 text-center shadow-sm ring-1 ${cfg.ring}`}>
-              <p className="text-sm text-slate-500">Score</p>
-              <p className={`text-5xl font-bold ${cfg.accentText}`}>{score}</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={cfg.exerciseId}
+              percent={Math.round((score / (score + START_LIVES)) * 100)}
+              detail={`${score} calculs · ${START_LIVES} vies`}
+            />
             <div className="flex flex-col gap-3">
               <Button size="lg" className={`w-full ${cfg.accentBtn}`} onClick={startGame}>
                 <Play className="mr-2 h-5 w-5" /> Rejouer

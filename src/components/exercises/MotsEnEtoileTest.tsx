@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   Trash2,
 } from 'lucide-react';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types & constants
@@ -386,7 +388,7 @@ function StarGrid({
               className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
                 canPlace
                   ? 'cursor-pointer border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200'
-                  : 'cursor-default border-slate-200 bg-slate-50 text-slate-300'
+                  : 'cursor-default border-slate-200 bg-[#f7f5f3] text-slate-300'
               }`}
               style={{ transform: `rotate(${chevron.angle}deg)` }}
             >
@@ -424,6 +426,7 @@ function StarGrid({
 
 export default function MotsEnEtoileTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>(loadSettings);
   const settingsRef = useRef(settings);
@@ -643,7 +646,7 @@ export default function MotsEnEtoileTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Mots en etoile</CardTitle>
@@ -652,7 +655,7 @@ export default function MotsEnEtoileTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 Parmi <strong>9 mots</strong>, selectionnez les <strong>6 bons</strong> et placez-les
                 sur les aretes de l&apos;etoile.
@@ -665,17 +668,17 @@ export default function MotsEnEtoileTest() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">9</p>
-                <p className="text-xs text-slate-500">Mots</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">9</p>
+                <p className="text-xs text-[#605a57]">Mots</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestionSec}s</p>
+                <p className="text-xs text-[#605a57]">Par question</p>
               </div>
             </div>
 
@@ -704,7 +707,7 @@ export default function MotsEnEtoileTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -745,7 +748,7 @@ export default function MotsEnEtoileTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -777,29 +780,19 @@ export default function MotsEnEtoileTest() {
 
     const perfEntries = loadEntries(EXERCISE_ID);
 
-    let grade = 'A ameliorer';
-    if (percent >= 90) grade = 'Excellent';
-    else if (percent >= 75) grade = 'Tres bien';
-    else if (percent >= 60) grade = 'Bien';
-    else if (percent >= 40) grade = 'Passable';
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{percent}%</p>
-              <p className="mt-1 text-slate-500">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={percent}
+              detail={`${totalCorrect}/${total} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-blue-50 p-4 text-center">
@@ -815,12 +808,12 @@ export default function MotsEnEtoileTest() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => (
-                  <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                  <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Q{i + 1}</span>
+                      <span className="text-[#605a57]">Q{i + 1}</span>
                       <span
                         className={
                           r.isCorrect ? 'font-semibold text-green-600' : 'font-semibold text-red-600'
@@ -836,7 +829,7 @@ export default function MotsEnEtoileTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
                 </div>
@@ -872,7 +865,7 @@ export default function MotsEnEtoileTest() {
             {currentIdx + 1} / {questions.length}
           </Badge>
           <div className="flex items-center gap-3">
-            <span className="font-mono text-lg font-semibold text-slate-700">
+            <span className="font-mono text-lg font-semibold text-[#37322f]">
               {Math.ceil(timeLeft / 1000)}s
             </span>
             <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-300">
@@ -892,7 +885,7 @@ export default function MotsEnEtoileTest() {
               ) : (
                 <>
                   <p className="text-3xl font-bold text-red-600">{'\u2717'} Incorrect</p>
-                  <p className="text-sm text-slate-500">Une solution possible :</p>
+                  <p className="text-sm text-[#605a57]">Une solution possible :</p>
                   <p className="font-mono text-sm text-green-700">
                     {lastOutcome.puzzle.solution.join(' · ')}
                   </p>
@@ -923,10 +916,10 @@ export default function MotsEnEtoileTest() {
                       type="button"
                       disabled={used || locked}
                       onClick={() => handleWordClick(word)}
-                      className={`w-full rounded-lg border-2 px-3 py-2 text-left font-mono text-sm transition-all
+                      className={`w-full rounded-xl border-2 px-3 py-3 text-left font-mono text-sm transition-all
                         ${used ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 line-through' : ''}
                         ${!used && selected ? 'border-blue-500 bg-blue-50 text-blue-800' : ''}
-                        ${!used && !selected ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50' : ''}
+                        ${!used && !selected ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-[#f7f5f3]' : ''}
                       `}
                     >
                       {word}
@@ -936,9 +929,9 @@ export default function MotsEnEtoileTest() {
               </CardContent>
             </Card>
 
-            <div className="min-h-[480px] flex-1">
+            <div className={`flex-1 ${phone ? 'min-h-[280px]' : 'min-h-[480px]'}`}>
               <Card className="h-full">
-                <CardContent className="flex h-[480px] items-center justify-center p-2">
+                <CardContent className={`flex items-center justify-center p-2 ${phone ? 'h-[280px]' : 'h-[480px]'}`}>
                   <StarGrid
                     assignments={edgeAssignments}
                     selectedWord={selectedWord}

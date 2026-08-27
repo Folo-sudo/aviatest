@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,7 +69,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 const BG = '#d4d4d4';
 const NAVY = '#1a2b4a';
-const TIMER_BLUE = '#0068C6';
+const TIMER_BLUE = '#37322f';
 const TIMER_RED = '#dc2626';
 
 const CANVAS_SIZE = 260;
@@ -208,7 +209,7 @@ function generateQuestions(count: number): QuestionData[] {
 
 function PathCanvas({ segments, revealedCount }: { segments: Segment[]; revealedCount: number }) {
   return (
-    <svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`} className="mx-auto">
+    <svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`} className="mx-auto h-auto w-full max-w-[320px]">
       <rect x={0} y={0} width={CANVAS_SIZE} height={CANVAS_SIZE} rx={12} fill="#f4f4f5" />
       {segments.map((s, i) => {
         const isCurrent = i === revealedCount - 1;
@@ -237,7 +238,7 @@ function PathCanvas({ segments, revealedCount }: { segments: Segment[]; revealed
 
 function PathFullView({ segments }: { segments: Segment[] }) {
   return (
-    <svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`} className="mx-auto">
+    <svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`} className="mx-auto h-auto w-full max-w-[320px]">
       <rect x={0} y={0} width={CANVAS_SIZE} height={CANVAS_SIZE} rx={12} fill="#f4f4f5" />
       {segments.map((s, i) => (
         <line key={i} x1={s.from.x} y1={s.from.y} x2={s.to.x} y2={s.to.y} stroke={NAVY} strokeWidth={3} strokeLinecap="round" />
@@ -456,7 +457,7 @@ export default function SpatialOrientationTest() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Orientation spatiale</CardTitle>
@@ -465,7 +466,7 @@ export default function SpatialOrientationTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.numQuestions} questions</strong> a resoudre.
               </p>
@@ -486,17 +487,17 @@ export default function SpatialOrientationTest() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold text-red-600">D / G</p>
-                <p className="text-xs text-slate-500">Direction</p>
+                <p className="text-xs text-[#605a57]">Direction</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestionSec}s</p>
+                <p className="text-xs text-[#605a57]">Par question</p>
               </div>
             </div>
 
@@ -528,7 +529,7 @@ export default function SpatialOrientationTest() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -561,7 +562,7 @@ export default function SpatialOrientationTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -598,22 +599,17 @@ export default function SpatialOrientationTest() {
     const perfEntries = loadEntries('spatial-orientation');
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="mt-1 text-slate-500">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'spatial-orientation'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-blue-50 p-4 text-center">
@@ -629,12 +625,12 @@ export default function SpatialOrientationTest() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => (
-                  <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                  <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">
+                      <span className="text-[#605a57]">
                         Q{i + 1} ({r.question.promptLetter})
                       </span>
                       <span className={r.isCorrect ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
@@ -650,7 +646,7 @@ export default function SpatialOrientationTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="spatial-orientation" />
                 </div>

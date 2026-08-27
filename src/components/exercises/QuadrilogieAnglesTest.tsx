@@ -3,13 +3,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home, Check, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
+import { PhoneNumpad } from '@/components/phone/PhoneDpad';
 
 // ============================================================================
 // Types
@@ -513,7 +515,7 @@ function MenuScreen({ settings, onPlay, onSettings, onBack }: {
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Quadrilogie des Angles</CardTitle>
@@ -523,15 +525,15 @@ function MenuScreen({ settings, onPlay, onSettings, onBack }: {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">{settings.questionsPerLevel * 4}</p>
-              <p className="text-sm text-slate-500">Questions</p>
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">{settings.questionsPerLevel * 4}</p>
+              <p className="text-sm text-[#605a57]">Questions</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">
                 {Math.floor(settings.totalDurationSec / 60)}:{(settings.totalDurationSec % 60).toString().padStart(2, '0')}
               </p>
-              <p className="text-sm text-slate-500">Temps total</p>
+              <p className="text-sm text-[#605a57]">Temps total</p>
             </div>
           </div>
           <div className="flex flex-col gap-3">
@@ -557,7 +559,7 @@ function SettingsScreen({ settings, onChange, onBack }: {
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
         <CardContent className="space-y-6">
@@ -659,7 +661,7 @@ function drawLevel1(ctx: CanvasRenderingContext2D, cx: number, cy: number, data:
     ctx.drawImage(img, bgX, bgY, bgW, bgH);
   } else {
     // Placeholder rectangle while loading
-    ctx.fillStyle = '#f3f4f6';
+    ctx.fillStyle = '#fbfaf9';
     ctx.fillRect(bgX, bgY, bgW, bgH);
   }
 
@@ -922,7 +924,7 @@ function renderQuestionToCanvas(
 
   // Bottom bar background
   if (drawBottomBar) {
-    ctx.fillStyle = '#f3f4f6';
+    ctx.fillStyle = '#fbfaf9';
     ctx.fillRect(0, height - 36, width, 36);
     ctx.strokeStyle = '#dc2626';
     ctx.lineWidth = 1;
@@ -1033,6 +1035,7 @@ function PlayingScreen(props: {
 }) {
   const { canvasRef, inputRef, width, height, question, questionIdx, totalQuestions,
     remainingSec, totalDurationSec, inputValue, onInputChange, onPrev, onNext } = props;
+  const phone = usePhoneLayout();
 
   const [imgTick, setImgTick] = useState(0);
 
@@ -1060,6 +1063,7 @@ function PlayingScreen(props: {
         />
 
         {/* Input field over the canvas, positioned under the visual zone */}
+        {!phone && (
         <div
           className="absolute"
           style={{
@@ -1085,10 +1089,11 @@ function PlayingScreen(props: {
             aria-label="Reponse en degres"
           />
         </div>
+        )}
 
         {/* Bottom-left: question number + chrono */}
         <div
-          className="absolute flex items-center gap-3 text-sm text-slate-700 px-3"
+          className="absolute flex items-center gap-3 text-sm text-[#37322f] px-3"
           style={{
             left: 0,
             bottom: 0,
@@ -1097,7 +1102,7 @@ function PlayingScreen(props: {
         >
           <Eye className="h-4 w-4" />
           <span>{questionIdx + 1} / {totalQuestions}</span>
-          <span className="ml-3 text-slate-600">{formatMMSS(remainingSec)}</span>
+          <span className="ml-3 text-[#605a57]">{formatMMSS(remainingSec)}</span>
         </div>
 
         {/* Bottom-right: Prev / Next buttons */}
@@ -1112,7 +1117,7 @@ function PlayingScreen(props: {
             <button
               type="button"
               onClick={onPrev}
-              className="bg-sky-500 hover:bg-sky-600 text-white text-sm px-3 py-1.5 rounded-sm flex items-center gap-1"
+              className="bg-sky-500 hover:bg-sky-600 text-white text-sm min-h-11 px-4 py-2 rounded-xl flex items-center gap-1"
             >
               <ArrowLeft className="h-4 w-4" /> Precedent
             </button>
@@ -1120,57 +1125,32 @@ function PlayingScreen(props: {
           <button
             type="button"
             onClick={onNext}
-            className="bg-sky-500 hover:bg-sky-600 text-white text-sm px-3 py-1.5 rounded-sm flex items-center gap-1"
+            className="bg-sky-500 hover:bg-sky-600 text-white text-sm min-h-11 px-4 py-2 rounded-xl flex items-center gap-1"
           >
             Suivant <Check className="h-4 w-4" />
           </button>
         </div>
       </div>
+      {phone && (
+        <div className="mt-4 w-full max-w-xs">
+          <p className="mb-2 text-center font-mono text-2xl font-semibold text-[#37322f]">
+            {inputValue || '—'}°
+          </p>
+          <PhoneNumpad
+            onDigit={(d) => onInputChange((inputValue + d).replace(/[^0-9]/g, '').slice(0, 3))}
+            onBackspace={() => onInputChange(inputValue.slice(0, -1))}
+            onSubmit={onNext}
+            submitLabel="Suivant"
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 // ============================================================================
-// Results screen — score + 9-class rainbow histogram
+// Results screen
 // ============================================================================
-
-// ============================================================================
-// EPLtest class thresholds (expressed as percentages so they scale with any
-// number of questions). Derived from EPLtest's own histogram: the on-screen
-// labels 4, 10, 17, 21, 24, 27, 29, 31 (out of 40) map to:
-//   4/40=10%, 10/40=25%, 17/40=42.5%, 21/40=52.5%, 24/40=60%,
-//   27/40=67.5%, 29/40=72.5%, 31/40=77.5%.
-// ============================================================================
-
-function scoreToClass(percent: number): number {
-  if (percent >= 77.5) return 9;
-  if (percent >= 72.5) return 8;
-  if (percent >= 67.5) return 7;
-  if (percent >= 60) return 6;
-  if (percent >= 52.5) return 5;
-  if (percent >= 42.5) return 4;
-  if (percent >= 25) return 3;
-  if (percent >= 10) return 2;
-  return 1;
-}
-
-const STANINE_COLORS = [
-  '#ef4444', // 1 - red
-  '#f97316', // 2 - orange
-  '#f59e0b', // 3 - amber
-  '#facc15', // 4 - yellow
-  '#a3e635', // 5 - lime
-  '#22c55e', // 6 - green
-  '#14b8a6', // 7 - teal
-  '#0ea5e9', // 8 - sky blue
-  '#6366f1', // 9 - indigo
-];
-
-function classLabel(stanine: number): string {
-  if (stanine <= 0) return '1-';
-  if (stanine >= 9) return '9+';
-  return `${stanine}`;
-}
 
 function ResultsScreen(props: {
   questions: Question[];
@@ -1195,40 +1175,25 @@ function ResultsScreen(props: {
   });
 
   const percent = total > 0 ? (correct / total) * 100 : 0;
-  const stanine = scoreToClass(percent);
-  const userClass = classLabel(stanine);
   const perfEntries = loadEntries(EXERCISE_ID);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">Quadrilogie des Angles</CardTitle>
-          <Badge variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'} className="text-lg px-4 py-1 mx-auto">
-            Classe {userClass}
-          </Badge>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Score */}
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Score</p>
-            <p className="text-5xl font-bold text-slate-700 mt-1">
-              {correct} / {total}
-            </p>
-            <p className="text-slate-500 mt-1">({percent.toFixed(1)} %)</p>
-          </div>
-
-          {/* Histogram - 9 colored class bands */}
-          <div>
-            <p className="text-sm font-medium text-slate-500 uppercase tracking-wide mb-2">Performance</p>
-            <Histogram stanine={stanine} />
-            <p className="text-xs text-slate-500 text-center mt-2">Votre classe : <strong>{userClass}</strong></p>
-          </div>
+          <ClassScoreBlock
+            exerciseId={EXERCISE_ID}
+            percent={percent}
+            detail={`${correct} / ${total} correctes`}
+          />
 
           {/* Progression chart */}
           {perfEntries.length >= 2 && (
             <div className="border-t pt-4">
-              <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+              <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
               <div className="flex justify-center">
                 <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
               </div>
@@ -1252,50 +1217,6 @@ function ResultsScreen(props: {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function Histogram({ stanine }: { stanine: number }) {
-  // 9 bands, each colored. The user's band is highlighted with a darker border + arrow above.
-  return (
-    <div className="w-full">
-      <div className="flex h-32 rounded-md overflow-hidden border border-slate-200">
-        {STANINE_COLORS.map((color, i) => {
-          const cls = i + 1;
-          const isUser = cls === stanine;
-          // Bell-shaped relative bar heights (centered around class 5)
-          const heights = [25, 45, 65, 85, 100, 85, 65, 45, 25];
-          const heightPct = heights[i];
-          return (
-            <div
-              key={cls}
-              className="flex-1 flex flex-col justify-end relative"
-              style={{ backgroundColor: color, opacity: isUser ? 1 : 0.55 }}
-            >
-              <div
-                className="w-full bg-black/15"
-                style={{ height: `${heightPct}%` }}
-              />
-              {isUser && (
-                <div className="absolute inset-0 border-2 border-slate-900 pointer-events-none" />
-              )}
-              <div className="absolute top-1 left-0 right-0 text-center text-[10px] font-bold text-slate-900/70">
-                {cls}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex text-[10px] text-slate-500 mt-1">
-        {STANINE_COLORS.map((_, i) => (
-          <div key={i} className="flex-1 text-center">
-            {i === 0 && '0%'}
-            {i === 4 && '50%'}
-            {i === 8 && '100%'}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -1365,7 +1286,7 @@ function ReviewScreen(props: {
 
         {/* Top-center: question title and level */}
         <div
-          className="absolute text-xs text-slate-500 font-medium"
+          className="absolute text-xs text-[#605a57] font-medium"
           style={{ top: 14, left: '50%', transform: 'translateX(-50%)' }}
         >
           Question {reviewIdx + 1} / {questions.length} — {levelName}
@@ -1387,7 +1308,7 @@ function ReviewScreen(props: {
                 ? 'border-green-500 bg-green-50 text-green-700'
                 : isAnswered
                   ? 'border-red-500 bg-red-50 text-red-700'
-                  : 'border-slate-400 bg-slate-50 text-slate-600')
+                  : 'border-slate-400 bg-[#f7f5f3] text-[#605a57]')
             }
           >
             {isCorrect ? (
@@ -1413,7 +1334,7 @@ function ReviewScreen(props: {
 
         {/* Legend (small caption at bottom, above bottom bar) */}
         <div
-          className="absolute text-[11px] text-slate-600 flex items-center gap-4"
+          className="absolute text-[11px] text-[#605a57] flex items-center gap-4"
           style={{ left: '50%', bottom: 44, transform: 'translateX(-50%)' }}
         >
           <span className="flex items-center gap-1">
@@ -1430,7 +1351,7 @@ function ReviewScreen(props: {
 
         {/* Bottom-left: question number */}
         <div
-          className="absolute flex items-center gap-3 text-sm text-slate-700 px-3"
+          className="absolute flex items-center gap-3 text-sm text-[#37322f] px-3"
           style={{ left: 0, bottom: 0, height: `${(36 / height) * 100}%` }}
         >
           <Eye className="h-4 w-4" />

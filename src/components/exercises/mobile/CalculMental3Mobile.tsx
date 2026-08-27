@@ -5,6 +5,7 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -266,26 +267,26 @@ export default function CalculMental3Mobile() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-1">
+              <div className="bg-[#f7f5f3] rounded-lg p-3 text-sm text-[#605a57] space-y-1">
                 <p><strong>{settings.totalQuestions} systemes</strong> a resoudre.</p>
                 <p>3 equations, 3 inconnues (A, B, C).</p>
                 <p>Trouvez <strong>B</strong> par substitution.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">{settings.totalQuestions}</p>
-                  <p className="text-xs text-slate-500">Systemes</p>
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                  <p className="text-xs text-[#605a57]">Systemes</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">3</p>
-                  <p className="text-xs text-slate-500">Equations</p>
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">3</p>
+                  <p className="text-xs text-[#605a57]">Equations</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">
                     {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                   </p>
-                  <p className="text-xs text-slate-500">Temps</p>
+                  <p className="text-xs text-[#605a57]">Temps</p>
                 </div>
               </div>
 
@@ -337,7 +338,7 @@ export default function CalculMental3Mobile() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les systemes</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les systemes</p>
                 </div>
                 <Switch checked={settings.examMode} onCheckedChange={v => setSettings(s => ({ ...s, examMode: v }))} />
               </div>
@@ -364,18 +365,14 @@ export default function CalculMental3Mobile() {
         <div className="max-w-lg mx-auto pt-4">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Resultats</CardTitle>
-              <Badge
-                variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-                className="text-base px-3 py-1 mt-2"
-              >
-                {scoreData.grade}
-              </Badge>
+              <CardTitle className="text-2xl">Résultats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-slate-700">{scoreData.score}%</p>
-              </div>
+              <ClassScoreBlock
+                exerciseId={'calcul-mental-3'}
+                percent={scoreData.score}
+                detail={`${totalCorrect}/${results.length} correctes`}
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-blue-50 rounded-lg text-center">
                   <p className="text-xl font-bold text-blue-600">{totalCorrect}/{results.length}</p>
@@ -388,12 +385,12 @@ export default function CalculMental3Mobile() {
               </div>
 
               <div className="space-y-2">
-                <p className="font-semibold text-slate-700 text-sm">Detail :</p>
+                <p className="font-semibold text-[#37322f] text-sm">Detail :</p>
                 <div className="max-h-56 overflow-y-auto space-y-1.5">
                   {results.map((r, i) => (
-                    <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                    <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-slate-500">S{i + 1}</span>
+                        <span className="text-[#605a57]">S{i + 1}</span>
                         <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                           {r.isCorrect ? '\u2713' : '\u2717'} B = {r.userAnswer !== null ? r.userAnswer : '?'}
                           {!r.isCorrect && <span className="text-green-600 ml-1">(B = {r.system.valueB})</span>}
@@ -443,7 +440,7 @@ export default function CalculMental3Mobile() {
             {currentIdx + 1} / {settings.totalQuestions}
           </Badge>
           {settings.timeLimitSec > 0 && (
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-[#605a57]">
               {Math.floor(timeLeft / 60000)}:{String(Math.floor((timeLeft % 60000) / 1000)).padStart(2, '0')}
             </span>
           )}
@@ -452,12 +449,12 @@ export default function CalculMental3Mobile() {
         {showCorrection ? (
           <Card className="text-center py-6">
             <CardContent className="space-y-4">
-              <div className="text-left mx-auto space-y-1 font-mono text-sm text-slate-600 max-w-xs">
+              <div className="text-left mx-auto space-y-1 font-mono text-sm text-[#605a57] max-w-xs">
                 <p className="text-center">{eq1}</p>
                 <p className="text-center">{eq2}</p>
                 <p className="text-center break-words">{eq3}</p>
               </div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-[#605a57]">
                 A = {currentSys.valueA}, C = {currentSys.valueC}
               </div>
               {results[results.length - 1]?.isCorrect ? (
@@ -481,7 +478,7 @@ export default function CalculMental3Mobile() {
         ) : (
           <Card className="py-4">
             <CardContent className="space-y-4">
-              <p className="text-sm text-slate-500 text-center">Resoudre pour B :</p>
+              <p className="text-sm text-[#605a57] text-center">Resoudre pour B :</p>
 
               {/* System with curly brace */}
               <div className="flex items-center justify-center gap-3">
@@ -498,7 +495,7 @@ export default function CalculMental3Mobile() {
 
               <div className="space-y-3 mt-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-slate-700 shrink-0">B =</span>
+                  <span className="text-lg font-bold text-[#37322f] shrink-0">B =</span>
                   <Input
                     ref={inputRef}
                     type="number"

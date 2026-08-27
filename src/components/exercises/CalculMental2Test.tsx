@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -339,7 +340,7 @@ export default function CalculMental2Test() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Calcul Mental 2</CardTitle>
@@ -348,7 +349,7 @@ export default function CalculMental2Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
+            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
               <p><strong>{settings.totalQuestions} operations</strong> a estimer.</p>
               <p>Chaque operation est une chaine de <strong>{settings.chainLength} termes</strong> (additions/soustractions).</p>
               <p>Selectionnez le <strong>plus petit intervalle</strong> contenant le resultat parmi {settings.numChoices} propositions.</p>
@@ -358,19 +359,19 @@ export default function CalculMental2Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.numChoices}</p>
-                <p className="text-xs text-slate-500">Intervalles</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numChoices}</p>
+                <p className="text-xs text-[#605a57]">Intervalles</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
@@ -400,7 +401,7 @@ export default function CalculMental2Test() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -451,7 +452,7 @@ export default function CalculMental2Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les questions</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -483,22 +484,17 @@ export default function CalculMental2Test() {
     const perfEntries = loadEntries('calcul-mental-2');
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1 mt-2"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500 mt-1">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'calcul-mental-2'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
@@ -512,15 +508,15 @@ export default function CalculMental2Test() {
             </div>
 
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail par question :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail par question :</p>
               <div className="max-h-64 overflow-y-auto space-y-1.5">
                 {results.map((r, i) => {
                   const correct = r.question.choices[r.question.correctIndex];
                   const selected = r.selectedIndex !== null ? r.question.choices[r.selectedIndex] : null;
                   return (
-                    <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                    <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-slate-500">Q{i + 1}</span>
+                        <span className="text-[#605a57]">Q{i + 1}</span>
                         <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                           {r.isCorrect ? '\u2713' : '\u2717'}
                           {' '}
@@ -543,7 +539,7 @@ export default function CalculMental2Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-mental-2" />
                 </div>
@@ -570,7 +566,7 @@ export default function CalculMental2Test() {
   const timerColor = timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="w-full max-w-4xl relative">
         {/* Vertical timer bar */}
         {settings.timeLimitSec > 0 && (
@@ -594,7 +590,7 @@ export default function CalculMental2Test() {
           <div className="mr-6 space-y-4">
             <Card className="text-center py-6">
               <CardContent className="space-y-3">
-                <p className="text-sm text-slate-500 mb-2">
+                <p className="text-sm text-[#605a57] mb-2">
                   Selectionnez le plus petit intervalle contenant le resultat de l&apos;operation ci-dessous :
                 </p>
                 <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-800 font-mono tracking-wide break-words text-center leading-relaxed">
@@ -628,7 +624,7 @@ export default function CalculMental2Test() {
                     } else if (isSelected) {
                       cls += 'border-red-500 bg-red-50 text-red-800';
                     } else {
-                      cls += 'border-slate-200 bg-white text-slate-500';
+                      cls += 'border-slate-200 bg-white text-[#605a57]';
                     }
                     return (
                       <div key={i} className={cls}>
@@ -657,7 +653,7 @@ export default function CalculMental2Test() {
             {/* Question */}
             <Card className="text-center py-6">
               <CardContent>
-                <p className="text-sm text-slate-500 mb-4">
+                <p className="text-sm text-[#605a57] mb-4">
                   Selectionnez le plus petit intervalle contenant le resultat de l&apos;operation ci-dessous :
                 </p>
                 <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-800 font-mono tracking-wide break-words text-center leading-relaxed">
@@ -677,7 +673,7 @@ export default function CalculMental2Test() {
                       className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-base font-mono
                         ${selectedIdx === i
                           ? 'border-blue-500 bg-blue-50 text-blue-800'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-[#f7f5f3] text-[#37322f]'
                         }`}
                     >
                       <span className="text-slate-400 mr-3">{i + 1})</span>

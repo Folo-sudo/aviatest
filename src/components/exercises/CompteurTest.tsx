@@ -4,14 +4,15 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, Settings, RotateCcw, Home, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 /* ================================================================
    Types
@@ -40,6 +41,24 @@ interface CompteurSettings {
   numQuestions: number;
   totalTime: number;
   examMode: boolean;
+}
+
+const SETTINGS_KEY = 'aviatest-compteurs-settings';
+const DEFAULT_SETTINGS: CompteurSettings = {
+  numQuestions: 20,
+  totalTime: 600,
+  examMode: false,
+};
+
+function loadCompteurSettings(): CompteurSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
 }
 
 /* ================================================================
@@ -502,12 +521,27 @@ function Gauge({ id, value }: { id: InstrumentId; value: number }) {
    ================================================================ */
 export function CompteurTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gs, setGs] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<CompteurSettings>({
-    numQuestions: 20,
-    totalTime: 600,
-    examMode: false,
-  });
+  const settingsReadyRef = useRef(false);
+  const [settings, setSettings] = useState<CompteurSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    setSettings(loadCompteurSettings());
+    const t = window.setTimeout(() => {
+      settingsReadyRef.current = true;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsReadyRef.current) return;
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      /* ignore */
+    }
+  }, [settings]);
   const [scorer] = useState(() => new Scorer());
   const [qNum, setQNum] = useState(0);
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -597,7 +631,7 @@ export function CompteurTest() {
   /* ─── MENU ─── */
   if (gs === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Test des Compteurs</CardTitle>
@@ -605,13 +639,13 @@ export function CompteurTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-sm text-slate-500">Planches</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-sm text-[#605a57]">Planches</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{Math.floor(settings.totalTime / 60)} min</p>
-                <p className="text-sm text-slate-500">Temps total</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{Math.floor(settings.totalTime / 60)} min</p>
+                <p className="text-sm text-[#605a57]">Temps total</p>
               </div>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
@@ -635,7 +669,7 @@ export function CompteurTest() {
   /* ─── SETTINGS ─── */
   if (gs === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
           <CardContent className="space-y-6">
@@ -650,7 +684,7 @@ export function CompteurTest() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <Label>Mode examen</Label>
-                <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les planches</p>
+                <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les planches</p>
               </div>
               <Switch
                 checked={settings.examMode}
@@ -673,17 +707,17 @@ export function CompteurTest() {
     }
     const perfEntries = loadEntries('compteurs');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={d.accuracy >= 75 ? 'default' : d.accuracy >= 50 ? 'secondary' : 'destructive'} className="text-lg px-4 py-1">{d.grade}</Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{d.score}%</p>
-              <p className="text-slate-500">{d.correct} / {d.total} correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'compteurs'}
+              percent={d.score}
+              detail={`${d.correct} / ${d.total} correctes`}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-green-50 rounded-lg text-center">
                 <p className="text-2xl font-bold text-green-600">{d.correct}</p>
@@ -696,7 +730,7 @@ export function CompteurTest() {
             </div>
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="compteurs" />
                 </div>
@@ -720,20 +754,20 @@ export function CompteurTest() {
   const optionCount = columns[CFGS[0].id]?.options.length ?? 6;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-4">
+    <div className="min-h-screen bg-[#fbfaf9] p-2 sm:p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header bar */}
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-mono text-slate-600">{qNum + 1} / {settings.numQuestions}</span>
-          <span className="text-sm font-mono text-slate-600">Score : {scorer.getCorrect()} / {scorer.getTotal()}</span>
-          <span className={`text-sm font-mono font-bold ${tPct <= 0.2 ? 'text-red-600' : 'text-slate-700'}`}>{fmt(timeLeft)}</span>
+          <span className="text-sm font-mono text-[#605a57]">{qNum + 1} / {settings.numQuestions}</span>
+          <span className="text-sm font-mono text-[#605a57]">Score : {scorer.getCorrect()} / {scorer.getTotal()}</span>
+          <span className={`text-sm font-mono font-bold ${tPct <= 0.2 ? 'text-red-600' : 'text-[#37322f]'}`}>{fmt(timeLeft)}</span>
         </div>
         <div className="w-full h-2 bg-slate-200 rounded-full mb-3 overflow-hidden">
           <div className={`h-full ${tColor} transition-all duration-1000`} style={{ width: `${tPct * 100}%` }} />
         </div>
 
         {/* Gauge grid — 4×2 ; inactive stay fully visible at 0 */}
-        <div className="grid grid-cols-4 gap-1 sm:gap-2 mb-3">
+        <div className={`grid gap-2 mb-3 ${phone ? 'grid-cols-2' : 'grid-cols-4'}`}>
           {ALL.map(id => (
             <div key={id} className="flex justify-center">
               <Gauge id={id} value={board.values[id]} />
@@ -741,14 +775,58 @@ export function CompteurTest() {
           ))}
         </div>
 
-        {/* Answer table — one clickable cell per column (not whole row) */}
+        {phone ? (
+          <div className="space-y-3">
+            {CFGS.filter((c) => board.active.has(c.id)).map((c) => {
+              const col = columns[c.id];
+              return (
+                <div
+                  key={c.id}
+                  className="rounded-2xl bg-white p-3 shadow-sm"
+                  style={{ border: '1px solid #e0dedb' }}
+                >
+                  <p className="mb-2 text-sm font-semibold text-[#37322f]">{c.label}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {col.options.map((value) => {
+                      const selected = selection[c.id] === value;
+                      const isCorrectValue = value === col.correct;
+                      let cls =
+                        'min-h-12 rounded-xl px-2 py-2 text-center font-mono text-sm ring-1 ring-[#e0dedb]';
+                      if (!answered) {
+                        cls += selected
+                          ? ' bg-[#37322f] text-white ring-[#37322f]'
+                          : ' bg-[#fbfaf9] text-[#37322f]';
+                      } else if (isCorrectValue) {
+                        cls += ' bg-green-100 font-semibold text-green-800 ring-green-300';
+                      } else if (selected) {
+                        cls += ' bg-red-100 text-red-800 ring-red-300';
+                      } else {
+                        cls += ' text-slate-400';
+                      }
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className={cls}
+                          onClick={() => pickCell(c.id, value)}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="bg-slate-100 border-b border-slate-200">
                 <th className="p-1.5 sm:p-2 text-center text-slate-400 w-8">#</th>
                 {CFGS.map(c => (
-                  <th key={c.id} className="p-1.5 sm:p-2 text-center font-semibold whitespace-nowrap text-slate-700">
+                  <th key={c.id} className="p-1.5 sm:p-2 text-center font-semibold whitespace-nowrap text-[#37322f]">
                     {c.label}
                     {!board.active.has(c.id) && (
                       <span className="block text-[10px] font-normal text-slate-400">non evalue</span>
@@ -768,9 +846,9 @@ export function CompteurTest() {
                     const selected = selection[c.id] === value;
                     const isCorrectValue = value === col.correct;
 
-                    let cls = 'p-1.5 sm:p-2 text-center font-mono whitespace-nowrap text-slate-700';
+                    let cls = 'p-1.5 sm:p-2 text-center font-mono whitespace-nowrap text-[#37322f]';
                     if (!active) {
-                      cls += ' text-slate-500';
+                      cls += ' text-[#605a57]';
                     } else if (!answered) {
                       cls += selected
                         ? ' bg-blue-100 ring-2 ring-inset ring-blue-400 cursor-pointer'
@@ -780,7 +858,7 @@ export function CompteurTest() {
                     } else if (selected) {
                       cls += ' bg-red-100 text-red-800';
                     } else {
-                      cls += ' text-slate-500';
+                      cls += ' text-[#605a57]';
                     }
 
                     return (
@@ -798,6 +876,7 @@ export function CompteurTest() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Validate / feedback + Next */}
         <div className="flex items-center justify-between mt-3 gap-3">

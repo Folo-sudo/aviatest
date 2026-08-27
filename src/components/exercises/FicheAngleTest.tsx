@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -420,7 +421,7 @@ export default function FicheAngleTest() {
 
   if (phase === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Fiche Angles</CardTitle>
@@ -449,7 +450,7 @@ export default function FicheAngleTest() {
               onClick={() => startFiche('unsigned')}
             >
               <span className="text-base font-semibold">Angle non oriente</span>
-              <span className="font-normal text-sm text-slate-600">
+              <span className="font-normal text-sm text-[#605a57]">
                 100 angles entre A et O — les deux sens sont acceptes (x et
                 360 - x), comme l&apos;app locale Python.
               </span>
@@ -469,6 +470,7 @@ export default function FicheAngleTest() {
       : 0;
     const perfect = results.filter(r => r.error === 0).length;
     const close = results.filter(r => r.error <= 10).length;
+    const percent = results.length > 0 ? Math.round((close / results.length) * 100) : 0;
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
       savePerformanceResult('fiche-angles', close, results.length);
@@ -476,18 +478,17 @@ export default function FicheAngleTest() {
     const perfEntries = loadEntries('fiche-angles');
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={avgError <= 10 ? 'default' : avgError <= 25 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1 mt-2"
-            >
-              Erreur moy. {avgError}{'\u00B0'}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <ClassScoreBlock
+              exerciseId={'fiche-angles'}
+              percent={percent}
+              detail={`${close} / ${results.length} a 10° ou moins`}
+            />
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 bg-green-50 rounded-lg">
                 <p className="text-2xl font-bold text-green-600">{perfect}</p>
@@ -504,12 +505,12 @@ export default function FicheAngleTest() {
             </div>
 
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail :</p>
               <div className="max-h-64 overflow-y-auto space-y-1.5">
                 {results.map((r, i) => (
-                  <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm flex justify-between items-center">
-                    <span className="text-slate-500">#{i + 1}</span>
-                    <span className="font-mono text-slate-600">
+                  <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm flex justify-between items-center">
+                    <span className="text-[#605a57]">#{i + 1}</span>
+                    <span className="font-mono text-[#605a57]">
                       {mode === 'unsigned'
                         ? `${formatUnsignedExpected(r.question.answer)}\u00B0 \u2192 ${r.userAngle}\u00B0`
                         : `${r.question.answer >= 0 ? '+' : ''}${r.question.answer}\u00B0 \u2192 ${r.userAngle >= 0 ? '+' : ''}${r.userAngle}\u00B0`}
@@ -524,7 +525,7 @@ export default function FicheAngleTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="fiche-angles" />
                 </div>
@@ -554,7 +555,7 @@ export default function FicheAngleTest() {
   if (showCorrection) {
     const lastResult = results[results.length - 1];
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-between mb-4">
             <Badge variant="outline" className="text-base px-3 py-1">
@@ -588,14 +589,14 @@ export default function FicheAngleTest() {
                 <div className="flex gap-6">
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-blue-600" />
-                    <span className="text-slate-600">A</span>
+                    <span className="text-[#605a57]">A</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-600" />
-                    <span className="text-slate-600">O</span>
+                    <span className="text-[#605a57]">O</span>
                   </div>
                 </div>
-                <p className="text-slate-700 font-semibold">
+                <p className="text-[#37322f] font-semibold">
                   {mode === 'unsigned'
                     ? `Bonnes reponses : ${formatUnsignedExpected(currentQ.answer)}\u00B0`
                     : `Angle A\u2192O = ${currentQ.answer >= 0 ? '+' : ''}${currentQ.answer}\u00B0`}
@@ -620,7 +621,7 @@ export default function FicheAngleTest() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-between mb-4">
           <Badge variant="outline" className="text-base px-3 py-1">
@@ -630,7 +631,7 @@ export default function FicheAngleTest() {
 
         <Card className="mb-4">
           <CardContent className="pt-4 pb-3">
-            <p className="text-center text-sm text-slate-500 mb-3">
+            <p className="text-center text-sm text-[#605a57] mb-3">
               {mode === 'unsigned' ? (
                 <>
                   Angle non oriente entre <span className="text-blue-600 font-bold">A</span> et{' '}

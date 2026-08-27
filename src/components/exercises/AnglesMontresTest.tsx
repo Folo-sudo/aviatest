@@ -3,13 +3,14 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home, Eye, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types
@@ -194,22 +195,6 @@ function generateAllQuestions(numQuestions: number): Question[] {
 }
 
 // ============================================================================
-// Class thresholds (from EPLtest histogram: 7%, 24%, 44%, 60%, 75%, 85%, 92%, 96%)
-// ============================================================================
-
-function scoreToClass(percent: number): number {
-  if (percent >= 96) return 9;
-  if (percent >= 92) return 8;
-  if (percent >= 85) return 7;
-  if (percent >= 75) return 6;
-  if (percent >= 60) return 5;
-  if (percent >= 44) return 4;
-  if (percent >= 24) return 3;
-  if (percent >= 7) return 2;
-  return 1;
-}
-
-// ============================================================================
 // Main component
 // ============================================================================
 
@@ -336,7 +321,7 @@ function MenuScreen({ settings, onPlay, onSettings, onBack }: {
   settings: GameSettings; onPlay: () => void; onSettings: () => void; onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Angles &ndash; Montres</CardTitle>
@@ -344,13 +329,13 @@ function MenuScreen({ settings, onPlay, onSettings, onBack }: {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">{settings.numQuestions}</p>
-              <p className="text-sm text-slate-500">Questions</p>
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+              <p className="text-sm text-[#605a57]">Questions</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">{Math.floor(settings.totalDurationSec / 60)}:{(settings.totalDurationSec % 60).toString().padStart(2, '0')}</p>
-              <p className="text-sm text-slate-500">Temps total</p>
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">{Math.floor(settings.totalDurationSec / 60)}:{(settings.totalDurationSec % 60).toString().padStart(2, '0')}</p>
+              <p className="text-sm text-[#605a57]">Temps total</p>
             </div>
           </div>
           <div className="flex flex-col gap-3">
@@ -368,7 +353,7 @@ function SettingsScreen({ settings, onChange, onBack }: {
   settings: GameSettings; onChange: (s: GameSettings) => void; onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
         <CardContent className="space-y-6">
@@ -405,6 +390,7 @@ function PlayingScreen({ question, questionIdx, totalQuestions, remainingSec, to
   onToggle: (wIdx: number) => void;
   onValidate: () => void;
 }) {
+  const phone = usePhoneLayout();
   // Timer bar progress
   const progress = Math.max(0, Math.min(1, remainingSec / totalDurationSec));
   const timerColor = progress > 0.5 ? 'bg-green-500' : progress > 0.2 ? 'bg-amber-500' : 'bg-red-500';
@@ -423,7 +409,13 @@ function PlayingScreen({ question, questionIdx, totalQuestions, remainingSec, to
         </div>
 
         {/* Watches grid: row1=2, row2=3, row3=3 */}
-        <div className="flex-1 flex flex-col items-center gap-4">
+        <div className={`flex-1 grid gap-3 ${phone ? 'grid-cols-2' : ''}`}>
+          {phone ? (
+            question.watches.map((w, i) => (
+              <WatchCard key={i} watch={w} checked={userChecked.has(i)} onToggle={() => onToggle(i)} large />
+            ))
+          ) : (
+            <>
           <div className="flex gap-6 justify-center">
             {question.watches.slice(0, 2).map((w, i) => (
               <WatchCard key={i} watch={w} checked={userChecked.has(i)} onToggle={() => onToggle(i)} />
@@ -439,16 +431,18 @@ function PlayingScreen({ question, questionIdx, totalQuestions, remainingSec, to
               <WatchCard key={i + 5} watch={w} checked={userChecked.has(i + 5)} onToggle={() => onToggle(i + 5)} />
             ))}
           </div>
+            </>
+          )}
         </div>
 
         {/* Bottom bar */}
         <div className="flex items-center justify-between border-t border-red-500 pt-2 mt-4">
-          <div className="flex items-center gap-3 text-sm text-slate-700">
+          <div className="flex items-center gap-3 text-sm text-[#37322f]">
             <span>{questionIdx + 1} / {totalQuestions}</span>
             <span>{formatMMSS(remainingSec)}</span>
           </div>
           <button type="button" onClick={onValidate}
-            className="bg-sky-500 hover:bg-sky-600 text-white text-sm px-4 py-2 rounded flex items-center gap-1">
+            className="bg-sky-500 hover:bg-sky-600 text-white text-sm min-h-11 px-5 py-2.5 rounded-xl flex items-center gap-1">
             <Check className="h-4 w-4" /> Valider
           </button>
         </div>
@@ -479,12 +473,13 @@ function ReferenceAngle({ oDx, oDy, aDx, aDy }: { oDx: number; oDy: number; aDx:
 // Watch card (clock + angle + checkbox)
 // ============================================================================
 
-function WatchCard({ watch, checked, onToggle, reviewMode, isUserCorrect }: {
+function WatchCard({ watch, checked, onToggle, reviewMode, isUserCorrect, large }: {
   watch: WatchData; checked: boolean; onToggle?: () => void;
   reviewMode?: boolean; isUserCorrect?: boolean;
+  large?: boolean;
 }) {
-  const r = 36;
-  const svgSize = 130;
+  const r = large ? 42 : 36;
+  const svgSize = large ? 148 : 130;
   const cx = svgSize / 2, cy = svgSize / 2;
 
   // Clock number positions
@@ -505,7 +500,7 @@ function WatchCard({ watch, checked, onToggle, reviewMode, isUserCorrect }: {
     <div className={`flex items-center gap-1 ${reviewMode ? '' : 'cursor-pointer'}`}
       onClick={!reviewMode ? onToggle : undefined}>
       {/* Checkbox */}
-      <div className={`w-5 h-5 border-2 rounded flex items-center justify-center flex-shrink-0 ${
+      <div className={`${large ? 'h-8 w-8' : 'h-5 w-5'} border-2 rounded flex items-center justify-center flex-shrink-0 ${
         checked ? 'bg-sky-500 border-sky-500' : 'border-slate-400'
       } ${reviewMode && watch.isCorrect && !checked ? 'border-green-500 bg-green-100' : ''}`}>
         {checked && <Check className="h-3 w-3 text-white" />}
@@ -553,42 +548,29 @@ function WatchCard({ watch, checked, onToggle, reviewMode, isUserCorrect }: {
 // Results screen
 // ============================================================================
 
-const STANINE_COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#facc15', '#a3e635',
-  '#22c55e', '#14b8a6', '#0ea5e9', '#6366f1',
-];
-
 function ResultsScreen({ computeScore, onReplay, onMenu, onHome, onReview }: {
   computeScore: () => { correct: number; total: number };
   onReplay: () => void; onMenu: () => void; onHome: () => void; onReview: () => void;
 }) {
   const { correct, total } = computeScore();
   const percent = total > 0 ? (correct / total) * 100 : 0;
-  const cls = scoreToClass(percent);
   const perfEntries = loadEntries(EXERCISE_ID);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl">Angles &ndash; Montres</CardTitle>
-          <Badge variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'} className="text-lg px-4 py-1 mx-auto">
-            Classe {cls}
-          </Badge>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500 uppercase">Score</p>
-            <p className="text-5xl font-bold text-slate-700 mt-1">{correct} / {total}</p>
-            <p className="text-slate-500 mt-1">({percent.toFixed(1)} %)</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500 uppercase mb-2">Performance</p>
-            <Histogram stanine={cls} />
-          </div>
+          <ClassScoreBlock
+            exerciseId={EXERCISE_ID}
+            percent={percent}
+            detail={`${correct} / ${total} correctes`}
+          />
           {perfEntries.length >= 2 && (
             <div className="border-t pt-4">
-              <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+              <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
               <div className="flex justify-center"><MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} /></div>
             </div>
           )}
@@ -600,28 +582,6 @@ function ResultsScreen({ computeScore, onReplay, onMenu, onHome, onReview }: {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function Histogram({ stanine }: { stanine: number }) {
-  const heights = [25, 45, 65, 85, 100, 85, 65, 45, 25];
-  return (
-    <div className="w-full">
-      <div className="flex h-32 rounded-md overflow-hidden border border-slate-200">
-        {STANINE_COLORS.map((color, i) => {
-          const cls = i + 1;
-          const isUser = cls === stanine;
-          return (
-            <div key={cls} className="flex-1 flex flex-col justify-end relative"
-              style={{ backgroundColor: color, opacity: isUser ? 1 : 0.55 }}>
-              <div className="w-full bg-black/15" style={{ height: `${heights[i]}%` }} />
-              {isUser && <div className="absolute inset-0 border-2 border-slate-900 pointer-events-none" />}
-              <div className="absolute top-1 left-0 right-0 text-center text-[10px] font-bold text-slate-900/70">{cls}</div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -649,7 +609,7 @@ function ReviewScreen({ questions, checked, reviewIdx, onPrev, onNext, onBack }:
           <button type="button" onClick={onBack} className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm px-3 py-1.5 rounded flex items-center gap-1">
             <ArrowLeft className="h-4 w-4" /> Resultats
           </button>
-          <span className="text-sm text-slate-500">Question {reviewIdx + 1} / {questions.length}</span>
+          <span className="text-sm text-[#605a57]">Question {reviewIdx + 1} / {questions.length}</span>
           <span className={`text-sm font-bold ${isQuestionCorrect ? 'text-green-600' : 'text-red-600'}`}>
             {isQuestionCorrect ? 'Juste' : 'Erreur'}
           </span>
@@ -658,7 +618,7 @@ function ReviewScreen({ questions, checked, reviewIdx, onPrev, onNext, onBack }:
         {/* Reference angle */}
         <div className="flex items-start gap-8 mb-6">
           <ReferenceAngle oDx={q.refODx} oDy={q.refODy} aDx={q.refADx} aDy={q.refADy} />
-          <div className="text-sm text-slate-500 mt-2">Angle de reference : {q.refAngle}°</div>
+          <div className="text-sm text-[#605a57] mt-2">Angle de reference : {q.refAngle}°</div>
         </div>
 
         {/* Watches grid with correction */}

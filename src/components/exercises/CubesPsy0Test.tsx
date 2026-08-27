@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, ChevronRight, Home, Play, RotateCcw, Settings, XCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -11,6 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import {
   type FaceRotation,
   type LayoutId,
@@ -71,7 +71,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   examMode: false,
 };
 
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 const FACE_BG = '#ffffff';
 const FACE_BORDER = '#333333';
 const FACE_SIZE = 84;
@@ -380,7 +380,7 @@ function FaceCell({
         : flash === 'incorrect'
           ? '#dc2626'
           : selected
-            ? '#0068C6'
+            ? '#37322f'
             : highlight
               ? '#f59e0b'
               : FACE_BORDER;
@@ -769,7 +769,7 @@ export default function CubesPsy0Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 A gauche : le <strong>modele complet</strong>. A droite : le{' '}
                 <strong>meme cube</strong> deplie autrement, avec des faces manquantes.
@@ -785,13 +785,13 @@ export default function CubesPsy0Test() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.timePerQuestionSec}s</p>
-                <p className="text-xs text-slate-500">Par question</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.timePerQuestionSec}s</p>
+                <p className="text-xs text-[#605a57]">Par question</p>
               </div>
             </div>
 
@@ -847,10 +847,10 @@ export default function CubesPsy0Test() {
                   className="mt-2"
                 />
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-[#f7f5f3] p-4">
                 <div>
                   <Label htmlFor="exam-mode">Mode examen</Label>
-                  <p className="text-xs text-slate-500">Pas de retour visuel, passage immediat</p>
+                  <p className="text-xs text-[#605a57]">Pas de retour visuel, passage immediat</p>
                 </div>
                 <Switch
                   id="exam-mode"
@@ -875,8 +875,6 @@ export default function CubesPsy0Test() {
     const correct = results.filter((r) => r.outcome === 'correct').length;
     const total = results.length;
     const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-    const grade =
-      pct >= 75 ? 'Excellent' : pct >= 50 ? 'Bien' : pct >= 25 ? 'Passable' : 'A revoir';
 
     if (!perfSavedRef.current) {
       perfSavedRef.current = true;
@@ -889,21 +887,14 @@ export default function CubesPsy0Test() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={pct >= 75 ? 'default' : pct >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{pct}%</p>
-              <p className="mt-1 text-slate-500">
-                {correct}/{total} reponses correctes
-              </p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correct}/${total} reponses correctes`}
+            />
 
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-green-50 p-3 text-center">
@@ -916,17 +907,17 @@ export default function CubesPsy0Test() {
                 </p>
                 <p className="text-xs text-red-700">Incorrect</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-600">
+              <div className="rounded-lg bg-[#f7f5f3] p-3 text-center">
+                <p className="text-2xl font-bold text-[#605a57]">
                   {results.filter((r) => r.outcome === 'skipped').length}
                 </p>
-                <p className="text-xs text-slate-500">Passe</p>
+                <p className="text-xs text-[#605a57]">Passe</p>
               </div>
             </div>
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />
                 </div>
@@ -965,7 +956,7 @@ export default function CubesPsy0Test() {
   return (
     <div className={`flex min-h-screen flex-col ${SLATE_BG}`}>
       <div className="border-b border-slate-200 bg-white/70 px-4 py-3 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between text-sm font-medium text-slate-700">
+        <div className="mx-auto flex max-w-5xl items-center justify-between text-sm font-medium text-[#37322f]">
           <span>
             Question {currentIdx + 1}/{questions.length}
           </span>
@@ -979,7 +970,7 @@ export default function CubesPsy0Test() {
             className="h-full transition-all duration-100"
             style={{
               width: `${timerPct}%`,
-              backgroundColor: timerPct < 20 ? '#dc2626' : '#0068C6',
+              backgroundColor: timerPct < 20 ? '#dc2626' : '#37322f',
             }}
           />
         </div>
@@ -992,7 +983,7 @@ export default function CubesPsy0Test() {
               flashOutcome === 'correct'
                 ? 'border-green-200 bg-green-50 text-green-700'
                 : flashOutcome === 'skipped'
-                  ? 'border-slate-200 bg-slate-50 text-slate-700'
+                  ? 'border-slate-200 bg-[#f7f5f3] text-[#37322f]'
                   : 'border-red-200 bg-red-50 text-red-700'
             }`}
           >
@@ -1012,7 +1003,7 @@ export default function CubesPsy0Test() {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-600">Modele</p>
+            <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#605a57]">Modele</p>
             <CubeNet
               layoutId={currentQuestion.layoutRef}
               faces={currentQuestion.referenceFaces}
@@ -1021,7 +1012,7 @@ export default function CubesPsy0Test() {
           </div>
 
           <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-600">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#605a57]">
               {showSolution ? 'Solution possible' : 'A completer'}
             </p>
             <CubeNet
@@ -1042,7 +1033,7 @@ export default function CubesPsy0Test() {
 
         {!showCorrection && (
           <div className="rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-            <p className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-600">
+            <p className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-[#605a57]">
               Pieces disponibles
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -1060,7 +1051,7 @@ export default function CubesPsy0Test() {
                 />
               ))}
             </div>
-            <p className="mt-4 text-center text-xs text-slate-500">
+            <p className="mt-4 text-center text-xs text-[#605a57]">
               Glisser-deposer pour placer · clic pour pivoter d&apos;un quart de tour · double-clic sur une
               face placee pour la retirer
             </p>

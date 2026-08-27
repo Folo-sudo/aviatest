@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Play, RotateCcw, Home, ChevronRight, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types
@@ -272,6 +274,7 @@ function symbolFamilyLabel(family: SymbolFamily): string {
 
 export default function Attention2Test() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>({ ...DEFAULT_SETTINGS });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -422,7 +425,7 @@ export default function Attention2Test() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Attention 2</CardTitle>
@@ -431,7 +434,7 @@ export default function Attention2Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.numBoards} tableaux</strong> a analyser.
               </p>
@@ -458,13 +461,13 @@ export default function Attention2Test() {
             <div className="flex items-center justify-center gap-6 rounded-lg bg-slate-100 p-4">
               {settings.symbolFamily === 'formes' ? (
                 <>
-                  <div className="text-center"><FlagIcon orientation={{ rot: 0, mirror: false }} size={32} /><p className="mt-1 text-xs text-slate-500">Reference</p></div>
+                  <div className="text-center"><FlagIcon orientation={{ rot: 0, mirror: false }} size={32} /><p className="mt-1 text-xs text-[#605a57]">Reference</p></div>
                   <div className="text-center"><FlagIcon orientation={{ rot: 90, mirror: false }} size={32} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
                   <div className="text-center"><FlagIcon orientation={{ rot: 0, mirror: true }} size={32} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
                 </>
               ) : (
                 <>
-                  <div className="text-center"><DeviceIcon device="tv" size={34} /><p className="mt-1 text-xs text-slate-500">Reference</p></div>
+                  <div className="text-center"><DeviceIcon device="tv" size={34} /><p className="mt-1 text-xs text-[#605a57]">Reference</p></div>
                   <div className="text-center"><DeviceIcon device="monitor" size={34} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
                   <div className="text-center"><DeviceIcon device="radio" size={34} color="#94a3b8" /><p className="mt-1 text-xs text-slate-400">Distracteur</p></div>
                 </>
@@ -472,19 +475,19 @@ export default function Attention2Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numBoards}</p>
-                <p className="text-xs text-slate-500">Tableaux</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numBoards}</p>
+                <p className="text-xs text-[#605a57]">Tableaux</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{ROWS * COLS}</p>
-                <p className="text-xs text-slate-500">Symboles/tableau</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{ROWS * COLS}</p>
+                <p className="text-xs text-[#605a57]">Symboles/tableau</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.totalTimeSec > 0 ? `${Math.floor(settings.totalTimeSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
@@ -516,7 +519,7 @@ export default function Attention2Test() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -566,12 +569,12 @@ export default function Attention2Test() {
                     </Button>
                   ))}
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">Mixte alterne les deux familles a chaque tableau.</p>
+                <p className="mt-1.5 text-xs text-[#605a57]">Mixte alterne les deux familles a chaque tableau.</p>
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les tableaux</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les tableaux</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -608,22 +611,17 @@ export default function Attention2Test() {
     const perfEntries = loadEntries('attention-2');
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="mt-1 text-slate-500">Tableaux corrects</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'attention-2'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} tableaux`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-blue-50 p-4 text-center">
@@ -639,12 +637,12 @@ export default function Attention2Test() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par tableau :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par tableau :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => (
-                  <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                  <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Tableau {i + 1}</span>
+                      <span className="text-[#605a57]">Tableau {i + 1}</span>
                       <span className={r.isCorrect ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
                         {r.isCorrect ? '\u2713' : '\u2717'} {r.userAnswer !== null ? r.userAnswer : 'Pas de reponse'}
                         {!r.isCorrect && <span className="ml-2 text-green-600">({r.board.answer})</span>}
@@ -657,7 +655,7 @@ export default function Attention2Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="attention-2" />
                 </div>
@@ -687,7 +685,7 @@ export default function Attention2Test() {
   const lastResult = results[results.length - 1];
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 pt-6">
+    <div className="flex flex-col items-center min-h-screen bg-[#fbfaf9] p-4 pt-6">
       <div className="w-full max-w-3xl relative">
         {settings.totalTimeSec > 0 && (
           <div className="absolute right-0 top-0 bottom-0 w-3 flex flex-col rounded-full overflow-hidden bg-slate-200">
@@ -709,7 +707,7 @@ export default function Attention2Test() {
           <Card className="py-6 mr-6">
             <CardContent className="space-y-5">
               <div className="flex items-center justify-center gap-3 rounded-lg bg-slate-100 p-3">
-                <span className="text-sm text-slate-500">Reference :</span>
+                <span className="text-sm text-[#605a57]">Reference :</span>
                 <BoardSymbol family={board.family} value={board.reference} size={28} />
               </div>
               <div
@@ -726,7 +724,7 @@ export default function Attention2Test() {
                       key={i}
                       className={`flex items-center justify-center rounded ${isMatch ? 'bg-green-200 ring-1 ring-green-500' : ''}`}
                     >
-                      <BoardSymbol family={board.family} value={c} size={18} />
+                      <BoardSymbol family={board.family} value={c} size={phone ? 26 : 18} />
                     </div>
                   );
                 })}
@@ -756,7 +754,7 @@ export default function Attention2Test() {
             <Card className="py-4 mr-6">
               <CardContent>
                 <div className="flex items-center justify-center gap-3">
-                  <span className="text-sm text-slate-500">Symbole de reference :</span>
+                  <span className="text-sm text-[#605a57]">Symbole de reference :</span>
                   <div className="rounded-lg bg-slate-100 p-2">
                     {board && <BoardSymbol family={board.family} value={board.reference} size={30} />}
                   </div>
@@ -772,7 +770,7 @@ export default function Attention2Test() {
                 >
                   {board?.cells.map((c, i) => (
                     <div key={i} className="flex items-center justify-center">
-                      <BoardSymbol family={board.family} value={c} size={18} />
+                      <BoardSymbol family={board.family} value={c} size={phone ? 26 : 18} />
                     </div>
                   ))}
                 </div>
@@ -782,7 +780,7 @@ export default function Attention2Test() {
             <Card className="py-6 mr-6 mt-3">
               <CardContent>
                 <div className="text-center">
-                  <p className="text-sm text-slate-500 mb-3">Combien de symboles correspondent a la reference ?</p>
+                  <p className="text-sm text-[#605a57] mb-3">Combien de symboles correspondent a la reference ?</p>
                   <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
                     <input
                       ref={inputRef}

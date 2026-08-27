@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import * as THREE from 'three';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -52,7 +52,7 @@ interface QuestionResult {
 
 const EXERCISE_ID = 'voitures-basic';
 const SETTINGS_KEY = 'aviatest-voitures-basic-settings';
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 
 const DEFAULT_SETTINGS: GameSettings = {
   numQuestions: 15,
@@ -158,7 +158,7 @@ function RotationBadge({ axis, angle }: { axis: Axis; angle: number }) {
   return (
     <div className="flex flex-col items-center rounded-lg border-2 border-slate-300 bg-white px-4 py-3">
       <span className="text-2xl font-bold text-slate-800">{Math.abs(angle)}°</span>
-      <span className="text-xs text-slate-500">Axe {axis}</span>
+      <span className="text-xs text-[#605a57]">Axe {axis}</span>
       <span className="text-xs text-slate-400">{angle > 0 ? '↻' : '↺'}</span>
     </div>
   );
@@ -342,17 +342,17 @@ export default function VoituresBasicTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.numQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.timePerQuestion}s</p>
-                <p className="text-xs text-slate-500">Temps</p>
+                <p className="text-xs text-[#605a57]">Temps</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.examMode ? 'Oui' : 'Non'}</p>
-                <p className="text-xs text-slate-500">Examen</p>
+                <p className="text-xs text-[#605a57]">Examen</p>
               </div>
             </div>
             <Button size="lg" className="w-full" onClick={startGame}>
@@ -384,7 +384,7 @@ export default function VoituresBasicTest() {
               <Label>Temps : {settings.timePerQuestion}s</Label>
               <Slider value={[settings.timePerQuestion]} onValueChange={([v]) => setSettings((s) => ({ ...s, timePerQuestion: v }))} min={20} max={90} step={5} className="mt-2" />
             </div>
-            <div className="flex items-center justify-between rounded-lg border bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border bg-[#f7f5f3] p-4">
               <Label>Mode examen</Label>
               <Switch checked={settings.examMode} onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))} />
             </div>
@@ -409,11 +409,14 @@ export default function VoituresBasicTest() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle>Resultats</CardTitle>
-            <Badge>{pct}%</Badge>
+            <CardTitle>Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-center text-5xl font-bold">{correct}/{total}</p>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correct}/${total} correctes`}
+            />
             {perfEntries.length >= 2 && <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />}
             <Button className="w-full" onClick={startGame}><RotateCcw className="mr-2 h-5 w-5" /> Rejouer</Button>
             <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}>Menu</Button>
@@ -435,7 +438,7 @@ export default function VoituresBasicTest() {
           <span>Score : {results.filter((r) => r.correct).length}/{results.length}</span>
         </div>
         <div className="mx-auto mt-2 h-2 max-w-4xl rounded-full bg-slate-200">
-          <div className="h-full rounded-full transition-all" style={{ width: `${timerPct}%`, backgroundColor: timerPct < 20 ? '#dc2626' : '#0068C6' }} />
+          <div className="h-full rounded-full transition-all" style={{ width: `${timerPct}%`, backgroundColor: timerPct < 20 ? '#dc2626' : '#37322f' }} />
         </div>
       </div>
 
@@ -447,7 +450,7 @@ export default function VoituresBasicTest() {
           </div>
         )}
 
-        <p className="text-center text-sm font-semibold uppercase text-slate-600">Appliquez mentalement ces rotations simultanees</p>
+        <p className="text-center text-sm font-semibold uppercase text-[#605a57]">Appliquez mentalement ces rotations simultanees</p>
 
         <div className="flex flex-wrap items-center justify-center gap-6">
           <CarView rx={0} ry={0} rz={0} width={200} height={170} />
@@ -456,7 +459,7 @@ export default function VoituresBasicTest() {
           ))}
         </div>
 
-        <p className="text-center font-medium text-slate-700">Quelle est l'orientation finale ?</p>
+        <p className="text-center font-medium text-[#37322f]">Quelle est l'orientation finale ?</p>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {currentQ.choices.map((c, i) => {

@@ -114,3 +114,32 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Phone chrome: finished-product tactile shell around every exercise */
+.aviatest-phone {
+  min-height: 100dvh;
+  background: #fbfaf9;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.aviatest-phone canvas.phone-scale {
+  max-width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+.aviatest-phone input,
+.aviatest-phone textarea,
+.aviatest-phone select {
+  font-size: 16px;
+}
+
+.aviatest-phone button:not([class*="h-"]),
+.aviatest-phone [role='button'] {
+  min-height: 44px;
+}

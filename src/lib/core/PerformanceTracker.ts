@@ -3,6 +3,8 @@
  * namespaced by user pseudo.
  */
 
+import { scoreToClass } from '@/lib/core/classes';
+
 export interface PerformanceEntry {
   date: string;       // ISO string
   score: number;       // percentage 0-100
@@ -87,18 +89,11 @@ export function clearPseudo(): void {
 // ============================================================================
 
 /**
- * Convert a percentage score (0-100) to a stanine-like 1-9 scale
+ * Convert a percentage score (0-100) to classe 1–9.
+ * Pass exerciseId to use the Pilotest calibration for that test.
  */
-export function scoreToStanine(percent: number): number {
-  if (percent >= 96) return 9;
-  if (percent >= 89) return 8;
-  if (percent >= 77) return 7;
-  if (percent >= 60) return 6;
-  if (percent >= 40) return 5;
-  if (percent >= 23) return 4;
-  if (percent >= 11) return 3;
-  if (percent >= 4) return 2;
-  return 1;
+export function scoreToStanine(percent: number, exerciseId?: string): number {
+  return scoreToClass(percent, exerciseId);
 }
 
 // ============================================================================

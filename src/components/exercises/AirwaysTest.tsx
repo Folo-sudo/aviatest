@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -22,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Play, RotateCcw, Home, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types & constants (Pilotest airways visual + rules)
@@ -347,6 +349,7 @@ function optimalPressForBoard(
 
 export default function AirwaysTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>(loadSettings);
   const [planes, setPlanes] = useState<Plane[]>([]);
@@ -692,7 +695,7 @@ export default function AirwaysTest() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Airways</CardTitle>
@@ -777,7 +780,7 @@ export default function AirwaysTest() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Mode examen</Label>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[#605a57]">
                   Pas de correction entre les planches
                 </p>
               </div>
@@ -791,7 +794,7 @@ export default function AirwaysTest() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Couleurs changeantes</Label>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[#605a57]">
                   Deux teintes aleatoires pour tout le test
                 </p>
               </div>
@@ -829,18 +832,21 @@ export default function AirwaysTest() {
   if (gameState === 'results') {
     const survived = seriesStats.filter((s) => s.survived).length;
     const totalScore = seriesStats.reduce((a, s) => a + s.increment, 0);
+    const percent =
+      seriesStats.length > 0 ? Math.round((totalScore / seriesStats.length) * 100) : 0;
     const perfEntries = loadEntries(EXERCISE_ID);
     return (
       <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: BG }}>
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Resultats — Airways</CardTitle>
-            <CardDescription>
-              {totalScore} / {seriesStats.length} pts · {survived} series sans
-              accident
-            </CardDescription>
+            <CardTitle>Résultats — Airways</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={percent}
+              detail={`${totalScore} / ${seriesStats.length} pts · ${survived} séries sans accident`}
+            />
             <MiniPerformanceChart exerciseId={EXERCISE_ID} entries={perfEntries} />
             <Button size="lg" className="w-full" onClick={startGame}>
               <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
@@ -916,7 +922,7 @@ export default function AirwaysTest() {
             type="button"
             disabled={!!boardEnd || allPurpleClosed}
             onClick={() => closeAllColor('purple')}
-            className="flex w-[6%] shrink-0 items-center justify-center self-stretch rounded-l-2xl shadow disabled:cursor-not-allowed disabled:opacity-65"
+            className={`flex shrink-0 items-center justify-center self-stretch rounded-l-2xl shadow disabled:cursor-not-allowed disabled:opacity-65 ${phone ? 'w-14 min-w-14' : 'w-[6%]'}`}
             style={{
               backgroundColor: palette.right,
               marginTop: '11vmin',
@@ -1094,7 +1100,7 @@ export default function AirwaysTest() {
             type="button"
             disabled={!!boardEnd || allBlueClosed}
             onClick={() => closeAllColor('blue')}
-            className="flex w-[6%] shrink-0 items-center justify-center self-stretch rounded-r-2xl shadow disabled:cursor-not-allowed disabled:opacity-65"
+            className={`flex shrink-0 items-center justify-center self-stretch rounded-r-2xl shadow disabled:cursor-not-allowed disabled:opacity-65 ${phone ? 'w-14 min-w-14' : 'w-[6%]'}`}
             style={{
               backgroundColor: palette.left,
               marginTop: '11vmin',

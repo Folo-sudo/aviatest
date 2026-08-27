@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -536,7 +537,7 @@ export default function Attention3Test() {
 
     return (
       <div className="mt-4 p-4 bg-slate-200 rounded-lg">
-        <p className="text-center text-sm text-slate-600 mb-3">
+        <p className="text-center text-sm text-[#605a57] mb-3">
           Selectionnez les mots ecrits de <strong>{targetLabel}</strong>
         </p>
         <div
@@ -588,7 +589,7 @@ export default function Attention3Test() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Attention 3</CardTitle>
@@ -597,7 +598,7 @@ export default function Attention3Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
+            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
               <p><strong>{settings.totalQuestions} sequences</strong> a compter.</p>
               <p>Les <strong>X</strong> comptent <strong>+1</strong> par defaut.</p>
               <p>Apres un <strong>/</strong>, les X comptent <strong>-1</strong>.</p>
@@ -613,25 +614,25 @@ export default function Attention3Test() {
               )}
             </div>
 
-            <div className="bg-slate-100 rounded-lg p-3 text-xs text-slate-500 font-mono text-center space-y-1">
+            <div className="bg-slate-100 rounded-lg p-3 text-xs text-[#605a57] font-mono text-center space-y-1">
               <p>Exemple : X X X / X X + X X</p>
               <p>= 3 - 2 + 2 = <strong>3</strong></p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Sequences</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Sequences</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">~{settings.totalSymbols}</p>
-                <p className="text-xs text-slate-500">Symboles</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">~{settings.totalSymbols}</p>
+                <p className="text-xs text-[#605a57]">Symboles</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
@@ -661,7 +662,7 @@ export default function Attention3Test() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -696,7 +697,7 @@ export default function Attention3Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Double tache Stroop</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Tableau de couleurs a 10s et 40s de chaque sequence</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Tableau de couleurs a 10s et 40s de chaque sequence</p>
                 </div>
                 <Switch
                   checked={settings.stroopEnabled}
@@ -706,7 +707,7 @@ export default function Attention3Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les sequences</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les sequences</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -744,22 +745,17 @@ export default function Attention3Test() {
     const stroopWrong = allStroop.reduce((s, r) => s + r.wrongSelections, 0);
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1 mt-2"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500 mt-1">Croix — bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'attention-3'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} croix`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
@@ -788,12 +784,12 @@ export default function Attention3Test() {
             )}
 
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail par sequence :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail par sequence :</p>
               <div className="max-h-64 overflow-y-auto space-y-1.5">
                 {results.map((r, i) => (
-                  <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                  <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-slate-500">S{i + 1}</span>
+                      <span className="text-[#605a57]">S{i + 1}</span>
                       <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                         {r.isCorrect ? '\u2713' : '\u2717'}
                         {' '}
@@ -815,7 +811,7 @@ export default function Attention3Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="attention-3" />
                 </div>
@@ -842,7 +838,7 @@ export default function Attention3Test() {
   const timerColor = timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 pt-6">
+    <div className="flex flex-col items-center min-h-screen bg-[#fbfaf9] p-4 pt-6">
       <div className="w-full max-w-4xl relative">
         {/* Vertical timer bar */}
         {settings.timeLimitSec > 0 && (
@@ -888,7 +884,7 @@ export default function Attention3Test() {
               {/* Stroop grids correction */}
               {results[results.length - 1]?.stroopResults.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold text-slate-600 text-center">Tableaux de couleurs :</p>
+                  <p className="text-sm font-semibold text-[#605a57] text-center">Tableaux de couleurs :</p>
                   <div className="flex justify-center gap-3">
                     {results[results.length - 1].stroopResults.map((sr, i) => {
                       const isCorrect = sr.correctSelections === sr.totalTargets && sr.wrongSelections === 0;
@@ -939,7 +935,7 @@ export default function Attention3Test() {
           <Card className="py-6 mr-6 mt-3">
             <CardContent>
               <div className="text-center">
-                <p className="text-sm text-slate-500 mb-3">Entrez le resultat ci-dessous :</p>
+                <p className="text-sm text-[#605a57] mb-3">Entrez le resultat ci-dessous :</p>
                 <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
                   <input
                     ref={inputRef}

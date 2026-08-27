@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -298,7 +299,7 @@ export default function CalculMentalTest() {
   // ---- MENU ----
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Calcul Mental 1</CardTitle>
@@ -307,7 +308,7 @@ export default function CalculMentalTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600 space-y-2">
+            <div className="bg-[#f7f5f3] rounded-lg p-4 text-sm text-[#605a57] space-y-2">
               <p><strong>{settings.totalQuestions} operations</strong> a resoudre.</p>
               <p>Chaque operation est une chaine de <strong>{settings.chainLength} termes</strong> (additions/soustractions de nombres a 2 chiffres).</p>
               {settings.includeMultiply && (
@@ -319,19 +320,19 @@ export default function CalculMentalTest() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">{settings.chainLength}</p>
-                <p className="text-xs text-slate-500">Termes</p>
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">{settings.chainLength}</p>
+                <p className="text-xs text-[#605a57]">Termes</p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="p-3 bg-[#f7f5f3] rounded-lg">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
@@ -361,7 +362,7 @@ export default function CalculMentalTest() {
   // ---- SETTINGS ----
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -404,7 +405,7 @@ export default function CalculMentalTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Multiplications ab &times; cd</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Inclure des multiplications 2 chiffres</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Inclure des multiplications 2 chiffres</p>
                 </div>
                 <Switch
                   checked={settings.includeMultiply}
@@ -414,7 +415,7 @@ export default function CalculMentalTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les questions</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -446,22 +447,17 @@ export default function CalculMentalTest() {
     const perfEntries = loadEntries('calcul-mental');
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="text-lg px-4 py-1 mt-2"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500 mt-1">Bonnes reponses</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'calcul-mental'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
@@ -476,12 +472,12 @@ export default function CalculMentalTest() {
 
             {/* Per-question breakdown */}
             <div className="space-y-2">
-              <p className="font-semibold text-slate-700 text-sm">Detail par question :</p>
+              <p className="font-semibold text-[#37322f] text-sm">Detail par question :</p>
               <div className="max-h-64 overflow-y-auto space-y-1.5">
                 {results.map((r, i) => (
-                  <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                  <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-slate-500">Q{i + 1}</span>
+                      <span className="text-[#605a57]">Q{i + 1}</span>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-slate-400">{(r.timeUsedMs / 1000).toFixed(1)}s</span>
                         <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
@@ -500,7 +496,7 @@ export default function CalculMentalTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="calcul-mental" />
                 </div>
@@ -527,7 +523,7 @@ export default function CalculMentalTest() {
   const timerColor = timerPercent > 50 ? 'bg-blue-500' : timerPercent > 20 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="w-full max-w-4xl relative">
         {/* Vertical timer bar (like pilotest) */}
         {settings.timeLimitSec > 0 && (
@@ -551,7 +547,7 @@ export default function CalculMentalTest() {
           /* Correction view */
           <Card className="text-center py-10 mr-6">
             <CardContent className="space-y-6">
-              <p className="text-lg text-slate-500 font-mono">{currentQ.expression}</p>
+              <p className="text-lg text-[#605a57] font-mono">{currentQ.expression}</p>
               <div className="space-y-2">
                 {results[results.length - 1]?.isCorrect ? (
                   <p className="text-3xl font-bold text-green-600">✓ Correct !</p>

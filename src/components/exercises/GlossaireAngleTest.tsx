@@ -177,7 +177,7 @@ export default function GlossaireAngleTest() {
   const presets = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-3">
           <CardTitle className="text-3xl font-bold">Glossaire Angles</CardTitle>
@@ -250,7 +250,7 @@ export default function GlossaireAngleTest() {
 
           {/* Rotation control */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500 whitespace-nowrap">Rotation :</span>
+            <span className="text-[#605a57] whitespace-nowrap">Rotation :</span>
             <input
               type="range"
               min={0}
@@ -277,7 +277,7 @@ export default function GlossaireAngleTest() {
 
           {/* Preset buttons */}
           <div>
-            <p className="text-xs text-slate-500 mb-2 text-center">Angles remarquables</p>
+            <p className="text-xs text-[#605a57] mb-2 text-center">Angles remarquables</p>
             <div className="grid grid-cols-8 gap-1.5">
               {presets.map(a => (
                 <button
@@ -286,7 +286,7 @@ export default function GlossaireAngleTest() {
                   className={`text-xs font-mono py-1.5 px-1 rounded transition-colors ${
                     ((angle % 360) + 360) % 360 === a
                       ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-slate-100 text-[#605a57] hover:bg-slate-200'
                   }`}
                 >
                   {a}{'\u00B0'}

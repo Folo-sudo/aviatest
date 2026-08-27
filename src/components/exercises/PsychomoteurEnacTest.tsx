@@ -4,12 +4,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Play, RotateCcw, Home, Settings } from 'lucide-react';
+import { PhoneDpad, PhoneHoldButton, phoneDirToArrowKey, type PhoneDir } from '@/components/phone/PhoneDpad';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types
@@ -59,7 +61,7 @@ interface CalcTask {
 
 const EXERCISE_ID = 'psychomoteur-enac';
 const SETTINGS_KEY = 'aviatest-psychomoteur-enac-settings';
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 const BG = '#d4d4d4';
 const BLUE = '#0068C6';
 
@@ -139,6 +141,8 @@ function phaseTasks(phase: PhaseId): { cross: boolean; gauges: boolean; letters:
 
 export default function PsychomoteurEnacTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
+  const [heldArrow, setHeldArrow] = useState<PhoneDir | null>(null);
   const [gameState, setGameState] = useState<GameState>('menu');
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [phase, setPhase] = useState<PhaseId>(1);
@@ -393,6 +397,20 @@ export default function PsychomoteurEnacTest() {
     return dt * 18;
   }
 
+  const pressLetterSpace = useCallback(() => {
+    const letterTasks = phaseTasks(phaseRef.current);
+    if (!letterTasks.letters) return;
+    if (letterAnsweredRef.current) return;
+    letterAnsweredRef.current = true;
+    if (letterTargetRef.current) {
+      statsRef.current.letterHits += 1;
+      setLetterFlash('ok');
+    } else {
+      statsRef.current.letterFalse += 1;
+      setLetterFlash('bad');
+    }
+  }, []);
+
   useEffect(() => {
     if (gameState !== 'playing') return;
     lastTsRef.current = performance.now();
@@ -403,26 +421,17 @@ export default function PsychomoteurEnacTest() {
   useEffect(() => {
     if (gameState !== 'playing') return;
 
+    const canon = (key: string) => (key.startsWith('Arrow') ? key : key.toLowerCase());
     const onKeyDown = (e: KeyboardEvent) => {
-      heldKeysRef.current.add(e.key.toLowerCase());
+      heldKeysRef.current.add(canon(e.key));
       if (e.key === ' ') {
         e.preventDefault();
-        const tasks = phaseTasks(phaseRef.current);
-        if (!tasks.letters) return;
-        if (letterAnsweredRef.current) return;
-        letterAnsweredRef.current = true;
-        if (letterTargetRef.current) {
-          statsRef.current.letterHits += 1;
-          setLetterFlash('ok');
-        } else {
-          statsRef.current.letterFalse += 1;
-          setLetterFlash('bad');
-        }
+        pressLetterSpace();
       }
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      heldKeysRef.current.delete(e.key.toLowerCase());
+      heldKeysRef.current.delete(canon(e.key));
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -432,7 +441,7 @@ export default function PsychomoteurEnacTest() {
       window.removeEventListener('keyup', onKeyUp);
       heldKeysRef.current.clear();
     };
-  }, [gameState]);
+  }, [gameState, pressLetterSpace]);
 
   const submitCalc = useCallback(
     (val: number) => {
@@ -465,20 +474,20 @@ export default function PsychomoteurEnacTest() {
             <CardDescription>Multi-taches type Pilotest — 4 phases progressives</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p><strong>Fleches</strong> : suivre le cercle avec la croix</p>
               <p><strong>Q/A W/S E/D R/F</strong> : centrer les jauges</p>
               <p><strong>Espace</strong> : lettres cibles (A,E,K,M,R,T)</p>
               <p><strong>Calcul</strong> : repondre ou choisir la bonne valeur</p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{settings.phaseDurationMin} min</p>
-                <p className="text-xs text-slate-500">Par phase</p>
+                <p className="text-xs text-[#605a57]">Par phase</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">4</p>
-                <p className="text-xs text-slate-500">Phases</p>
+                <p className="text-xs text-[#605a57]">Phases</p>
               </div>
             </div>
             <Button size="lg" className="w-full" onClick={startGame}>
@@ -535,26 +544,29 @@ export default function PsychomoteurEnacTest() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle>Resultats</CardTitle>
-            <Badge className="mt-2">{finalScore.overallPct}%</Badge>
+            <CardTitle>Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={finalScore.overallPct}
+            />
             <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{finalScore.crossPct}%</p>
-                <p className="text-xs text-slate-500">Croix</p>
+                <p className="text-xs text-[#605a57]">Croix</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{finalScore.gaugePct}%</p>
-                <p className="text-xs text-slate-500">Jauges</p>
+                <p className="text-xs text-[#605a57]">Jauges</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{finalScore.letterPct}%</p>
-                <p className="text-xs text-slate-500">Lettres</p>
+                <p className="text-xs text-[#605a57]">Lettres</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
                 <p className="text-xl font-bold">{finalScore.calcPct}%</p>
-                <p className="text-xs text-slate-500">Calculs</p>
+                <p className="text-xs text-[#605a57]">Calculs</p>
               </div>
             </div>
             {perfEntries.length >= 2 && <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />}
@@ -588,7 +600,8 @@ export default function PsychomoteurEnacTest() {
 
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 p-4">
         {tasks.cross && (
-          <div className="relative h-48 rounded border-2 border-slate-500" style={{ backgroundColor: '#e8e8e8' }}>
+          <div className="space-y-3">
+          <div className={`relative rounded border-2 border-slate-500 ${phone ? 'h-56' : 'h-48'}`} style={{ backgroundColor: '#e8e8e8' }}>
             <div
               className="absolute h-4 w-4 rounded-full border-2 border-slate-700"
               style={{
@@ -610,16 +623,32 @@ export default function PsychomoteurEnacTest() {
               +
             </div>
           </div>
+          {phone && (
+            <div className="flex justify-center pt-1">
+              <PhoneDpad
+                held={heldArrow}
+                onHold={(dir) => {
+                  heldKeysRef.current.delete('ArrowUp');
+                  heldKeysRef.current.delete('ArrowDown');
+                  heldKeysRef.current.delete('ArrowLeft');
+                  heldKeysRef.current.delete('ArrowRight');
+                  if (dir) heldKeysRef.current.add(phoneDirToArrowKey(dir));
+                  setHeldArrow(dir);
+                }}
+              />
+            </div>
+          )}
+          </div>
         )}
 
         {tasks.gauges && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className={`grid gap-2 ${phone ? 'grid-cols-2' : 'grid-cols-4'}`}>
             {gaugeVals.map((v, i) => (
               <div key={i} className="rounded border border-slate-500 bg-white p-2">
-                <p className="mb-1 text-center text-xs font-medium text-slate-600">
+                <p className="mb-1 text-center text-xs font-medium text-[#605a57]">
                   {GAUGE_KEYS[i].minus.toUpperCase()}/{GAUGE_KEYS[i].plus.toUpperCase()}
                 </p>
-                <div className="relative h-16 rounded bg-slate-200">
+                <div className={`relative rounded bg-slate-200 ${phone ? 'h-20' : 'h-16'}`}>
                   <div
                     className="absolute bottom-0 left-1/2 w-3 -translate-x-1/2 rounded-t transition-all"
                     style={{
@@ -629,6 +658,24 @@ export default function PsychomoteurEnacTest() {
                   />
                   <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-slate-500" />
                 </div>
+                {phone && (
+                  <div className="mt-2 flex justify-center gap-2">
+                    <PhoneHoldButton
+                      label="−"
+                      onHold={(down) => {
+                        if (down) heldKeysRef.current.add(GAUGE_KEYS[i].minus);
+                        else heldKeysRef.current.delete(GAUGE_KEYS[i].minus);
+                      }}
+                    />
+                    <PhoneHoldButton
+                      label="+"
+                      onHold={(down) => {
+                        if (down) heldKeysRef.current.add(GAUGE_KEYS[i].plus);
+                        else heldKeysRef.current.delete(GAUGE_KEYS[i].plus);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -641,8 +688,17 @@ export default function PsychomoteurEnacTest() {
                 letterFlash === 'ok' ? 'border-green-500 bg-green-50' : letterFlash === 'bad' ? 'border-red-500 bg-red-50' : 'border-slate-500 bg-white'
               }`}
             >
-              <p className="mb-2 text-xs text-slate-500">Espace si lettre cible</p>
+              <p className="mb-2 text-xs text-[#605a57]">Espace si lettre cible</p>
               <span className="text-6xl font-bold" style={{ color: BLUE }}>{currentLetter}</span>
+              {phone && (
+                <button
+                  type="button"
+                  onClick={pressLetterSpace}
+                  className="mt-4 h-14 w-full max-w-xs rounded-2xl bg-[#37322f] text-lg font-semibold text-white"
+                >
+                  Espace
+                </button>
+              )}
             </div>
           )}
 

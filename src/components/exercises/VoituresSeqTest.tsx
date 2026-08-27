@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import * as THREE from 'three';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -53,7 +53,7 @@ interface QuestionResult {
 
 const EXERCISE_ID = 'voitures-sequentiel';
 const SETTINGS_KEY = 'aviatest-voitures-seq-settings';
-const SLATE_BG = 'bg-gradient-to-br from-slate-50 to-slate-100';
+const SLATE_BG = 'bg-[#fbfaf9]';
 
 const DEFAULT_SETTINGS: GameSettings = {
   numQuestions: 12,
@@ -366,7 +366,7 @@ export default function VoituresSeqTest() {
             <CardDescription>Memorisez les rotations puis retrouvez l'orientation finale</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               Chaque rotation est affichee ~{settings.rotationDisplaySec}s puis masquee. 5 choix de reponse.
             </div>
             <Button size="lg" className="w-full" onClick={startGame}>
@@ -402,7 +402,7 @@ export default function VoituresSeqTest() {
               <Label>Affichage rotation : {settings.rotationDisplaySec}s</Label>
               <Slider value={[settings.rotationDisplaySec]} onValueChange={([v]) => setSettings((s) => ({ ...s, rotationDisplaySec: v }))} min={8} max={20} step={1} className="mt-2" />
             </div>
-            <div className="flex items-center justify-between rounded-lg border bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border bg-[#f7f5f3] p-4">
               <Label>Mode examen</Label>
               <Switch checked={settings.examMode} onCheckedChange={(v) => setSettings((s) => ({ ...s, examMode: v }))} />
             </div>
@@ -427,11 +427,14 @@ export default function VoituresSeqTest() {
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-4`}>
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle>Resultats</CardTitle>
-            <Badge>{pct}%</Badge>
+            <CardTitle>Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-center text-5xl font-bold">{correct}/{total}</p>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={pct}
+              detail={`${correct}/${total} correctes`}
+            />
             {perfEntries.length >= 2 && <MiniPerformanceChart entries={perfEntries} exerciseId={EXERCISE_ID} />}
             <Button className="w-full" onClick={startGame}><RotateCcw className="mr-2 h-5 w-5" /> Rejouer</Button>
             <Button variant="outline" className="w-full" onClick={() => setGameState('menu')}>Menu</Button>
@@ -449,14 +452,14 @@ export default function VoituresSeqTest() {
     return (
       <div className={`flex min-h-screen flex-col items-center justify-center ${SLATE_BG} p-6`}>
         <div className="text-center">
-          <p className="mb-2 text-sm font-medium text-slate-600">
+          <p className="mb-2 text-sm font-medium text-[#605a57]">
             Question {currentIdx + 1}/{questions.length} — Rotation {stepIdx + 1}/3
           </p>
           <p className="mb-6 text-2xl font-bold text-slate-800">
             Axe {currentStep.axis} — {Math.abs(currentStep.angle)}°
           </p>
           <CarView rx={displayRx} ry={displayRy} rz={displayRz} width={280} height={240} />
-          <p className="mt-6 text-lg text-slate-500">{rotationLeft}s restants</p>
+          <p className="mt-6 text-lg text-[#605a57]">{rotationLeft}s restants</p>
         </div>
       </div>
     );
@@ -471,7 +474,7 @@ export default function VoituresSeqTest() {
           <span>Score : {results.filter((r) => r.correct).length}/{results.length}</span>
         </div>
         <div className="mx-auto mt-2 h-2 max-w-4xl rounded-full bg-slate-200">
-          <div className="h-full rounded-full" style={{ width: `${timerPct}%`, backgroundColor: timerPct < 20 ? '#dc2626' : '#0068C6' }} />
+          <div className="h-full rounded-full" style={{ width: `${timerPct}%`, backgroundColor: timerPct < 20 ? '#dc2626' : '#37322f' }} />
         </div>
       </div>
 
@@ -483,7 +486,7 @@ export default function VoituresSeqTest() {
           </div>
         )}
 
-        <p className="text-center text-lg font-medium text-slate-700">Quelle est l'orientation finale ?</p>
+        <p className="text-center text-lg font-medium text-[#37322f]">Quelle est l'orientation finale ?</p>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           {currentQ.choices.map((c, i) => {

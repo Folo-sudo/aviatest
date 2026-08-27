@@ -5,12 +5,12 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Timer } from '@/lib/core/Timer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { TubeState, generatePuzzle } from '@/lib/utils/bfs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Play,
@@ -313,8 +313,8 @@ export function BillesTest() {
       ctx.textAlign = 'left';
       ctx.fillText(
         showCorrection
-          ? `Reponse : ${correctAnswer} deplacement${correctAnswer > 1 ? 's' : ''}`
-          : 'Combien de deplacements de billes sont necessaires ?',
+          ? `Réponse : ${correctAnswer} déplacement${correctAnswer > 1 ? 's' : ''}`
+          : 'Combien de déplacements de billes sont nécessaires ?',
         70,
         500,
       );
@@ -415,7 +415,7 @@ export function BillesTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Jeu des Billes</CardTitle>
@@ -425,13 +425,13 @@ export function BillesTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-2xl font-bold text-slate-700">{settings.numSeries}</p>
-                <p className="text-sm text-slate-500">Series</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-4">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numSeries}</p>
+                <p className="text-sm text-[#605a57]">Series</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-2xl font-bold text-slate-700">{settings.numBalls}</p>
-                <p className="text-sm text-slate-500">Billes</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-4">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numBalls}</p>
+                <p className="text-sm text-[#605a57]">Billes</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -463,7 +463,7 @@ export function BillesTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -527,33 +527,20 @@ export function BillesTest() {
     }
     const perfEntries = loadEntries('billes');
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={
-                scoreData.accuracy >= 75
-                  ? 'default'
-                  : scoreData.accuracy >= 50
-                    ? 'secondary'
-                    : 'destructive'
-              }
-              className="px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500">
-                {scoreData.correct} / {scoreData.total} correctes
-              </p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'billes'}
+              percent={scoreData.score}
+              detail={`${scoreData.correct} / ${scoreData.total} correctes`}
+            />
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">
                   Progression
                 </p>
                 <div className="flex justify-center">
@@ -591,7 +578,7 @@ export function BillesTest() {
   const maxStep = Math.max(0, solutionPath.length - 1);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
       <div className="flex w-full max-w-[920px] flex-col items-center gap-3">
         <canvas
           ref={canvasRef}
@@ -617,7 +604,7 @@ export function BillesTest() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="min-w-[7rem] text-center text-sm font-medium text-slate-700">
+              <span className="min-w-[7rem] text-center text-sm font-medium text-[#37322f]">
                 Etape {currentStep} / {maxStep}
               </span>
               <Button
@@ -630,7 +617,7 @@ export function BillesTest() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#605a57]">
               Parcours optimal · {correctAnswer} coup
               {correctAnswer > 1 ? 's' : ''}
             </p>

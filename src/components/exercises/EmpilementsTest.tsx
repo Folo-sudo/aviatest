@@ -2,16 +2,17 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { savePerformanceResult, loadEntries, scoreToStanine } from '@/lib/core/PerformanceTracker';
+import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { CATALOG_COLORS } from '@/lib/3d/shapeCatalog';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 // ============================================================================
 // Types & constants
@@ -362,7 +363,7 @@ function IsoStructure({
       width={viewW}
       height={viewH}
       viewBox={`0 0 ${viewW} ${viewH}`}
-      className="mx-auto"
+      className="mx-auto h-auto w-full max-w-[320px]"
       aria-hidden
     >
       {sorted.map((cube, idx) => {
@@ -410,6 +411,7 @@ function IsoStructure({
 
 export default function EmpilementsTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const perfSavedRef = useRef(false);
   const questionStartRef = useRef(0);
   const advancingRef = useRef(false);
@@ -575,33 +577,23 @@ export default function EmpilementsTest() {
   if (gameState === 'results') {
     const { correct, total } = computeScore();
     const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-    const stanine = scoreToStanine(percent);
     const perfEntries = loadEntries(EXERCISE_ID);
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={
-                percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'
-              }
-              className="text-lg px-4 py-1"
-            >
-              Classe {stanine}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{percent}%</p>
-              <p className="text-slate-500">
-                {correct} / {total} correctes
-              </p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={EXERCISE_ID}
+              percent={percent}
+              detail={`${correct} / ${total} correctes`}
+            />
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">
                   Progression
                 </p>
                 <div className="flex justify-center">
@@ -643,17 +635,17 @@ export default function EmpilementsTest() {
   const timerRatio = timeLeft / settings.timePerQuestionSec;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#fbfaf9] flex flex-col">
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-4">
-        <p className="text-base font-medium text-slate-600">
+        <p className="text-base font-medium text-[#605a57]">
           Question {currentIdx + 1} / {questions.length}
         </p>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[#605a57]">
           Score : {answers.filter((a) => a.correct).length}
         </p>
         <p
           className={`text-sm font-semibold tabular-nums ${
-            timeLeft <= 3 ? 'text-red-600' : 'text-slate-700'
+            timeLeft <= 3 ? 'text-red-600' : 'text-[#37322f]'
           }`}
         >
           {timeLeft}s
@@ -676,18 +668,31 @@ export default function EmpilementsTest() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
-        <p className="text-center text-slate-700 font-medium text-lg max-w-xl">
-          Parmi ces trois empilements, lequel est different des deux autres ?
+        <p className="text-center text-[#37322f] font-medium text-lg max-w-xl">
+          Parmi ces trois empilements, lequel est différent des deux autres ?
         </p>
+        {feedback && !settings.examMode && (
+          <p
+            className={`text-center text-sm font-semibold ${
+              feedback.correct ? 'text-emerald-700' : 'text-red-700'
+            }`}
+          >
+            {feedback.selected == null
+              ? `Temps écoulé — la bonne réponse était ${q.answer}`
+              : feedback.correct
+                ? 'Correct'
+                : `Incorrect — la bonne réponse était ${q.answer}`}
+          </p>
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full max-w-4xl">
           {([1, 2, 3] as const).map((num) => {
             const structure = q.structures[num - 1];
             const isSelected = feedback?.selected === num;
             const showCorrect = feedback && !settings.examMode && num === q.answer;
             const showWrong = feedback && !settings.examMode && isSelected && !feedback.correct;
 
-            let ringClass = 'ring-slate-300 hover:ring-slate-400';
+            let ringClass = 'ring-[#e0dedb] hover:ring-[#cfcac4]';
             if (showCorrect) ringClass = 'ring-emerald-500 bg-emerald-50';
             else if (showWrong) ringClass = 'ring-red-500 bg-red-50';
             else if (isSelected) ringClass = 'ring-blue-400';
@@ -698,10 +703,10 @@ export default function EmpilementsTest() {
                 type="button"
                 disabled={!!feedback || advancingRef.current}
                 onClick={() => handleAnswer(num)}
-                className={`flex flex-col items-center rounded-xl bg-white shadow-sm ring-2 transition-all p-3 ${ringClass} disabled:cursor-default`}
+                className={`flex min-h-16 flex-col items-center rounded-xl bg-white shadow-sm ring-2 transition-all p-2 sm:p-3 ${ringClass} disabled:cursor-default`}
               >
-                <span className="text-lg font-bold text-slate-700 mb-2">{num}</span>
-                <IsoStructure structure={structure} size={200} />
+                <span className="mb-1 font-bold text-[#37322f] text-lg sm:mb-2">{num}</span>
+                <IsoStructure structure={structure} size={phone ? 108 : 200} />
               </button>
             );
           })}
@@ -709,7 +714,7 @@ export default function EmpilementsTest() {
 
         <div className="w-full max-w-4xl h-1.5 bg-slate-300 rounded-full overflow-hidden">
           <div
-            className="h-full bg-slate-500 transition-all"
+            className="h-full bg-[#37322f] transition-all"
             style={{ width: `${progress * 100}%` }}
           />
         </div>
@@ -734,28 +739,28 @@ function MenuScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Empilements</CardTitle>
           <CardDescription className="text-lg">
-            Reperez l&apos;empilement different (symetrie)
+            Repérez l&apos;empilement différent (symétrie)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">{settings.numQuestions}</p>
-              <p className="text-sm text-slate-500">Questions</p>
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+              <p className="text-sm text-[#605a57]">Questions</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-slate-700">
+            <div className="p-4 bg-[#f7f5f3] rounded-lg">
+              <p className="text-2xl font-bold text-[#37322f]">
                 {settings.timePerQuestionSec}s
               </p>
-              <p className="text-sm text-slate-500">Par question</p>
+              <p className="text-sm text-[#605a57]">Par question</p>
             </div>
           </div>
-          <p className="text-sm text-slate-500 text-center">
+          <p className="text-sm text-[#605a57] text-center">
             Deux structures sont identiques a une rotation pres. La troisieme a subi une
             symetrie : cliquez sur celle qui differe.
           </p>
@@ -791,7 +796,7 @@ function SettingsScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle>Parametres</CardTitle>
@@ -828,7 +833,7 @@ function SettingsScreen({
             <div className="flex items-center justify-between">
               <div>
                 <Label>Mode examen</Label>
-                <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
               </div>
               <Switch
                 checked={settings.examMode}

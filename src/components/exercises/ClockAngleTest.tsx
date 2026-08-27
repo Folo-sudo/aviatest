@@ -6,15 +6,17 @@ import { Timer } from '@/lib/core/Timer';
 import { CanvasButton, TimerBar } from '@/lib/core/CanvasUI';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
+import { PhoneNumpad } from '@/components/phone/PhoneDpad';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
@@ -38,18 +40,51 @@ interface GameSettings {
   timePerQuestion: number;
 }
 
+const SETTINGS_KEY = 'aviatest-clock-angle-settings';
+const DEFAULT_SETTINGS: GameSettings = {
+  numQuestions: 20,
+  showFeedback: true,
+  feedbackDuration: 1.5,
+  timePerQuestion: 30,
+};
+
+function loadClockSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
 export function ClockAngleTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const perfSavedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [gameState, setGameState] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<GameSettings>({
-    numQuestions: 20,
-    showFeedback: true,
-    feedbackDuration: 1.5,
-    timePerQuestion: 30
-  });
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const settingsReadyRef = useRef(false);
+
+  useEffect(() => {
+    setSettings(loadClockSettings());
+    const t = window.setTimeout(() => {
+      settingsReadyRef.current = true;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsReadyRef.current) return;
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      /* ignore */
+    }
+  }, [settings]);
 
   // Game state
   const [scorer] = useState(() => new Scorer());
@@ -248,7 +283,7 @@ export function ClockAngleTest() {
     if (!clock || !angle) return;
 
     // Background
-    ctx.fillStyle = '#f3f4f6';
+    ctx.fillStyle = '#fbfaf9';
     ctx.fillRect(0, 0, width, height);
 
     // Main area
@@ -256,7 +291,7 @@ export function ClockAngleTest() {
     ctx.beginPath();
     ctx.roundRect(20, 20, width - 40, height - 40, 16);
     ctx.fill();
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = '#e0dedb';
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -266,7 +301,7 @@ export function ClockAngleTest() {
     const timerBarX = 35;
     const timerBarY = 50;
 
-    ctx.fillStyle = '#1f2937';
+    ctx.fillStyle = '#37322f';
     ctx.beginPath();
     ctx.roundRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight, 10);
     ctx.fill();
@@ -543,7 +578,7 @@ export function ClockAngleTest() {
   // Render based on game state
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Test des Angles d'Horloge</CardTitle>
@@ -553,13 +588,13 @@ export function ClockAngleTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-sm text-slate-500">Questions</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-sm text-[#605a57]">Questions</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.timePerQuestion}s</p>
-                <p className="text-sm text-slate-500">Par question</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.timePerQuestion}s</p>
+                <p className="text-sm text-[#605a57]">Par question</p>
               </div>
             </div>
 
@@ -585,7 +620,7 @@ export function ClockAngleTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -655,19 +690,17 @@ export function ClockAngleTest() {
     }
     const perfEntries = loadEntries('clock-angle');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={scoreData.accuracy >= 75 ? "default" : scoreData.accuracy >= 50 ? "secondary" : "destructive"} className="text-lg px-4 py-1">
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500">{scoreData.correct} / {scoreData.total} correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'clock-angle'}
+              percent={scoreData.score}
+              detail={`${scoreData.correct} / ${scoreData.total} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-green-50 rounded-lg text-center">
@@ -682,7 +715,7 @@ export function ClockAngleTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="clock-angle" />
                 </div>
@@ -711,14 +744,39 @@ export function ClockAngleTest() {
 
   // Playing state
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
       <div className="flex flex-col items-center gap-4">
         <canvas
           ref={canvasRef}
           width={width}
           height={height}
-          className="rounded-xl shadow-xl"
+          className="phone-scale rounded-xl shadow-xl"
         />
+        {phone ? (
+          <div className="w-full max-w-sm space-y-3">
+            <p className="text-center font-mono text-2xl font-semibold text-[#37322f]">
+              {userInput || '—'}
+              {showingFeedback && !isCorrect && (
+                <span className="ml-2 text-sm font-normal text-[#605a57]">
+                  ({targetAngle >= 0 ? '+' : ''}{targetAngle})
+                </span>
+              )}
+            </p>
+            {showingFeedback && isCorrect && (
+              <p className="text-center text-sm font-bold text-green-600">Correct !</p>
+            )}
+            {!answered && !showingFeedback && (
+              <PhoneNumpad
+                onDigit={(d) => setUserInput((v) => (v + d).slice(0, 5))}
+                onMinus={() =>
+                  setUserInput((v) => (v.startsWith('-') ? v.slice(1) : `-${v}`))
+                }
+                onBackspace={() => setUserInput((v) => v.slice(0, -1))}
+                onSubmit={handleSubmit}
+              />
+            )}
+          </div>
+        ) : (
         <div className="flex items-center gap-3 w-full max-w-md">
           <div className="flex-1 relative">
             <Input
@@ -739,7 +797,7 @@ export function ClockAngleTest() {
               }`}
             />
             {showingFeedback && !isCorrect && (
-              <p className="text-sm text-center mt-1 text-slate-500">
+              <p className="text-sm text-center mt-1 text-[#605a57]">
                 Reponse correcte : <span className="font-bold text-green-600">{targetAngle >= 0 ? '+' : ''}{targetAngle}</span>
               </p>
             )}
@@ -758,6 +816,7 @@ export function ClockAngleTest() {
             Valider
           </Button>
         </div>
+        )}
       </div>
     </div>
   );

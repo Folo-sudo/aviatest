@@ -79,9 +79,9 @@ export default function PerformanceChart({
   const stanineData = useMemo(() =>
     entries.map(e => ({
       date: new Date(e.date),
-      stanine: scoreToStanine(e.score),
+      stanine: scoreToStanine(e.score, exerciseId),
     })),
-    [entries]
+    [entries, exerciseId]
   );
 
   const dateLabels = useMemo(() => {
@@ -221,7 +221,7 @@ export function MiniPerformanceChart({ entries, exerciseId }: MiniPerformanceCha
   const cw = w - pad * 2;
   const ch = h - pad * 2;
 
-  const stanines = recent.map(e => scoreToStanine(e.score));
+  const stanines = recent.map(e => scoreToStanine(e.score, exerciseId));
 
   const toY = (v: number) => ch - ((v - 1) / 8) * ch;
   const toX = (i: number) => (i / (stanines.length - 1)) * cw;

@@ -5,6 +5,7 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -258,26 +259,26 @@ export default function CalculMental2Mobile() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-1">
+              <div className="bg-[#f7f5f3] rounded-lg p-3 text-sm text-[#605a57] space-y-1">
                 <p><strong>{settings.totalQuestions} operations</strong> a estimer.</p>
                 <p>Chaine de <strong>{settings.chainLength} termes</strong>.</p>
                 <p>Selectionnez le <strong>plus petit intervalle</strong> contenant le resultat.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">{settings.totalQuestions}</p>
-                  <p className="text-xs text-slate-500">Questions</p>
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                  <p className="text-xs text-[#605a57]">Questions</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">{settings.numChoices}</p>
-                  <p className="text-xs text-slate-500">Intervalles</p>
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">{settings.numChoices}</p>
+                  <p className="text-xs text-[#605a57]">Intervalles</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
-                  <p className="text-lg font-bold text-slate-700">
+                <div className="p-2 bg-[#f7f5f3] rounded-lg">
+                  <p className="text-lg font-bold text-[#37322f]">
                     {settings.timeLimitSec > 0 ? `${Math.floor(settings.timeLimitSec / 60)}m` : '\u221E'}
                   </p>
-                  <p className="text-xs text-slate-500">Temps</p>
+                  <p className="text-xs text-[#605a57]">Temps</p>
                 </div>
               </div>
 
@@ -333,7 +334,7 @@ export default function CalculMental2Mobile() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="text-xs text-slate-500 mt-0.5">Pas de correction entre les questions</p>
+                  <p className="text-xs text-[#605a57] mt-0.5">Pas de correction entre les questions</p>
                 </div>
                 <Switch checked={settings.examMode} onCheckedChange={v => setSettings(s => ({ ...s, examMode: v }))} />
               </div>
@@ -360,18 +361,14 @@ export default function CalculMental2Mobile() {
         <div className="max-w-lg mx-auto pt-4">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Resultats</CardTitle>
-              <Badge
-                variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-                className="text-base px-3 py-1 mt-2"
-              >
-                {scoreData.grade}
-              </Badge>
+              <CardTitle className="text-2xl">Résultats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-slate-700">{scoreData.score}%</p>
-              </div>
+              <ClassScoreBlock
+                exerciseId={'calcul-mental-2'}
+                percent={scoreData.score}
+                detail={`${totalCorrect}/${results.length} correctes`}
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-blue-50 rounded-lg text-center">
                   <p className="text-xl font-bold text-blue-600">{totalCorrect}/{results.length}</p>
@@ -384,15 +381,15 @@ export default function CalculMental2Mobile() {
               </div>
 
               <div className="space-y-2">
-                <p className="font-semibold text-slate-700 text-sm">Detail :</p>
+                <p className="font-semibold text-[#37322f] text-sm">Detail :</p>
                 <div className="max-h-56 overflow-y-auto space-y-1.5">
                   {results.map((r, i) => {
                     const correct = r.question.choices[r.question.correctIndex];
                     const selected = r.selectedIndex !== null ? r.question.choices[r.selectedIndex] : null;
                     return (
-                      <div key={i} className="bg-slate-50 rounded px-3 py-2 text-sm">
+                      <div key={i} className="bg-[#f7f5f3] rounded px-3 py-2 text-sm">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-slate-500">Q{i + 1}</span>
+                          <span className="text-[#605a57]">Q{i + 1}</span>
                           <span className={r.isCorrect ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
                             {r.isCorrect ? '\u2713' : '\u2717'}{' '}
                             {selected ? `[${selected.lower}, ${selected.upper}]` : '?'}
@@ -441,7 +438,7 @@ export default function CalculMental2Mobile() {
             {currentIdx + 1} / {settings.totalQuestions}
           </Badge>
           {settings.timeLimitSec > 0 && (
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-[#605a57]">
               {Math.floor(timeLeft / 60000)}:{String(Math.floor((timeLeft % 60000) / 1000)).padStart(2, '0')}
             </span>
           )}
@@ -451,7 +448,7 @@ export default function CalculMental2Mobile() {
           <div className="space-y-3">
             <Card className="py-4">
               <CardContent className="space-y-3 text-center">
-                <div className="flex flex-wrap justify-center gap-1 text-sm font-mono text-slate-500">
+                <div className="flex flex-wrap justify-center gap-1 text-sm font-mono text-[#605a57]">
                   {currentQ.terms.map((term, i) => (
                     <span key={i}>{term}</span>
                   ))}
@@ -482,7 +479,7 @@ export default function CalculMental2Mobile() {
                 } else if (isSelected) {
                   cls += 'border-red-500 bg-red-50 text-red-800';
                 } else {
-                  cls += 'border-slate-200 bg-white text-slate-500';
+                  cls += 'border-slate-200 bg-white text-[#605a57]';
                 }
                 return (
                   <div key={i} className={cls}>
@@ -503,7 +500,7 @@ export default function CalculMental2Mobile() {
             {/* Expression */}
             <Card className="py-4">
               <CardContent>
-                <p className="text-xs text-slate-500 mb-3 text-center">
+                <p className="text-xs text-[#605a57] mb-3 text-center">
                   Plus petit intervalle contenant le resultat :
                 </p>
                 <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 text-base font-bold text-slate-800 font-mono">
@@ -523,7 +520,7 @@ export default function CalculMental2Mobile() {
                   className={`text-left px-3 py-3 rounded-lg border-2 transition-all text-sm font-mono min-h-[48px]
                     ${selectedIdx === i
                       ? 'border-blue-500 bg-blue-50 text-blue-800'
-                      : 'border-slate-200 bg-white text-slate-700 active:bg-slate-50'
+                      : 'border-slate-200 bg-white text-[#37322f] active:bg-[#f7f5f3]'
                     }`}
                 >
                   <span className="text-slate-400 mr-1">{i + 1})</span>

@@ -4,13 +4,15 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { canvasPoint } from '@/lib/phone/canvasPoint';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 type GameState = 'menu' | 'settings' | 'rules' | 'playing' | 'results';
 
@@ -42,18 +44,50 @@ interface GameSettings {
 }
 
 const SHAPE_COLORS = { BLEU: '#3b82f6', ORANGE: '#f97316' };
+const SETTINGS_KEY = 'aviatest-shapes-colors-settings';
+const DEFAULT_SETTINGS: GameSettings = {
+  numShapes: 30,
+  cycleDuration: 3.0,
+  displayDuration: 0.5,
+  shapeSize: 150,
+};
+
+function loadShapeSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
 
 export function ShapesColorsTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const perfSavedRef = useRef(false);
+  const settingsReadyRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<GameSettings>({
-    numShapes: 30,
-    cycleDuration: 3.0,
-    displayDuration: 0.5,
-    shapeSize: 150
-  });
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    setSettings(loadShapeSettings());
+    const t = window.setTimeout(() => {
+      settingsReadyRef.current = true;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsReadyRef.current) return;
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      /* ignore */
+    }
+  }, [settings]);
 
   const [scorer] = useState(() => new Scorer());
   const [rules, setRules] = useState<Rule[]>([]);
@@ -188,7 +222,7 @@ export function ShapesColorsTest() {
         return;
       }
 
-      ctx.fillStyle = '#f3f4f6';
+      ctx.fillStyle = '#fbfaf9';
       ctx.fillRect(0, 0, width, height);
 
       ctx.fillStyle = '#ffffff';
@@ -288,10 +322,9 @@ export function ShapesColorsTest() {
   }, [gameState, currentShape, cycleStart, displayStart, settings, shapeIndex, scorer, userAnswered, lastFeedback, feedbackTime, nextShape]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const { x, y } = canvasPoint(e, canvas, width, height);
 
     const nRect = { x: width/2 - 80 - 40, y: height - 100 - 25, w: 80, h: 50 };
     const xRect = { x: width/2 + 80 - 40, y: height - 100 - 25, w: 80, h: 50 };
@@ -305,7 +338,7 @@ export function ShapesColorsTest() {
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Formes et Couleurs</CardTitle>
@@ -313,13 +346,13 @@ export function ShapesColorsTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.numShapes}</p>
-                <p className="text-sm text-slate-500">Formes</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numShapes}</p>
+                <p className="text-sm text-[#605a57]">Formes</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.cycleDuration}s</p>
-                <p className="text-sm text-slate-500">Intervalle</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.cycleDuration}s</p>
+                <p className="text-sm text-[#605a57]">Intervalle</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -335,7 +368,7 @@ export function ShapesColorsTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
           <CardContent className="space-y-6">
@@ -362,12 +395,12 @@ export function ShapesColorsTest() {
 
   if (gameState === 'rules') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-2xl">
-          <CardHeader><CardTitle className="text-2xl">Regles du Test</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-2xl">Règles du test</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             {rules.map((rule, i) => (
-              <div key={i} className="p-4 bg-slate-50 rounded-lg">
+              <div key={i} className="p-4 bg-[#f7f5f3] rounded-lg">
                 <p className="font-semibold mb-2">Regle {i + 1}: Si la forme est {rule.conditionValue}</p>
                 <ul className="list-disc ml-6">
                   {Object.entries(rule.subConditions).map(([cond, key]) => (
@@ -391,20 +424,20 @@ export function ShapesColorsTest() {
     }
     const perfEntries = loadEntries('shapes-colors');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={scoreData.accuracy >= 75 ? "default" : scoreData.accuracy >= 50 ? "secondary" : "destructive"} className="text-lg px-4 py-1">{scoreData.grade}</Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500">{scoreData.correct} / {scoreData.total} correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'shapes-colors'}
+              percent={scoreData.score}
+              detail={`${scoreData.correct} / ${scoreData.total} correctes`}
+            />
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="shapes-colors" />
                 </div>
@@ -422,8 +455,26 @@ export function ShapesColorsTest() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <canvas ref={canvasRef} width={width} height={height} onClick={handleCanvasClick} className="rounded-xl shadow-xl cursor-pointer" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-2 sm:p-4">
+      <canvas ref={canvasRef} width={width} height={height} onClick={handleCanvasClick} className="phone-scale rounded-xl shadow-xl cursor-pointer" />
+      {phone && (
+        <div className="mt-4 flex w-full max-w-sm gap-3 px-2">
+          <button
+            type="button"
+            onClick={() => handleAnswer('n')}
+            className="h-14 flex-1 rounded-2xl bg-[#37322f] text-lg font-semibold text-white shadow-sm"
+          >
+            N
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAnswer('x')}
+            className="h-14 flex-1 rounded-2xl bg-white text-lg font-semibold text-[#37322f] shadow-sm ring-1 ring-[#e0dedb]"
+          >
+            X
+          </button>
+        </div>
+      )}
     </div>
   );
 }

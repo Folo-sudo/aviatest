@@ -5,13 +5,15 @@ import { Scorer } from '@/lib/core/Scorer';
 import { Timer } from '@/lib/core/Timer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Play, Settings, RotateCcw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { canvasPoint } from '@/lib/phone/canvasPoint';
+import { usePhoneLayout } from '@/components/phone/PhoneLayout';
 
 type GameState = 'menu' | 'settings' | 'playing' | 'results';
 
@@ -33,18 +35,51 @@ interface GameSettings {
   maxValue: number;
 }
 
+const SETTINGS_KEY = 'aviatest-pair-impair-settings';
+const DEFAULT_SETTINGS: GameSettings = {
+  numbersPerCategory: 5,
+  timePerSeries: 60,
+  numSeries: 10,
+  minValue: 10,
+  maxValue: 999,
+};
+
+function loadPairSettings(): GameSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
 export function PairImpairTest() {
   const router = useRouter();
+  const phone = usePhoneLayout();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const perfSavedRef = useRef(false);
+  const settingsReadyRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>('menu');
-  const [settings, setSettings] = useState<GameSettings>({
-    numbersPerCategory: 5,
-    timePerSeries: 60,
-    numSeries: 10,
-    minValue: 10,
-    maxValue: 999
-  });
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    setSettings(loadPairSettings());
+    const t = window.setTimeout(() => {
+      settingsReadyRef.current = true;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsReadyRef.current) return;
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      /* ignore */
+    }
+  }, [settings]);
 
   const [scorer] = useState(() => new Scorer());
   const [circles, setCircles] = useState<NumberCircle[]>([]);
@@ -186,10 +221,12 @@ export function PairImpairTest() {
     if (currentIndex >= sequence.length) return;
 
     const expected = sequence[currentIndex];
+    const extra = phone ? 16 : 0;
     const clicked = circles.find(c => {
       const dx = x - c.x;
       const dy = y - c.y;
-      return dx * dx + dy * dy <= c.radius * c.radius;
+      const r = c.radius + extra;
+      return dx * dx + dy * dy <= r * r;
     });
 
     if (clicked && clicked.number === expected.number) {
@@ -207,7 +244,7 @@ export function PairImpairTest() {
       setErrorFlash(true);
       setTimeout(() => setErrorFlash(false), 200);
     }
-  }, [currentIndex, sequence, circles, completeSeries]);
+  }, [currentIndex, sequence, circles, completeSeries, phone]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -227,21 +264,21 @@ export function PairImpairTest() {
       }
 
       // Render
-      ctx.fillStyle = errorFlash ? '#ef4444' : '#f3f4f6';
+      ctx.fillStyle = errorFlash ? '#ef4444' : '#fbfaf9';
       ctx.fillRect(0, 0, width, height);
 
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.roundRect(20, 20, width - 40, height - 40, 16);
       ctx.fill();
-      ctx.strokeStyle = '#e5e7eb';
+      ctx.strokeStyle = '#e0dedb';
       ctx.lineWidth = 2;
       ctx.stroke();
 
       // Timer bar
       const timerBarWidth = 20;
       const timerBarHeight = height - 100;
-      ctx.fillStyle = '#1f2937';
+      ctx.fillStyle = '#37322f';
       ctx.beginPath();
       ctx.roundRect(35, 50, timerBarWidth, timerBarHeight, 10);
       ctx.fill();
@@ -255,7 +292,7 @@ export function PairImpairTest() {
 
       // Header
       ctx.font = '20px Inter, Arial';
-      ctx.fillStyle = '#1f2937';
+      ctx.fillStyle = '#37322f';
       ctx.textAlign = 'left';
       ctx.fillText(`Serie ${seriesCompleted + 1}/${settings.numSeries}`, 70, 40);
 
@@ -267,18 +304,9 @@ export function PairImpairTest() {
       ctx.fillText(`Temps: ${timer?.formatTime() || '00:00'}`, width / 2, 40);
 
       // Instructions
-      ctx.fillStyle = '#6b7280';
+      ctx.fillStyle = '#605a57';
       ctx.font = '16px Inter, Arial';
       ctx.fillText('PAIR → IMPAIR → PAIR → IMPAIR... (ordre croissant)', width / 2, 100);
-
-      // Expected sequence hint
-      let hint = 'Attendu: ';
-      for (let i = currentIndex; i < Math.min(currentIndex + 3, sequence.length); i++) {
-        hint += sequence[i].number + ' → ';
-      }
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '14px Inter, Arial';
-      ctx.fillText(hint, width / 2, 125);
 
       // Draw circles
       circles.forEach(circle => {
@@ -325,13 +353,13 @@ export function PairImpairTest() {
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    checkClick(e.clientX - rect.left, e.clientY - rect.top);
+    const { x, y } = canvasPoint(e, canvas, width, height);
+    checkClick(x, y);
   };
 
   if (gameState === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Pair ou Impair</CardTitle>
@@ -341,13 +369,13 @@ export function PairImpairTest() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.numSeries}</p>
-                <p className="text-sm text-slate-500">Series</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.numSeries}</p>
+                <p className="text-sm text-[#605a57]">Series</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-slate-700">{settings.timePerSeries}s</p>
-                <p className="text-sm text-slate-500">Par serie</p>
+              <div className="p-4 bg-[#f7f5f3] rounded-lg">
+                <p className="text-2xl font-bold text-[#37322f]">{settings.timePerSeries}s</p>
+                <p className="text-sm text-[#605a57]">Par serie</p>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -369,7 +397,7 @@ export function PairImpairTest() {
 
   if (gameState === 'settings') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader><CardTitle>Parametres</CardTitle></CardHeader>
           <CardContent className="space-y-6">
@@ -404,22 +432,20 @@ export function PairImpairTest() {
     }
     const perfEntries = loadEntries('pair-impair');
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge variant={scoreData.accuracy >= 75 ? "default" : scoreData.accuracy >= 50 ? "secondary" : "destructive"} className="text-lg px-4 py-1">
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-6xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="text-slate-500">{seriesCompleted} series completees</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'pair-impair'}
+              percent={scoreData.score}
+              detail={`${seriesCompleted} series completees`}
+            />
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-500 mb-2 text-center">Progression</p>
+                <p className="text-sm font-medium text-[#605a57] mb-2 text-center">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="pair-impair" />
                 </div>
@@ -443,8 +469,8 @@ export function PairImpairTest() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <canvas ref={canvasRef} width={width} height={height} onClick={handleCanvasClick} className="rounded-xl shadow-xl cursor-pointer" />
+    <div className="flex w-full flex-col items-center justify-center min-h-screen bg-[#fbfaf9] p-2 sm:p-4">
+      <canvas ref={canvasRef} width={width} height={height} onClick={handleCanvasClick} className="phone-scale rounded-xl shadow-xl cursor-pointer" />
     </div>
   );
 }

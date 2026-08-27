@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -1135,7 +1136,7 @@ export default function MathematiquesTest() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Mathematiques</CardTitle>
@@ -1145,7 +1146,7 @@ export default function MathematiquesTest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.totalQuestions} problemes</strong> a resoudre au papier, sans calculatrice.
               </p>
@@ -1162,19 +1163,19 @@ export default function MathematiquesTest() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.totalQuestions}</p>
-                <p className="text-xs text-slate-500">Questions</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.totalQuestions}</p>
+                <p className="text-xs text-[#605a57]">Questions</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">5</p>
-                <p className="text-xs text-slate-500">Choix</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">5</p>
+                <p className="text-xs text-[#605a57]">Choix</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">
                   {settings.timeLimitEnabled ? `${settings.timeLimitMin} min` : '∞'}
                 </p>
-                <p className="text-xs text-slate-500">Temps total</p>
+                <p className="text-xs text-[#605a57]">Temps total</p>
               </div>
             </div>
 
@@ -1206,7 +1207,7 @@ export default function MathematiquesTest() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -1228,7 +1229,7 @@ export default function MathematiquesTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Limiter le temps total</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Comme en conditions d&apos;examen</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Comme en conditions d&apos;examen</p>
                 </div>
                 <Switch
                   checked={settings.timeLimitEnabled}
@@ -1251,7 +1252,7 @@ export default function MathematiquesTest() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -1287,27 +1288,19 @@ export default function MathematiquesTest() {
     }
 
     const perfEntries = loadEntries('mathematiques');
-    const grade = percent >= 75 ? 'Excellent' : percent >= 50 ? 'Bien' : percent >= 25 ? 'Passable' : 'A revoir';
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={percent >= 75 ? 'default' : percent >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{percent}%</p>
-              <p className="mt-1 text-slate-500">
-                {correct} / {total} bonnes reponses
-              </p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'mathematiques'}
+              percent={percent}
+              detail={`${correct} / ${total} bonnes reponses`}
+            />
 
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg bg-green-50 p-3 text-center">
@@ -1318,9 +1311,9 @@ export default function MathematiquesTest() {
                 <p className="text-2xl font-bold text-red-600">{incorrect}</p>
                 <p className="text-xs text-red-700">Incorrect</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-600">{skipped}</p>
-                <p className="text-xs text-slate-500">Passe</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3 text-center">
+                <p className="text-2xl font-bold text-[#605a57]">{skipped}</p>
+                <p className="text-xs text-[#605a57]">Passe</p>
               </div>
             </div>
 
@@ -1330,15 +1323,15 @@ export default function MathematiquesTest() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-72 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => {
                   const correctAnswer = r.question.choices[r.question.correctIndex];
                   const selected = r.selectedIndex !== null ? r.question.choices[r.selectedIndex] : null;
                   return (
-                    <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                    <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                       <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="text-slate-500">
+                        <span className="text-[#605a57]">
                           Q{i + 1} · {r.question.category}
                         </span>
                         <span
@@ -1347,7 +1340,7 @@ export default function MathematiquesTest() {
                               ? 'font-semibold text-green-600'
                               : r.outcome === 'incorrect'
                                 ? 'font-semibold text-red-600'
-                                : 'font-semibold text-slate-500'
+                                : 'font-semibold text-[#605a57]'
                           }
                         >
                           {r.outcome === 'correct' ? '\u2713' : r.outcome === 'incorrect' ? '\u2717' : '\u2014'}{' '}
@@ -1357,7 +1350,7 @@ export default function MathematiquesTest() {
                           )}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500">{r.question.statement}</p>
+                      <p className="text-xs text-[#605a57]">{r.question.statement}</p>
                     </div>
                   );
                 })}
@@ -1366,7 +1359,7 @@ export default function MathematiquesTest() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="mathematiques" />
                 </div>
@@ -1395,7 +1388,7 @@ export default function MathematiquesTest() {
   const timerColor = timerPercent > 50 ? 'text-blue-600' : timerPercent > 20 ? 'text-amber-600' : 'text-red-600';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
       <div className="w-full max-w-2xl">
         <div className="mb-4 flex items-center justify-between">
           <Badge variant="outline" className="px-3 py-1 text-base">
@@ -1433,7 +1426,7 @@ export default function MathematiquesTest() {
                 const isSelected = selectedIdx === i;
                 const isCorrectChoice = showCorrection && i === currentQ.correctIndex;
                 let variantClass =
-                  'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50';
+                  'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-[#f7f5f3]';
                 if (isCorrectChoice) {
                   variantClass = 'border-green-500 bg-green-50 text-green-700';
                 } else if (isSelected && lastOutcome === 'incorrect') {
@@ -1458,7 +1451,7 @@ export default function MathematiquesTest() {
                 <button
                   type="button"
                   onClick={handleSkip}
-                  className="text-sm text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline"
+                  className="text-sm text-slate-400 underline-offset-2 hover:text-[#605a57] hover:underline"
                 >
                   Passer cette question
                 </button>
@@ -1466,14 +1459,14 @@ export default function MathematiquesTest() {
             )}
 
             {showCorrection && currentQ && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-xl border border-slate-200 bg-[#f7f5f3] p-4">
                 <p
                   className={`mb-2 text-center text-base font-semibold ${
                     lastOutcome === 'correct'
                       ? 'text-green-600'
                       : lastOutcome === 'incorrect'
                         ? 'text-red-600'
-                        : 'text-slate-600'
+                        : 'text-[#605a57]'
                   }`}
                 >
                   {lastOutcome === 'correct'
@@ -1482,7 +1475,7 @@ export default function MathematiquesTest() {
                       ? `\u2717 Incorrect — reponse : ${currentQ.choices[currentQ.correctIndex]}`
                       : `Reponse : ${currentQ.choices[currentQ.correctIndex]}`}
                 </p>
-                <div className="space-y-1 text-left text-sm text-slate-600">
+                <div className="space-y-1 text-left text-sm text-[#605a57]">
                   {currentQ.solutionSteps.split('\n').map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}

@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Scorer } from '@/lib/core/Scorer';
 import { savePerformanceResult, loadEntries } from '@/lib/core/PerformanceTracker';
 import { MiniPerformanceChart } from '@/components/PerformanceChart';
+import { ClassScoreBlock } from '@/components/ClassScoreBlock';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -365,7 +366,7 @@ export default function Attention1Test() {
   // =========================================================================
   if (gameState === 'menu') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Attention 1</CardTitle>
@@ -374,7 +375,7 @@ export default function Attention1Test() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="space-y-2 rounded-lg bg-[#f7f5f3] p-4 text-sm text-[#605a57]">
               <p>
                 <strong>{settings.numQuestions} series</strong> a memoriser.
               </p>
@@ -389,17 +390,17 @@ export default function Attention1Test() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{settings.numQuestions}</p>
-                <p className="text-xs text-slate-500">Series</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{settings.numQuestions}</p>
+                <p className="text-xs text-[#605a57]">Series</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">4</p>
-                <p className="text-xs text-slate-500">Questions/serie</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">4</p>
+                <p className="text-xs text-[#605a57]">Questions/serie</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-700">{(settings.memorizeMs / 1000).toFixed(1)}s</p>
-                <p className="text-xs text-slate-500">Memorisation</p>
+              <div className="rounded-lg bg-[#f7f5f3] p-3">
+                <p className="text-xl font-bold text-[#37322f]">{(settings.memorizeMs / 1000).toFixed(1)}s</p>
+                <p className="text-xs text-[#605a57]">Memorisation</p>
               </div>
             </div>
 
@@ -431,7 +432,7 @@ export default function Attention1Test() {
   // =========================================================================
   if (gameState === 'settings') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Parametres</CardTitle>
@@ -464,7 +465,7 @@ export default function Attention1Test() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode examen</Label>
-                  <p className="mt-0.5 text-xs text-slate-500">Pas de correction entre les questions</p>
+                  <p className="mt-0.5 text-xs text-[#605a57]">Pas de correction entre les questions</p>
                 </div>
                 <Switch
                   checked={settings.examMode}
@@ -501,22 +502,17 @@ export default function Attention1Test() {
     const perfEntries = loadEntries('attention-1');
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Resultats</CardTitle>
-            <Badge
-              variant={scoreData.accuracy >= 75 ? 'default' : scoreData.accuracy >= 50 ? 'secondary' : 'destructive'}
-              className="mt-2 px-4 py-1 text-lg"
-            >
-              {scoreData.grade}
-            </Badge>
+            <CardTitle className="text-3xl">Résultats</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-slate-700">{scoreData.score}%</p>
-              <p className="mt-1 text-slate-500">Reponses correctes</p>
-            </div>
+            <ClassScoreBlock
+              exerciseId={'attention-1'}
+              percent={scoreData.score}
+              detail={`${totalCorrect}/${results.length} correctes`}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-blue-50 p-4 text-center">
@@ -532,12 +528,12 @@ export default function Attention1Test() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-700">Detail par question :</p>
+              <p className="text-sm font-semibold text-[#37322f]">Detail par question :</p>
               <div className="max-h-64 space-y-1.5 overflow-y-auto">
                 {results.map((r, i) => (
-                  <div key={i} className="rounded bg-slate-50 px-3 py-2 text-sm">
+                  <div key={i} className="rounded bg-[#f7f5f3] px-3 py-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">
+                      <span className="text-[#605a57]">
                         S{r.seriesIdx + 1}.{r.probeIdx + 1}
                       </span>
                       <span className={r.isCorrect ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
@@ -555,7 +551,7 @@ export default function Attention1Test() {
 
             {perfEntries.length >= 2 && (
               <div className="border-t pt-4">
-                <p className="mb-2 text-center text-sm font-medium text-slate-500">Progression</p>
+                <p className="mb-2 text-center text-sm font-medium text-[#605a57]">Progression</p>
                 <div className="flex justify-center">
                   <MiniPerformanceChart entries={perfEntries} exerciseId="attention-1" />
                 </div>
@@ -583,7 +579,7 @@ export default function Attention1Test() {
   const currentProbe = currentSeries?.probes[probeIdx];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbfaf9] p-4">
       <div className="w-full max-w-lg">
         <div className="mb-4 flex items-center justify-between">
           <Badge variant="outline" className="bg-white px-3 py-1 text-base">
@@ -600,7 +596,7 @@ export default function Attention1Test() {
           <CardContent className="space-y-6">
             {phase === 'memorize' && currentSeries && (
               <>
-                <p className="text-center text-sm text-slate-500">Memorisez la position de chaque element</p>
+                <p className="text-center text-sm text-[#605a57]">Memorisez la position de chaque element</p>
                 <QuadrantGrid items={currentSeries.items} />
                 <div className="mx-auto h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200">
                   <div
@@ -613,7 +609,7 @@ export default function Attention1Test() {
 
             {(phase === 'probe' || phase === 'feedback') && currentProbe && (
               <>
-                <p className="text-center text-sm text-slate-500">
+                <p className="text-center text-sm text-[#605a57]">
                   Cet element etait-il present a cet emplacement ?
                 </p>
                 <QuadrantGrid highlight={currentProbe.quadrant} highlightItem={currentProbe.shownItem} />

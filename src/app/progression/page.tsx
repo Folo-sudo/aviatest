@@ -28,9 +28,9 @@ import {
   syncPseudoFromProfile,
 } from '@/lib/account/profile';
 
-function stanineBadge(score: number | null) {
+function stanineBadge(score: number | null, exerciseId?: string) {
   if (score === null) return null;
-  const s = scoreToStanine(score);
+  const s = scoreToStanine(score, exerciseId);
   let bg: string;
   let text: string;
   if (s >= 7) { bg = '#DBEAFE'; text = '#1E40AF'; }
@@ -47,11 +47,11 @@ function stanineBadge(score: number | null) {
   );
 }
 
-function scoreBadge(score: number | null) {
+function scoreBadge(score: number | null, exerciseId?: string) {
   if (score === null) {
     return <span className="text-xs text-slate-400">-</span>;
   }
-  return stanineBadge(score);
+  return stanineBadge(score, exerciseId);
 }
 
 export default function ProgressionPage() {
@@ -348,7 +348,7 @@ function ProgressionContent() {
                     </thead>
                     <tbody>
                       {exercisesWithStats.map(({ config, stats }) => {
-                        const stanAvg = scoreToStanine(stats.avgScore);
+                        const stanAvg = scoreToStanine(stats.avgScore, config.id);
                         return (
                           <tr key={config.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                             <td className="py-3 px-4">
@@ -359,7 +359,7 @@ function ProgressionContent() {
                             </td>
                             <td className="py-3 px-3">
                               <div className="flex items-center justify-center gap-1">
-                                {stanineBadge(stats.worstScore)}
+                                {stanineBadge(stats.worstScore, config.id)}
                                 <span
                                   className="inline-flex items-center justify-center w-8 h-8 rounded-md text-sm font-bold"
                                   style={{
@@ -369,21 +369,21 @@ function ProgressionContent() {
                                 >
                                   {stanAvg}
                                 </span>
-                                {stanineBadge(stats.bestScore)}
+                                {stanineBadge(stats.bestScore, config.id)}
                               </div>
                             </td>
                             <td className="py-3 px-3 text-center hidden md:table-cell">
                               {stats.last7DaysAvg !== null
-                                ? scoreBadge(stats.last7DaysAvg)
+                                ? scoreBadge(stats.last7DaysAvg, config.id)
                                 : <span className="text-xs text-slate-400">Pas de resultat<br />sur cette periode</span>}
                             </td>
                             <td className="py-3 px-3 text-center hidden md:table-cell">
                               {stats.last3DaysAvg !== null
-                                ? scoreBadge(stats.last3DaysAvg)
+                                ? scoreBadge(stats.last3DaysAvg, config.id)
                                 : <span className="text-xs text-slate-400">Pas de resultat<br />sur cette periode</span>}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              {scoreBadge(stats.lastScore)}
+                              {scoreBadge(stats.lastScore, config.id)}
                             </td>
                             <td className="py-3 px-3 text-center hidden md:table-cell">
                               {stats.avgTimeSec !== null ? (
