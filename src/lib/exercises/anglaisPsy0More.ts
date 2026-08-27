@@ -17,7 +17,7 @@ function q(
 }
 
 /** Items plus difficiles / autre mode de lecture — completer la banque principale. */
-export const MORE_EXTRA_ANGLAIS_BANK: AnglaisItem[] = [
+export const MORE_EXTRA_ANGLAIS_BANK = [
   // ---- Temps / aspect ----
   q('This time next week they ___ the type rating.', ['start', 'will start', 'will be starting', 'started'], 2, 'tense'),
   q('I would rather she ___ the radios during taxi.', ['handles', 'handled', 'to handle', 'handling'], 1, 'tense'),
@@ -232,7 +232,7 @@ export const MORE_EXTRA_ANGLAIS_BANK: AnglaisItem[] = [
   q('Which request is the most tentative?', ['I don\'t suppose you could move the slot, could you?', 'Move the slot.', 'Move it now.', 'You must move the slot.'], 0, 'register'),
 ];
 
-export const MORE_PASSAGES: { text: string; questions: Omit<AnglaisItem, 'kind' | 'passage'>[] }[] = [
+export const MORE_PASSAGES: { text: string; questions: { stem: string; choices: [string, string, string, string]; correct: number }[] }[] = [
   {
     text: 'Please note that airside driving permits issued before 2024 will no longer be accepted from 1 October. Holders must book a refresher on the training portal; the session lasts two hours and includes a short written test. Permits are not transferable. If you drive a contractor vehicle, your company safety officer must countersign the application. Questions received after 17:00 will be handled the next working day.',
     questions: [
